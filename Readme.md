@@ -1,4 +1,4 @@
-Metis is an open source JSON distibuted database with the **goal** of being a highly robust file-based database / storage solution capable of necessary functionality such as:
+Metis is an open source JSON distributed database with the **goal** of being a highly robust file-based database / storage solution capable of necessary functionality such as:
 
 1. Incredibly fast, non-blocking, file IO
 
