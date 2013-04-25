@@ -50,18 +50,14 @@
 					$connectionPassword = getNodeInfo($nodeList, $requestedNodeNumber, "Password"); // Connection Password
 					
 					if ($connectionType == "ftp"){ // If the node connection type is FTP...
-						$returnedEstablishedConnection = atlasui_ftp_login($connectionAddress, $connectionUsername, $connectionPassword); // Return the ftp_login from AtlasUI.
+						$connectionUseSSL = getNodeInfo($nodeList, $requestedNodeNumber, "Use SSL");
+						$returnedEstablishedConnection = atlasui_ftp_login($connectionAddress, $connectionUseSSL, $connectionUsername, $connectionPassword); // Return the ftp_login from AtlasUI.
 						
-						if (gettype($returnedEstablishedConnection) !== "string"){ // Since we are trying to ensure that the established connection is in fact the ftp object, check if its NOT a string.
-							if (ftp_chdir($returnedEstablishedConnection, $connectionPreferentialLocation)){ // If the preferential location exists and we're able to go to it.
-								return $returnedEstablishedConnection; // Return the established FTP connection.
-							}
-							else{ // If we are unable to navigate to the directory, either as a result of incorrect permissions or the Preferential Location not existing.
-								die("Error: Preferential Location does not exist."); // Die!
-							}
+						if (ftp_chdir($returnedEstablishedConnection, $connectionPreferentialLocation)){ // If the preferential location exists and we're able to go to it.
+							return $returnedEstablishedConnection; // Return the established FTP connection.
 						}
-						else{ // If the returned "established connection" is in fact a string, return the error message given.
-							die("Error: $returnedEstablishedConnection");
+						else{ // If we are unable to navigate to the directory, either as a result of incorrect permissions or the Preferential Location not existing.
+							die("Error: Preferential Location does not exist."); // Die!
 						}
 					}
 					elseif ($connectionType == "mysqli"){

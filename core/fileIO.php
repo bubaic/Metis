@@ -164,24 +164,30 @@
 	}
 	
 	function updateJsonFile($connectionArray, $fileName_Hashed, $fileDataArray){
-			$nodeList = fetchNodeList();
-			$fileData = json_encode($fileDataArray);
-			$temporaryFile = tmpfile();
-			file_put_contents($temporaryFile, $fileData);
+		$nodeList_Encoded = file_get_contents("Metis/nodeList.json") or die("Failed to get nodeList.json");
+		$nodeList = decodeJsonFile($nodeList_Encoded); //Get the node list as a multi-dimensional array.
+
+		$fileData = json_encode($fileDataArray);
+		$temporaryFile = tempnam("/tmp", "musf");
+		file_put_contents($temporaryFile, $fileData);
+		
+		foreach ($connectionArray as $key => $connectionNum){
+			$establishedFileConnection = establishConnection($connectionNum); // Establish a connection to delete the file.
+			$nodePreferentialLocation = getNodeInfo($nodeList, $connectionNum, "Preferential Location");
 			
-			foreach ($connectionArray as $key => $connectionNum){
-				$establishedFileConnection = establishConnection($connectionNum); // Establish a connection to delete the file.
-				
-				if (get_resource_type($establishedFileConnection) == "ftp"){
-					ftp_put($establishedFileConnection, $fileName_Hashed . ".json", $temporaryFile, FTP_BINARY, 0);
-				}
-				elseif ((get_resource_type($establishedFileConnection) == "string") && (strpos($establishedFileConnection, "local||") !== false)){
-					$nodePreferentialLocation = getNodeInfo($nodeList, $connectionNum, "Preferential Location");
-					
-					navigateToLocalMetisData();
-					file_put_contents($nodePreferentialLocation . "/" . $fileName_Hashed . ".json", $fileData);
-				}
+			if (gettype($establishedFileConnection) == "resource"){
+				ftp_put($establishedFileConnection, $fileName_Hashed . ".json", $temporaryFile, FTP_BINARY, 0);
 			}
+			elseif ((get_resource_type($establishedFileConnection) == "string") && (strpos($establishedFileConnection, "local||") !== false)){
+				navigateToLocalMetisData();
+				file_put_contents($nodePreferentialLocation . "/" . $fileName_Hashed . ".json", $fileData);
+			}
+			else{
+				die("Error: " . $establishedFileConnection);
+			}
+		}
+
+		unlink($temporaryFile);
 	}
 	
 	function deleteFile($connectionArray, $deleteFile_Location, $deleteFile_NotHashed){
