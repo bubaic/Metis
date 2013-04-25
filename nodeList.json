@@ -1,0 +1,23 @@
+{
+
+	"1" : {
+		"Node Name" : "Local Storage",
+		"Node Type" : "local",
+		"Address" : "",
+		"Username" : "",
+		"Password" : "",
+		"Preferential Location" : "folder_in_Metis_data"
+	},
+
+	"2" : {
+		"Node Name" : "FTP Storage",
+		"Node Type" : "ftp",
+		"Address" : "ftp.example.com",
+		"Username" : "username",
+		"Password" : "password",
+		"Preferential Location" : "folder"
+	},
+
+	// So on...
+
+}
