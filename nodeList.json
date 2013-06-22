@@ -3,7 +3,7 @@
 	"1" : {
 		"Node Name" : "Local Storage",
 		"Node Type" : "local",
-		"Address" : "",
+		"Address" : "/path/to/parent/directory",
 		"Username" : "",
 		"Password" : "",
 		"Preferential Location" : "folder_in_Metis_data"
@@ -15,9 +15,8 @@
 		"Address" : "ftp.example.com",
 		"Username" : "username",
 		"Password" : "password",
-		"Preferential Location" : "folder",
-        "Use SSL" : false
-	},
+		"Preferential Location" : "folder"
+	}
 
 	// So on...
 

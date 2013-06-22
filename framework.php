@@ -18,10 +18,13 @@
 		OF ANY KIND, either express or implied. See the License for the specific language governing 
 		permissions and limitations under the License.
 	*/
-	
+	error_reporting(E_ALL ^ E_NOTICE);
+	ini_set( 'display_errors', E_ALL ^ E_NOTICE); 
+
 	include("core/connection.php"); // Connection System
 	include("core/fileIO.php"); // File Input / Output, include encoding and decoding files
 	//include("core/querying.php"); // Metis Query System (SQL-Like Query For Doing Metis Stuff)
 	//include("core/security.php"); // Security (Functionality Not Yet Known Or Implemented)
 	
+	$nodeList = getNodeList();
 ?>

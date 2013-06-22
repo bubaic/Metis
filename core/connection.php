@@ -3,11 +3,12 @@
 	// These are Connection related functions for MetisDB.
 	
 	/* List of Functions, In Order, With Description:
+
+		getNodeList - Returns the json decoded nodeList, searches current working directory and it's parent directory for the nodeList.
+		
 		getNodeInfo - Returns the value of a parameter from a specific node.
 
 		establishConnection - This function returns a connection based on the requested node and node information. This function covers local file IO, FTP and MySQLi
-
-		timeIOConnection - This function returns the number of seconds & milliseconds it takes to connect to the requested node and create test file. It automatically deletes the file it wrote when testing the connection.
 
 		-----
 		
@@ -26,18 +27,59 @@
 		 limitations under the License.
 	*/
 	
-	function getNodeInfo($nodeList, $requestedNodeNumber, $requestedNodeParameter){
+	function getNodeList(){
+		$originalDirectory = getcwd();
+		$metisExistsInDirectory = false;
+		$directoryInWhichMetisExists = null;
+		$allowedDirectoryChecking = array(null, "..");
+		
+		foreach ($allowedDirectoryChecking as $key => $thisAllowedDirectory){	
+			if ($thisAllowedDirectory !== null){
+				chdir($thisAllowedDirectory);
+			}
+			
+			$currentWorkingDirectory = getcwd();
+			$currentWorkingDirectory_FileDirectoryList = scandir($currentWorkingDirectory);
+			
+			foreach($currentWorkingDirectory_FileDirectoryList as $key => $thisFileOrDirectory){
+				if ($thisFileOrDirectory == "Metis"){
+					if (is_dir($thisFileOrDirectory) == true){
+						$metisExistsInDirectory = true;
+						$directoryInWhichMetisExists = $thisAllowedDirectory;
+						break 2;
+					}
+				}
+			}
+			chdir($originalDirectory);
+		}
+				
+		if ($metisExistsInDirectory !== false){
+			chdir($originalDirectory);
+			if ($directoryInWhichMetisExists !== null){
+				chdir($directoryInWhichMetisExists);
+			}
+			$nodeList =  decodeJsonFile(file_get_contents("Metis/nodeList.json"));
+		}
+		else{
+			return "file_doesnt_exist";
+		}
+		
+		chdir($originalDirectory);
+		return $nodeList;
+	}
+	
+	function getNodeInfo(array $nodeList, $requestedNodeNumber, $requestedNodeParameter){
 		$requestedNodeParameter_Value = $nodeList[$requestedNodeNumber][$requestedNodeParameter]; // Assign the node parameter, from the requested node number, from a specified node list, to variable.
 		if ((isset($requestedNodeParameter_Value)) && ($requestedNodeParameter_Value !== "")){ // If the variable is set and is not null.
 			return $requestedNodeParameter_Value; // Return the value of the variable
 		}
 		else{
-			return "doesnt_exist"; // State it doesn't exist
+			return "$requestedNodeNumber -> $requestedNodeParameter doesnt_exist \n Maybe it is an issue with the nodeList. Please check the var dump: \n " . var_dump($nodeList); // State it doesn't exist
 		}
 	}
 	
 	function establishConnection($requestedNodeNumber){
-		$nodeList = decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Get the multi-dimensional array of the nodeList via decodeJsonFile.
+		global $nodeList; // Get the multi-dimensional array of the nodeList via decodeJsonFile.
 		if ($nodeList !== "file_doesnt_exist"){ // If the file does exist a.k.a does not have a value of "file_doesnt_exist".
 			
 			if (!empty($nodeList[$requestedNodeNumber])){ // If the node number exists (empty is used as it is an array).
@@ -45,72 +87,28 @@
 				$connectionAddress = getNodeInfo($nodeList, $requestedNodeNumber, "Address"); // Connection Address
 				$connectionPreferentialLocation = getNodeInfo($nodeList, $requestedNodeNumber, "Preferential Location"); // Preferred starting location or MySQL database.
 				
-				if ($connectionType == ("ftp" || "mysqli")){ // If the connection type is FTP or MySQL (uses MySQLi as mysql class will be deprecated in PHP).
+				if ($connectionType == "ftp"){ // If the connection type is FTP or MySQL (uses MySQLi as mysql class will be deprecated in PHP).
 					$connectionUsername = getNodeInfo($nodeList, $requestedNodeNumber, "Username"); // Connection Username
 					$connectionPassword = getNodeInfo($nodeList, $requestedNodeNumber, "Password"); // Connection Password
 					
-					if ($connectionType == "ftp"){ // If the node connection type is FTP...
-						$connectionUseSSL = getNodeInfo($nodeList, $requestedNodeNumber, "Use SSL");
-						$returnedEstablishedConnection = atlasui_ftp_login($connectionAddress, $connectionUseSSL, $connectionUsername, $connectionPassword); // Return the ftp_login from AtlasUI.
-						
-						if (ftp_chdir($returnedEstablishedConnection, $connectionPreferentialLocation)){ // If the preferential location exists and we're able to go to it.
-							return $returnedEstablishedConnection; // Return the established FTP connection.
-						}
-						else{ // If we are unable to navigate to the directory, either as a result of incorrect permissions or the Preferential Location not existing.
-							die("Error: Preferential Location does not exist."); // Die!
-						}
+					$connectionUseSSL = getNodeInfo($nodeList, $requestedNodeNumber, "Use SSL");
+					$returnedEstablishedConnection = atlasui_ftp_login($connectionAddress, $connectionUseSSL, $connectionUsername, $connectionPassword); // Return the ftp_login from AtlasUI.
+					
+					if (ftp_chdir($returnedEstablishedConnection, $connectionPreferentialLocation)){ // If the preferential location exists and we're able to go to it.
+						return $returnedEstablishedConnection; // Return the established FTP connection.
 					}
-					elseif ($connectionType == "mysqli"){
-						$returnedEstablishedConnection = atlasui_sql_connect("mysqli", $connectionAddress, $connectionPreferentialLocation, $connectionUsername, $connectionPassword);
-						return $returnedEstablishedConnection;
+					else{ // If we are unable to navigate to the directory, either as a result of incorrect permissions or the Preferential Location not existing.
+						return "Error: Preferential Location does not exist."; // Die!
 					}
-				}
-				elseif ($connectionType == "local"){
-					return "local||$connectionPreferentialLocation";
 				}
 			}
 			else{
-				return "There seems to be an issue with your nodeList. Please check the syntax to make sure its correct! The decoded form is: \n" . $nodeList;
+				return "There seems to be an issue with your nodeList. Please check the syntax to make sure its correct! The decoded form is: \n" . var_dump($nodeList);
 			}
 		}
 		else{
 			return "Current Directory: " . getcwd() . " | nodeList_not_found";
 		}
-	}
-	
-	function timeIOConnection($requestedServerNumber, $addRating = false){
-		$testFileName = "test" . rand(1, 1000); // Generate a file name, as rand could skew the results.
-		$testContent_Encode = array("test", array("test")); // Create an array that will be used for json encode in createFile.
-		
-		$startTimeStructure = date_create();
-		$currentTime = date_format($startTimeStructure, "s.u");
-		
-		createFile(array($requestedServerNumber), "test", $testFileName, $testContent_Encode);
-		
-		$endTimeStructure = date_create();
-		$endTime = date_format($endTimeStructure, "s.u");
-		
-		$totalIOTime = ($endTime - $currentTime); // End time minus beginning time to find the difference.
-		
-		if ($addRating !== false){
-			if ($totalIOTime >= 7){
-				$totalIOTime = $totalIOTime . "sec|dead";
-			}
-			elseif (($totalTime < 7) && ($totalTime >= 5)){
-				$totalIOTime = $totalIOTime . "sec|bad";
-			}
-			elseif (($totalTime < 5) && ($totalTime >= 3)){
-				$totalIOTime = $totalIOTime . "sec|ok";
-			}
-			else{
-				$totalIOTime = $totalIOTime . "sec|good";
-			}
-		}
-		else{
-			$totalIOTime = $totalIOTime . "sec";
-		}
-		
-		return $totalIOTime;
 	}
 		
 ?>
