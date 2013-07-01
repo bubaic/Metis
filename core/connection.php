@@ -87,11 +87,11 @@
 				$connectionAddress = getNodeInfo($nodeList, $requestedNodeNumber, "Address"); // Connection Address
 				$connectionPreferentialLocation = getNodeInfo($nodeList, $requestedNodeNumber, "Preferential Location"); // Preferred starting location or MySQL database.
 				
-				if ($connectionType == "ftp"){ // If the connection type is FTP or MySQL (uses MySQLi as mysql class will be deprecated in PHP).
+				if ($connectionType == "ftp"){ // If the connection type is FTP
 					$connectionUsername = getNodeInfo($nodeList, $requestedNodeNumber, "Username"); // Connection Username
 					$connectionPassword = getNodeInfo($nodeList, $requestedNodeNumber, "Password"); // Connection Password
-					
 					$connectionUseSSL = getNodeInfo($nodeList, $requestedNodeNumber, "Use SSL");
+					
 					$returnedEstablishedConnection = atlasui_ftp_login($connectionAddress, $connectionUseSSL, $connectionUsername, $connectionPassword); // Return the ftp_login from AtlasUI.
 					
 					if (ftp_chdir($returnedEstablishedConnection, $connectionPreferentialLocation)){ // If the preferential location exists and we're able to go to it.

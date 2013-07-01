@@ -15,9 +15,8 @@
 		"Address" : "ftp.example.com",
 		"Username" : "username",
 		"Password" : "password",
-		"Preferential Location" : "folder"
+		"Preferential Location" : "folder",
+		"Use SSL" :  false
 	}
-
-	// So on...
 
 }

@@ -80,41 +80,48 @@
 			if (atlasui_string_check($nodeType, array("ftp", "local")) == true){ // Make sure its either an FTP, MySQLi or local connection.
 							
 				if ($nodePreferentialLocation !== ""){ // If the Preferential Location is set.
-					navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
+				
+					if (strpos($nodeType, "local") !== false){
+						navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
+					}
 					
 					if (strpos(getcwd(), $nodePreferentialLocation) !== false){
-
 						if (atlasui_string_check($fileAction, array("r", "w", "a", "d")) !== false){
 							if ($nodeType == "ftp"){
 								$nodeConnection = establishConnection($nodeNum); // Establish a connection to create the file, since it's FTP and not local (which makes establishing a connection a logical step).
-								
-								if ($fileAction !== "d"){
-									$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.
+
+								if (gettype($nodeConnection) !== "string"){							
+									if ($fileAction !== "d"){
+										$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.
 							
-									if ($fileAction == "r"){
-										ftp_get($nodeConnection, $tempJsonFile, $fileName  . ".json", FTP_BINARY);
-										fseek($tempJsonFile, 0);
-										$fileContent =  file_get_contents($tempJsonFile);
-									}
-									else{
-										if($fileAction !== "a"){
-											fwrite($tempJsonFile, $jsonData); // Write the JSON data to the temporary file.
+										if ($fileAction == "r"){
+											ftp_get($nodeConnection, $tempJsonFile, $fileName  . ".json", FTP_BINARY);
+											fseek($tempJsonFile, 0);
+											$fileContent =  file_get_contents($tempJsonFile);
 										}
 										else{
-											ftp_get($nodeConnection, $tempJsonFile, $fileName  . ".json", FTP_BINARY);
-											$currentTempContent = readfile($tempJsonFile);
-											$jsonData = $currentTempContent . $jsonData;
-											fseek($tempJsonFile, 0);
-											fwrite($tempJsonFile, $jsonData);
-										}
+											if($fileAction !== "a"){
+												$fileContent = fwrite($tempJsonFile, $jsonData); // Write the JSON data to the temporary file.
+											}
+											else{
+												ftp_get($nodeConnection, $tempJsonFile, $fileName  . ".json", FTP_BINARY);
+												$currentTempContent = readfile($tempJsonFile);
+												$jsonData = $currentTempContent . $jsonData;
+												fseek($tempJsonFile, 0);
+												$fileContent = fwrite($tempJsonFile, $jsonData);
+											}
 								
-										fseek($tempJsonFile, 0); // Set the seek point to 0 so the entire file can be written to the FTP-based file.
-										ftp_nb_put($nodeConnection, $fileName . ".json", $tempJsonFile, FTP_BINARY, 0);
-										fclose($tempJsonFile);
+											fseek($tempJsonFile, 0); // Set the seek point to 0 so the entire file can be written to the FTP-based file.
+											ftp_put($nodeConnection, $fileName . ".json", $tempJsonFile, FTP_BINARY, 0);
+											fclose($tempJsonFile);
+										}
+									}
+									else{
+										ftp_delete($establishConnection, $fileName);
 									}
 								}
 								else{
-									ftp_delete($establishConnection, $fileName);
+									die("Error: Node Connection seemed to fail connecting or moving to the correct directory");
 								}
 							}
 							elseif ($nodeType == "local"){
@@ -184,7 +191,8 @@
 			$fileActionMode = "w";
 		}
 		
-		fileActionHandler($nodeArray, $fileName_NotHashed, $fileActionMode, $fileContent_JsonArray);
+		$updateResponse = fileActionHandler($nodeArray, $fileName_NotHashed, $fileActionMode, $fileContent_JsonArray);
+		return $updateResponse;
 	}
 	
 	function deleteJsonFile(array $nodeArray, $fileName_NotHashed){
