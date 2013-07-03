@@ -57,8 +57,8 @@
 		chdir("Metis"); // Jump into the Metis folder
 		chdir("data"); // Jump into the data folder.
 
-		if (chdir($nodePreferentialLocation) == false){
-			die("The folder called $nodePreferentialLocation does not exist in " . getcwd() . ". Remember to remove all slashes, we are saving to Metis/data."); // Output error relating to failed navigation.
+		if (chdir($nodePreferentialLocation) == false){ // If we failed to change directory to the local node's preferential location...
+			return 2.01; // Return the error code #2.01.
 		}
 	}
 	
@@ -70,106 +70,129 @@
 					
 		if ($fileContent_JsonArray !== null){
 			$jsonData = json_encode($fileContent_JsonArray); // Encode the multidimensional array as JSON
+			if ($jsonData === false){
+				return 3.01; // Return the error code #3.01.
+			}
 		}
 		
-		foreach ($nodeArray as $key => $nodeNum){
-			$nodeAddress = getNodeInfo($nodeList, $nodeNum, "Address");
-			$nodeType = getNodeInfo($nodeList, $nodeNum, "Node Type"); // Get the type of node that is being used.
-			$nodePreferentialLocation = getNodeInfo($nodeList, $nodeNum, "Preferential Location"); // Get the preferential location for the Node.
+		if ($nodeList !== 1.01){ // If the nodeList was successfully fetched, we'll continue our file IO process
+		
+			foreach ($nodeArray as $key => $nodeNum){
+				$nodeAddress = getNodeInfo($nodeList, $nodeNum, "Address");
+				$nodeType = getNodeInfo($nodeList, $nodeNum, "Node Type"); // Get the type of node that is being used.
+				$nodePreferentialLocation = getNodeInfo($nodeList, $nodeNum, "Preferential Location"); // Get the preferential location for the Node.
 			
-			if (atlasui_string_check($nodeType, array("ftp", "local")) == true){ // Make sure its either an FTP, MySQLi or local connection.
-							
-				if ($nodePreferentialLocation !== ""){ // If the Preferential Location is set.
+				if ($nodeType !== 1.03){ // If getting the node info did not fail
 				
-					if (strpos($nodeType, "local") !== false){
-						navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
-					}
-					
-					if (strpos(getcwd(), $nodePreferentialLocation) !== false){
-						if (atlasui_string_check($fileAction, array("r", "w", "a", "d")) !== false){
-							if ($nodeType == "ftp"){
-								$nodeConnection = establishConnection($nodeNum); // Establish a connection to create the file, since it's FTP and not local (which makes establishing a connection a logical step).
-
-								if (gettype($nodeConnection) !== "string"){							
-									if ($fileAction !== "d"){
-										$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.
+					if (atlasui_string_check($nodeType, array("ftp", "local")) == true){ // Make sure its either an FTP, MySQLi or local connection.
 							
-										if ($fileAction == "r"){
-											ftp_get($nodeConnection, $tempJsonFile, $fileName  . ".json", FTP_BINARY);
-											fseek($tempJsonFile, 0);
-											$fileContent =  file_get_contents($tempJsonFile);
+						if ($nodePreferentialLocation !== ""){ // If the Preferential Location is set.
+				
+							if (strpos($nodeType, "local") !== false){
+								navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
+							}
+					
+							if (strpos(getcwd(), $nodePreferentialLocation) !== false){
+								if (atlasui_string_check($fileAction, array("r", "w", "a", "d")) !== false){
+									if ($nodeType == "ftp"){
+										$nodeConnection = establishConnection($nodeNum); // Establish a connection to create the file, since it's FTP and not local (which makes establishing a connection a logical step).
+
+										if (gettype($nodeConnection) !== "string"){							
+											if ($fileAction !== "d"){
+												$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.
+							
+												if ($fileAction !== "a"){
+													ftp_get($nodeConnection, $tempJsonFile, $fileName  . ".json", FTP_BINARY); // Read the file, saving it into the temporary JSON file.
+													fseek($tempJsonFile, 0); // Go to the first character in the file.
+													$fileContent =  file_get_contents($tempJsonFile); // Read the contents into fileContent.
+												}
+													
+												if ($fileAction == "r"){ // If the file action is to just read the contents
+													fclose($tempJsonFile); // Close the temporary file
+													return $fileContent; // Go ahead and return the file content, skipping over unnecessary writing and uploading that file action "w" and "a" would do.
+												}
+												else{
+													if($fileAction == "w"){ // If the file action is to update but NOT include the current file contents (essentially, overwrite the file).
+														$fileContent = fwrite($tempJsonFile, $jsonData); // Write the JSON data to the temporary file.
+													}
+													else{ // If the file action is to update AND append the contents
+														$fileContent = $fileContent . $jsonData; // Append contents 
+														fseek($tempJsonFile, 0); // Seek back to beginning of temporary file
+														$fileContent = fwrite($tempJsonFile, $jsonData); // Write the new data to the temporary file
+													}
+							
+													fseek($tempJsonFile, 0); // Set the seek point to 0 so the entire file can be written to the FTP-based file.
+													ftp_put($nodeConnection, $fileName . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
+													fclose($tempJsonFile); // Close the temporary file
+												}
+											}
+											else{ // If the file action is to delete
+												ftp_delete($establishConnection, $fileName); // Delete the file.
+											}
 										}
 										else{
-											if($fileAction !== "a"){
-												$fileContent = fwrite($tempJsonFile, $jsonData); // Write the JSON data to the temporary file.
-											}
-											else{
-												ftp_get($nodeConnection, $tempJsonFile, $fileName  . ".json", FTP_BINARY);
-												$currentTempContent = readfile($tempJsonFile);
-												$jsonData = $currentTempContent . $jsonData;
-												fseek($tempJsonFile, 0);
-												$fileContent = fwrite($tempJsonFile, $jsonData);
-											}
-								
-											fseek($tempJsonFile, 0); // Set the seek point to 0 so the entire file can be written to the FTP-based file.
-											ftp_put($nodeConnection, $fileName . ".json", $tempJsonFile, FTP_BINARY, 0);
-											fclose($tempJsonFile);
+											return $nodeConnection; // As we don't know for certain if this is a connection or ftp_chdir issue, we'll return the error code carried over from establishConnection().
 										}
 									}
-									else{
-										ftp_delete($establishConnection, $fileName);
+									elseif ($nodeType == "local"){
+										if ($fileAction == "r"){
+											$fileContent = file_get_contents($fileName . ".json");
+											if ($fileContent == false){
+												return 2.05; // Return the error code #2.05.
+											}
+										}
+										elseif($fileAction !== "d"){
+											$fileHandler = fopen($fileName . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags.
+							
+											if ($fileHandler !== false){
+												if ($fileAction == "a"){
+													$currentFileContent = readfile($fileHandler);
+													$jsonData = $currentFileContent . $jsonData;
+												}
+							
+												fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
+												fclose($fileHandler); // Close the file location.
+											}
+											else{
+												return 2.05; // Return the error code #2.05.
+											}
+										}
+										else{
+											unlink($fileName);
+										}
 									}
 								}
-								else{
-									die("Error: Node Connection seemed to fail connecting or moving to the correct directory");
-								}
+						
+								chdir($originalDirectory);
+								return $fileContent;
 							}
-							elseif ($nodeType == "local"){
-								if ($fileAction == "r"){
-									$fileContent = file_get_contents($fileName . ".json");
-									if ($fileContent == false){
-										$fileContent = "file_doesnt_exist_on_this_node";
-									}
-								}
-								elseif($fileAction !== "d"){
-									$fileHandler = fopen($fileName . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags.
-							
-									if ($fileAction == "a"){
-										$currentFileContent = readfile($fileHandler);
-										$jsonData = $currentFileContent . $jsonData;
-									}
-							
-									fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
-									fclose($fileHandler); // Close the file location.
-								}
-								else{
-									unlink($fileName);
-								}
+							else{
+								return false;
 							}
 						}
-						
-						chdir($originalDirectory);
-						return $fileContent;
+						else{ // If the Preferential Location is blank...
+							return 2.03;  // Return the error code #2.03;
+						}
 					}
 					else{
-						return false;
+						return 2.02; // Return the error code #2.02;
 					}
 				}
-				else{ // If the Preferential Location is blank...
-					return "You must specify a Preferential Location for Node Number: $nodeNumber"; // Output error relating to no set preferential location.
+				else{ // If it failed to get the nodeType.
+					return 1.03; // Return the error code #1.03.
 				}
 			}
-			else{
-				return "You must specify the Node Type as either FTP or local for File IO.";
-			}
+		}
+		else{ // If the nodeList is not valid / doesn't exist.
+			return 1.01; // Return the error code #1.01;
 		}
 	}
 	
 	function decodeJsonFile($jsonEncoded_Content){
 		$jsonDecodedValue = json_decode($jsonEncoded_Content, true); // This decodes the JSON formatted string into a multi-dimensional array.
 
-		if ($jsonDecodedValue == (NULL || null)){
-			$jsonDecodedValue = json_last_error();
+		if ($jsonDecodedValue == (false || NULL || null)){ // If the decoded has failed.
+			$jsonDecodedValue = 2.06; // Return the error code #2.06.
 		}
 
 		return $jsonDecodedValue;
