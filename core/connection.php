@@ -28,36 +28,59 @@
 	*/
 	
 	function getNodeList(){
+		$phpRoot = $_SERVER['DOCUMENT_ROOT']; // Get the server root, which we'll use to determine at what point we should stop doing recursive checking.
 		$originalDirectory = getcwd(); // Get the current working directory so we can change back to it after fetching the node list.
+		$numberOfAttempts = 0; // Set the number of attempts to try to find the Metis directory (every attempt look's at a prior parent directory)
+		$currentSearchDirectory = null; // Set the current search directory. This is used to track our progress as we move up the file system.
 		$metisExistsInDirectory = false; // Preemptive setting of metisExistsInDirectory to false. If we find Metis folder in a directory, we set it to true.
-		$directoryInWhichMetisExists = null; // Set the directoryInWhichMetisExists to null. If the metisExistsInDirectory = true, we assign that directory to this variable.
-		$allowedDirectoryChecking = array(null, ".."); // Allowed directory checking permits checking current working directory and it's parent directory.
-		
-		foreach ($allowedDirectoryChecking as $key => $thisAllowedDirectory){	
-			if ($thisAllowedDirectory !== null){ // Essentially, if it is "..", then it'll chdir to the parent directory.
-				chdir($thisAllowedDirectory);
+
+		while ($numberOfAttempts < 6){
+			if ($currentSearchDirectory !== null){ // If the current search directory is NOT null (as in it has already searched the originalDirectory)
+				chdir($currentSearchDirectory); // Move to the currentSearchDirectory (as defined at the end of the while loop).
 			}
 			
 			$currentWorkingDirectory = getcwd(); // Get the current working directory for the purpose of scanning.
 			$currentWorkingDirectory_FileDirectoryList = scandir($currentWorkingDirectory); // Scan the directory (currentWorkingDirectory_FileDirectoryList is then an array)
-			
+		
 			foreach($currentWorkingDirectory_FileDirectoryList as $key => $thisFileOrDirectory){ // For each item in the array
 				if ($thisFileOrDirectory == "Metis"){ // If the item is called "Metis"
 					if (is_dir($thisFileOrDirectory) == true){ // Lets make sure someone isn't being silly by naming a file "Metis"
 						$metisExistsInDirectory = true; // Assign the metisExistsInDirectory to true
-						$directoryInWhichMetisExists = $thisAllowedDirectory; // Assign the current working directory to directoryInWhichMetisExists.
-						break 2; // Break out of the two foreach loops, no sense in continuing the scanning of the directory.
+						break 2; // Break out of the foreach and while loop. As we have the currentSearchDirectory saved, we do not need to do some sort of unnecessary re-assigning of that variable.
 					}
 				}
 			}
-			chdir($originalDirectory); // Move to the original directory. This really just occurs if Metis isn't found in the directory.
+			
+			if ($currentSearchDirectory == null){ // If the currentSearchDirectory is the originalDirectory
+				if ($originalDirectory !== $phpRoot){ // We make sure that the originalDirectory is not the PHP root.
+					$currentSearchDirectory = "../"; // Change the currentSearchDirectory to search the parent of the currentWorkingDirectory.
+				}
+				else{ // We are already at the PHP root...
+					$metisExistsInDirectory = false;
+					break 1;
+				}
+			}
+			else{ // If the currentSearchDirectory is not the originalDirectory (ie. the directory we were first starting out in)
+				if ($currentWorkingDirectory !== $phpRoot){ // We make sure the current working directory is not the PHP root.
+					$currentSearchDirectory = $currentSearchDirectory . "../";
+				}
+				else{ // We are already at the PHP root...
+					$metisExistsInDirectory = false;
+					break 1;
+				}
+			}
+			
+			chdir($originalDirectory); // Reset our location
+			$numberOfAttempts = $numberOfAttempts + 1; // Assuming we got this far in the function, add one to the numberOfAttempts to make sure we don't forever do recursive navigating.
 		}
-				
+		
 		if ($metisExistsInDirectory !== false){ // If Metis DOES exist somewhere that we've searched...
 			chdir($originalDirectory); // Move to the original working directory (used once again just to make sure we're there).
-			if ($directoryInWhichMetisExists !== null){ // If the directoryInWhichMetisExists is not null (never should be null, but check anyway)
-				chdir($directoryInWhichMetisExists);  // Move to the directory that Metis is in.
+			
+			if ($currentSearchDirectory !== null){ // If the directory where Metis was found is NOT the originalDirectory
+				chdir($currentSearchDirectory);  // Move to the directory that Metis is in (by navigating up the filesystem tree to the directory that Metis exists in
 			}
+			
 			$nodeList =  decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Read the nodeList.json from the Metis folder and have it decoded into a multi-dimensional array (assigned to nodeList).
 		}
 		else{
