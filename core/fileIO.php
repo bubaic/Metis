@@ -183,7 +183,12 @@
 							chdir($originalDirectory);
 							
 							if ($fileAction == "r"){
-								return "{" . substr($fileContent, 0, -1) . "}";
+								if ($multiFile == false){
+									return $fileContent;
+								}
+								else{
+									return "{" . substr($fileContent, 0, -1) . "}";
+								}
 							}
 						}
 						else{ // If the Preferential Location is blank...
