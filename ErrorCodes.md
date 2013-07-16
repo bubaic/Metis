@@ -17,6 +17,7 @@ that the error is the result of failing to read a file (necessary for updating w
 - 2.01 - Failure to navigate to the preferential navigation of the local node. (*As FTP preferential location changes in establishConnection(), if there is an error it will return #1.04*)
 - 2.02 - The node's type is not "local" or "ftp".
 - 2.03 - The node's preferential location is empty (string length is 0).
+- 2.04 - Files defined for interaction are not strings.
 - 2.05 - File does not exist.
 - 2.06 - Json Decoding has failed (refer to [PHP documentation](http://php.net/manual/en/function.json-decode.php)). You may want to use json_last_error() to find the issue.
 
