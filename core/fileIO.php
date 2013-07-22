@@ -103,7 +103,7 @@
 									$fileName_Hashed = fileHashing($fileName_NotHashed); // Generate the hashed file name.		
 									$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.		
 							
-									if ($fileAction == ("r" || "a")){
+									if (atlasui_string_check($fileAction, array("r" || "a")) !== false){
 										if ($nodeType == "local"){
 											$thisFileContent = file_get_contents($fileName_Hashed . ".json"); // Read the file
 									
@@ -135,6 +135,8 @@
 												if ($fileHandler !== false){ // If we successfully opened the file for writing
 													fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
 													fclose($fileHandler); // Close the file location.
+													touch($fileName_Hashed . ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
+													return "0.00"; // Return success code
 												}
 												else{
 													return 2.05; // Return the error code #2.05.
@@ -144,16 +146,18 @@
 												fseek($tempJsonFile, 0); // Seek back to beginning of temporary file
 												fwrite($tempJsonFile, $jsonData); // Write the new data to the temporary file
 												ftp_put($nodeConnection, $fileName_Hashed . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
+												return "0.00"; // Return success code
 											}
 										}
 									}
 									elseif ($fileAction == "w"){
 										if ($nodeType == "local"){ // If we are writing to a local file
-											$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags.
+											$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags).
 										
 											if ($fileHandler !== false){ // If we successfully opened the file for writing
 												fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
 												fclose($fileHandler); // Close the file location.
+												return "0.00"; // Success...
 											}
 											else{
 												return 2.05; // Return the error code #2.05.
@@ -162,14 +166,25 @@
 										else{ // If the file isn't local, it is accessible via FTP
 											fwrite($tempJsonFile, $jsonData); // Write the JSON data to the temporary file.
 											ftp_put($nodeConnection, $fileName_Hashed . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
+											return "0.00"; // Success...
 										}								
 									}
 									else{ // If the fileAction == "d" (last option), then we're deleting files
 										if ($nodeType == "local"){
-											unlink($fileName);
+											if (unlink($fileName_Hashed . ".json") !== false){ // If deleting the file is a success
+												return "0.00"; // Return success code
+											}
+											else{
+												return 4.01; // Return error code for deletion
+											}
 										}
 										else{
-											ftp_delete($establishConnection, $fileName); // Delete the file.
+											if (ftp_delete($establishConnection, $fileName_Hashed . ".json") !== false){ // If deleting the file via FTP is a success
+												return 0.011; // Return the success code
+											}
+											else{
+												return 4.01; // Return error code for deletion
+											}
 										}
 									}
 								
@@ -227,7 +242,7 @@
 		return fileActionHandler($nodeNum, $files, "r"); // Return the JSON file or error code from fileActionHandler
 	}
 	
-	function updateJsonFile($nodeNum, $fileName_NotHashed, array $fileContent_JsonArray, $fileAppend = false){
+	function updateJsonFile($nodeNum, array $fileName_NotHashed, array $fileContent_JsonArray, $fileAppend = false){
 		if ($fileAppend == true){
 			$fileActionMode = "a";
 		}
@@ -235,8 +250,7 @@
 			$fileActionMode = "w";
 		}
 		
-		$updateResponse = fileActionHandler($nodeNum, $fileName_NotHashed, $fileActionMode, $fileContent_JsonArray);
-		return $updateResponse;
+		return fileActionHandler($nodeNum, $fileName_NotHashed, $fileActionMode, $fileContent_JsonArray);
 	}
 	
 	function deleteJsonFile($nodeNum, $fileName_NotHashed){
