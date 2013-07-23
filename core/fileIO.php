@@ -51,7 +51,7 @@
 	}
 	
 	function navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation){
-		$suppressErrors = chdir($_SERVER['DOCUMENT_ROOT'] . "/" . $nodeAddress);
+		chdir($_SERVER['DOCUMENT_ROOT'] . "/" . $nodeAddress);
 		chdir("Metis"); // Jump into the Metis folder
 		chdir("data"); // Jump into the data folder.
 
@@ -74,7 +74,7 @@
 		
 		if ($fileContent_JsonArray !== null){
 			$jsonData = json_encode($fileContent_JsonArray); // Encode the multidimensional array as JSON
-			if ($jsonData === false){
+			if ($jsonData == false){
 				return 3.01; // Return the error code #3.01.
 			}
 		}
@@ -152,7 +152,7 @@
 									}
 									elseif ($fileAction == "w"){
 										if ($nodeType == "local"){ // If we are writing to a local file
-											$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags).
+											$fileHandler = fopen($fileName_Hashed . ".json", "x"); // Create a file handler (open the file with the requested fileAction and NO flags).
 										
 											if ($fileHandler !== false){ // If we successfully opened the file for writing
 												fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
@@ -167,7 +167,7 @@
 											fwrite($tempJsonFile, $jsonData); // Write the JSON data to the temporary file.
 											ftp_put($nodeConnection, $fileName_Hashed . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
 											return "0.00"; // Success...
-										}								
+										}
 									}
 									else{ // If the fileAction == "d" (last option), then we're deleting files
 										if ($nodeType == "local"){
@@ -235,14 +235,14 @@
 	}
 	
 	function createJsonFile($nodeNum, array $files, array $fileContent_JsonArray){
-		fileActionHandler($nodeNum, $fileName_NotHashed, "w", $fileContent_JsonArray);
+		return fileActionHandler($nodeNum, $files, "w", $fileContent_JsonArray);
 	}
 	
 	function readJsonFile($nodeNum, array $files){ // This function is an abstraction for reading files and offers multi-file reading functionality
 		return fileActionHandler($nodeNum, $files, "r"); // Return the JSON file or error code from fileActionHandler
 	}
 	
-	function updateJsonFile($nodeNum, array $fileName_NotHashed, array $fileContent_JsonArray, $fileAppend = false){
+	function updateJsonFile($nodeNum, array $files, array $fileContent_JsonArray, $fileAppend = false){
 		if ($fileAppend == true){
 			$fileActionMode = "a";
 		}
@@ -250,7 +250,7 @@
 			$fileActionMode = "w";
 		}
 		
-		return fileActionHandler($nodeNum, $fileName_NotHashed, $fileActionMode, $fileContent_JsonArray);
+		return fileActionHandler($nodeNum, $files, $fileActionMode, $fileContent_JsonArray);
 	}
 	
 	function deleteJsonFile($nodeNum, $fileName_NotHashed){
