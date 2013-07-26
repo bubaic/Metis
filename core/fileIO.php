@@ -152,7 +152,7 @@
 									}
 									elseif ($fileAction == "w"){
 										if ($nodeType == "local"){ // If we are writing to a local file
-											$fileHandler = fopen($fileName_Hashed . ".json", "x"); // Create a file handler (open the file with the requested fileAction and NO flags).
+											$fileHandler = fopen($fileName_Hashed . ".json", "c"); // Create a file handler (open the file with the requested fileAction and NO flags).
 										
 											if ($fileHandler !== false){ // If we successfully opened the file for writing
 												fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
