@@ -71,14 +71,7 @@
 		else{ // If we are interacting with a multitude of files
 			$multiFile = true; // We are dealing with multiple files, so multiFile needs to be set to true
 		}
-		
-		if ($fileContent_JsonArray !== null){
-			$jsonData = json_encode($fileContent_JsonArray); // Encode the multidimensional array as JSON
-			if ($jsonData == false){
-				return 3.01; // Return the error code #3.01.
-			}
-		}
-		
+			
 		if ($nodeList !== 1.01){ // If the nodeList was successfully fetched, we'll continue our file IO process
 			if (atlasui_string_check($fileAction, array("r", "w", "a", "d")) !== false){
 				$nodeAddress = getNodeInfo($nodeList, $nodeNum, "Address");
@@ -128,7 +121,9 @@
 											}
 										}
 										elseif ($fileAction == "a"){
-											$jsonData = $fileContent . $jsonData; // Append the JSON data to the current file content (appending)
+											$jsonData = array_merge(json_decode($thisFileContent, true), $fileContent_JsonArray); // Merge the two arrays (prior to that, decode the contents of the fetched file)
+											$jsonData = json_encode($jsonData); // Convert back to JSON for writing.
+											
 											if ($nodeType == "local"){
 												$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags.
 											
@@ -151,6 +146,13 @@
 										}
 									}
 									elseif ($fileAction == "w"){
+										if ($fileContent_JsonArray !== null){
+											$jsonData = json_encode($fileContent_JsonArray); // Encode the multidimensional array as JSON
+											if ($jsonData == false){
+												return 3.01; // Return the error code #3.01.
+											}
+										}
+										
 										if ($nodeType == "local"){ // If we are writing to a local file
 											$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags).
 										
@@ -243,7 +245,7 @@
 	}
 	
 	function updateJsonFile($nodeNum, array $files, array $fileContent_JsonArray, $fileAppend = false){
-		if ($fileAppend == true){
+		if ($fileAppend !== false){
 			$fileActionMode = "a";
 		}
 		else{
