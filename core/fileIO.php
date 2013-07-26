@@ -103,7 +103,7 @@
 									$fileName_Hashed = fileHashing($fileName_NotHashed); // Generate the hashed file name.		
 									$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.		
 							
-									if ($fileAction == ("r" || "a")){
+									if (($fileAction == "r") || ($fileAction == "a")){
 										if ($nodeType == "local"){
 											$thisFileContent = file_get_contents($fileName_Hashed . ".json"); // Read the file
 									
@@ -152,7 +152,7 @@
 									}
 									elseif ($fileAction == "w"){
 										if ($nodeType == "local"){ // If we are writing to a local file
-											$fileHandler = fopen($fileName_Hashed . ".json", "c"); // Create a file handler (open the file with the requested fileAction and NO flags).
+											$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler (open the file with the requested fileAction and NO flags).
 										
 											if ($fileHandler !== false){ // If we successfully opened the file for writing
 												fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
