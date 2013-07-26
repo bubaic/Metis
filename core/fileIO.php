@@ -103,7 +103,7 @@
 									$fileName_Hashed = fileHashing($fileName_NotHashed); // Generate the hashed file name.		
 									$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.		
 							
-									if (atlasui_string_check($fileAction, array("r" || "a")) !== false){
+									if ($fileAction == ("r" || "a")){
 										if ($nodeType == "local"){
 											$thisFileContent = file_get_contents($fileName_Hashed . ".json"); // Read the file
 									
@@ -180,7 +180,7 @@
 										}
 										else{
 											if (ftp_delete($establishConnection, $fileName_Hashed . ".json") !== false){ // If deleting the file via FTP is a success
-												return 0.011; // Return the success code
+												return "0.00"; // Return the success code
 											}
 											else{
 												return 4.01; // Return error code for deletion
