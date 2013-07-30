@@ -81,8 +81,8 @@
 				if ($nodeAddress !== 1.03){ // If getting the node info did not fail
 				
 					if (atlasui_string_check($nodeType, array("ftp", "local")) == true){ // Make sure its either an FTP or local connection.
-					
-						if ($nodePreferentialLocation !== ""){ // If the node's preferential location is not empty
+
+					if ($nodePreferentialLocation !== ""){ // If the node's preferential location is not empty
 						
 							if ($nodeType == "local"){
 								navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
@@ -91,11 +91,14 @@
 								$nodeConnection = establishConnection($nodeNum); // Establish a connection to create the file, since it's FTP and not local (which makes establishing a connection a logical step).
 							}
 							
-							if (($nodeType == "local") || (($nodeType == "ftp") && (gettype($nodeConnection) !== "string"))){		
+							if (($nodeType == "local") || (($nodeType == "ftp") && (gettype($nodeConnection) !== ("string" || "int")))){		
 								foreach ($files as $fileName_NotHashed){
 									$fileName_Hashed = fileHashing($fileName_NotHashed); // Generate the hashed file name.		
+
 									$tempJsonFile = tmpfile(); // Create a temporary file to store the JSON info in.		
-							
+									$tempJsonFile_Metadata = stream_get_meta_data($tempJsonFile); // Get the metadata of our newly created JSON file.
+									$tempJsonFile_Location = $tempJsonFile_Metadata["uri"]; // Get the location from the metadata of our tempJsonFile_Location
+						
 									if (($fileAction == "r") || ($fileAction == "a")){
 										if ($nodeType == "local"){
 											$thisFileContent = file_get_contents($fileName_Hashed . ".json"); // Read the file
@@ -105,11 +108,9 @@
 											}
 										}
 										elseif ($nodeType == "ftp"){
-											ftp_get($nodeConnection, $tempJsonFile, $fileName_Hashed  . ".json", FTP_BINARY); // Read the file, saving it into the temporary JSON file.
+											ftp_fget($nodeConnection, $tempJsonFile, $fileName_Hashed  . ".json", FTP_BINARY, 0); // Read the file, saving it into the temporary JSON file.
 											fseek($tempJsonFile, 0); // Go to the first character in the file.
-											$thisFileContent =  file_get_contents($tempJsonFile); // Read the contents into fileContent.
-										
-											fclose($tempJsonFile); // Close the temporary file
+											$thisFileContent =  fread($tempJsonFile, filesize($tempJsonFile_Location)); // Read the contents into fileContent.
 										}
 									
 										if ($fileAction == "r"){								
@@ -140,7 +141,8 @@
 											else{
 												fseek($tempJsonFile, 0); // Seek back to beginning of temporary file
 												fwrite($tempJsonFile, $jsonData); // Write the new data to the temporary file
-												ftp_put($nodeConnection, $fileName_Hashed . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
+												fseek($tempJsonFile, 0); // After writing, seek to the beginning of the file.
+												ftp_fput($nodeConnection, $fileName_Hashed . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
 												return "0.00"; // Return success code
 											}
 										}
@@ -167,7 +169,8 @@
 										}
 										else{ // If the file isn't local, it is accessible via FTP
 											fwrite($tempJsonFile, $jsonData); // Write the JSON data to the temporary file.
-											ftp_put($nodeConnection, $fileName_Hashed . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
+											fseek($tempJsonFile, 0); // After writing, seek to the beginning of the file.
+											ftp_fput($nodeConnection, $fileName_Hashed . ".json", $tempJsonFile, FTP_BINARY, 0); // Upload the new file contents as that JSON file
 											return "0.00"; // Success...
 										}
 									}
@@ -181,7 +184,7 @@
 											}
 										}
 										else{
-											if (ftp_delete($establishConnection, $fileName_Hashed . ".json") !== false){ // If deleting the file via FTP is a success
+											if (ftp_delete($nodeConnection, $fileName_Hashed . ".json") !== false){ // If deleting the file via FTP is a success
 												return "0.00"; // Return the success code
 											}
 											else{
@@ -255,28 +258,31 @@
 		return fileActionHandler($nodeNum, $files, $fileActionMode, $fileContent_JsonArray);
 	}
 	
-	function deleteJsonFile($nodeNum, $fileName_NotHashed){
-		fileActionHandler($nodeNum, $fileName_NotHashed, "d");
+	function deleteJsonFile($nodeNum, array $files){
+		return fileActionHandler($nodeNum, $files, "d");
 	}
 	
 	function replicator($nodeSource, array $nodeDestinations_Array, array $files){
-		$nodeList = fetchNodeList(); // Fetch the Node List as a multidimensional array.
+		global $nodeList; // Fetch the Node List as a multidimensional array.
 		
-		if (isset($nodeList[$nodeSource])){ // Check if the Source / Origin Node exists.	
-			
+		if (gettype($nodeList) !== "int"){ // Check if getNodeList from $nodeList global is an int / error.
 			foreach ($files as $fileName_NotHashed){ // Cycle through each file in the array
-				$fileContent_JsonFormat = readJsonFile($nodeSource, array($fileName_Hashed)); // Read the individual file we are replicating
-				$fileContent = decodeJsonFile($fileContent_JsonFormat); // Decode it into a multi-dimensional array for the purpose of using in createJsonFile
+				$fileContent_JsonFormat = readJsonFile($nodeSource, array($fileName_NotHashed)); // Read the individual file we are replicating
 				
-				if (gettype($fileContent) !== "int"){ // If the fileContent is not an int, generally meaning it isn't an error
+				if (gettype($fileContent_JsonFormat) == "string"){ // If the fileContent_JsonFormat from readJsonFile() is not an int, generally meaning it isn't an error
+					$fileContent = decodeJsonFile($fileContent_JsonFormat); // Decode it into a multi-dimensional array for the purpose of using in createJsonFile
+					
 					foreach ($nodeDestinations_Array as $nodeDestination){ // Cycle through each node we are going to be replicating files to
-						createJsonFile($nodeDestination, array($fileName_Hashed), $fileContent); // Create (or overwrite) the file you are replicating on the node destination
+						createJsonFile($nodeDestination, array($fileName_NotHashed), $fileContent); // Create (or overwrite) the file you are replicating on the node destination
 					}
+				}
+				else{
+					return $fileContent_JsonFormat; // Return Error Code
 				}
 			}
 		}
 		else{ // If the nodeSource does not exist
-			return "The requested origin node does not exist."; // If the origin node does NOT exist, output error.
+			return $nodeList; // Return the error code.
 		}
 	}
 	

@@ -93,7 +93,7 @@
 	
 	function getNodeInfo(array $nodeList, $requestedNodeNumber, $requestedNodeParameter){
 		$requestedNodeParameter_Value = $nodeList[$requestedNodeNumber][$requestedNodeParameter]; // Assign the node parameter, from the requested node number, from a specified node list, to variable.
-		if ((isset($requestedNodeParameter_Value)) && ($requestedNodeParameter_Value !== "")){ // If the variable is set and is not null.
+		if (isset($requestedNodeParameter_Value)){ // If the variable is set and is not null.
 			return $requestedNodeParameter_Value; // Return the value of the variable
 		}
 		else{
@@ -117,7 +117,7 @@
 					
 					$returnedEstablishedConnection = atlasui_ftp_login($connectionAddress, $connectionUseSSL, $connectionUsername, $connectionPassword); // Return the ftp_login from AtlasUI.
 					
-					if (strpos($returnedEstablishedConnection, "atlasui_ftp_login") === true){ // If atlasui_ftp_login did not fail to connect.
+					if (gettype($returnedEstablishedConnection) == "resource"){ // If atlasui_ftp_login did not fail to connect.
 						if (ftp_chdir($returnedEstablishedConnection, $connectionPreferentialLocation)){ // If the preferential location exists and we're able to go to it.
 							return $returnedEstablishedConnection; // Return the established FTP connection.
 						}
