@@ -1,7 +1,8 @@
 This is the tasklist for Metis. If you stumbled here by accident, then feel free to [find out what the heck Metis is](https://github.com/StroblIndustries/Metis/blob/master/Readme.md).
 
-- [ ] Implement asynchronous HTML5 Webworkers (JS-based) calls for Metis. Allows for more diverse use of Metis.
-- [ ] Improved FTP reading / writing.
+- [x] Implement Javascript / Typescript implementation of Metis.
+  - [ ] Potential implementation of Web Workers.
+- [ ] Deprecate FTP in favor of local-to-local actions that leverage the same callback used for JS / Typescript implementations.
 - [ ] Optional automated multi-node backup
   - Set by new key / value pair in individual nodes within nodeList.json
 - [ ] Implement SQL-like query capability

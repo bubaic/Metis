@@ -67,7 +67,7 @@ class Metis { // Class definition "Metis"
     }
 
     /* This function is for deleting one or a multitude of files from a Metis node */
-    deleteJsonFIle(nodeNum: string, files: string[]) {
+    deleteJsonFile(nodeNum: string, files: string[]) {
         return Metis.prototype.fileActionHandler(nodeNum, files, "d");
     }
     
