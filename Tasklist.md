@@ -2,7 +2,7 @@ This is the tasklist for Metis. If you stumbled here by accident, then feel free
 
 - [x] Implement Javascript / Typescript implementation of Metis.
   - [ ] Potential implementation of Web Workers.
-- [ ] Deprecate FTP in favor of local-to-local actions that leverage the same callback used for JS / Typescript implementations.
+- [x] Deprecate FTP in favor of local-to-local actions that leverage the same callback used for JS / Typescript implementations.
 - [ ] Optional automated multi-node backup
   - Set by new key / value pair in individual nodes within nodeList.json
 - [ ] Implement SQL-like query capability

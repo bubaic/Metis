@@ -10,13 +10,12 @@
 	},
 
 	"2" : {
-		"Node Name" : "FTP Storage",
-		"Node Type" : "ftp",
-		"Address" : "ftp.example.com",
-		"Username" : "username",
-		"Password" : "password",
-		"Preferential Location" : "folder",
-		"Use SSL" :  false
+		"Node Name" : "Remote Storage",
+		"Node Type" : "remote",
+		"Address" : "https://example.com/Metis",
+		"Username" : "",
+		"Password" : "",
+		"Preferential Location" : "node_number_on_remote"
 	}
 
 }
