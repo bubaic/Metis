@@ -53,13 +53,13 @@ class Metis { // Class definition "Metis"
     
     /* This function is for creating one or a multitude of files from a Metis node */
     createJsonFile(nodeNum: string, files: string[], jsonEncodedContent: Array){
-        return Metis.prototype.fileActionHandler(nodeNum, files, "c", jsonEncodedContent);
+        return Metis.prototype.fileActionHandler(nodeNum, files, "w", jsonEncodedContent);
     }
 
     /* This function is for updating one or a multitude of files from a Metis node */
     updateJsonFile(nodeNum: string, files: string[], jsonEncodedContent: Array, appendContent: Boolean){
         if (appendContent === (undefined || false)) {
-            return Metis.prototype.fileActionHandler(nodeNum, files, "c", jsonEncodedContent);
+            return Metis.prototype.fileActionHandler(nodeNum, files, "w", jsonEncodedContent);
         }
         else{
             return Metis.prototype.fileActionHandler(nodeNum, files, "u", jsonEncodedContent);
