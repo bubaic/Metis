@@ -1,7 +1,9 @@
 // This is the Metis Javascript / Typescript Implementation
 
 class Metis { // Class definition "Metis"
-    constructor(public metisCallbackLocation: string){ // Constructor that requires URL (string) that is the callback URL (http://example.com/Metis/callback)
+	metisCallbackLocation: string;
+    constructor(metisCallbackUrl: string){ // Constructor that requires URL (string) that is the callback URL (http://example.com/Metis/callback)
+    	this.metisCallbackLocation = metisCallbackUrl;
     }
 
     /* File Action Handler: Similar to the PHP implementation, however it pushes the args into a
@@ -29,13 +31,13 @@ class Metis { // Class definition "Metis"
                     metisXHRResponse = metisXHRManager.responseText; // Assign the responseText from the XHR call to the metisXHRResponse
                 }
                 else{ // If the callback script does not exist
-                    metisXHRResponse = "HTTP ERROR CODE: " + metisXHRManager.status.toString; // Assign an http error code context to the metisXHRResponse 
+                    metisXHRResponse = "HTTP ERROR CODE: " + metisXHRManager.status; // Assign an http error code context to the metisXHRResponse 
                 }
             }
         }
 
         metisXHRManager.onreadystatechange = returnMetisContext; // Assign the returnMetisContext function to the readystatechange event of metisXHRManager
-        metisXHRManager.open("POST", Metis.prototype.metisCallbackLocation, false); // Open the connection to the callback location, using POST, async as false
+        metisXHRManager.open("POST", this.metisCallbackLocation, false); // Open the connection to the callback location, using POST, async as false
         metisXHRManager.send(metisJSONData); // Send the JSON data
 
         return metisXHRResponse; // Return the response we get (assigned by returnMetisContext()
@@ -48,31 +50,31 @@ class Metis { // Class definition "Metis"
 
     /* This function is for reading one or a multitude of files from a Metis node */
     readJsonFile(nodeNum: string, files: string[]) {
-        return Metis.prototype.fileActionHandler(nodeNum, files, "r");
+        return this.fileActionHandler(nodeNum, files, "r");
     }
     
     /* This function is for creating one or a multitude of files from a Metis node */
     createJsonFile(nodeNum: string, files: string[], jsonEncodedContent: Array){
-        return Metis.prototype.fileActionHandler(nodeNum, files, "w", jsonEncodedContent);
+        return this.fileActionHandler(nodeNum, files, "w", jsonEncodedContent);
     }
 
     /* This function is for updating one or a multitude of files from a Metis node */
     updateJsonFile(nodeNum: string, files: string[], jsonEncodedContent: Array, appendContent: Boolean){
         if (appendContent === (undefined || false)) {
-            return Metis.prototype.fileActionHandler(nodeNum, files, "w", jsonEncodedContent);
+            return this.fileActionHandler(nodeNum, files, "w", jsonEncodedContent);
         }
         else{
-            return Metis.prototype.fileActionHandler(nodeNum, files, "u", jsonEncodedContent);
+            return this.fileActionHandler(nodeNum, files, "a", jsonEncodedContent);
         }
     }
 
     /* This function is for deleting one or a multitude of files from a Metis node */
     deleteJsonFile(nodeNum: string, files: string[]) {
-        return Metis.prototype.fileActionHandler(nodeNum, files, "d");
+        return this.fileActionHandler(nodeNum, files, "d");
     }
     
     /* This function is for replication / duplicating one or a multitude of files from an origin node to one or multiple destination nodes */
     replicator(nodeNum: string, nodeDestinations : Array, files: string[]){
-        return Metis.prototype.fileActionHandler(nodeNum, files, "rp", nodeDestinations);
+        return this.fileActionHandler(nodeNum, files, "rp", nodeDestinations);
     }
 }
