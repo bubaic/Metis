@@ -1,22 +1,25 @@
-Metis is an open source JSON distributed database with the **goal** of being a highly robust file-based database / storage solution capable of necessary functionality such as:
+## About Metis
 
-1. Incredibly fast, non-blocking, file IO
+Metis is an open source and highly robust JSON distributed database / storage solution capable of functionality such as:
 
-2. Robust multi-node replication
+1. Incredibly fast multi-node and multi-file IO that extends across both local and remote clusters.
 
-3. Support for commonly used protocols, such as HTTP and FTP
+2. Robust multi-node replication with optional automated backup.
 
-4. Multi-node oriented file fetching
+3. Easy migration from existing database solutions such as MySQL to Metis.
 
-5. Multi-node and multi-file SQL-like query capability for writing and fetching data from files.
+4. Typescript / Javascript implementation with zero dependencies (*such as jQuery*).
 
-Metis uses a toolkit known as [AtlasUI Web Framework](https://github.com/JoshStrobl/AtlasUI "AtlasUI Web Framework"), so remember that prior to using Metis, to grab the
-latest AtlasUI. As both Metis and AtlasUI Web Framework are considered rolling releases, we will be periodically be taking snapshots of stable builds.
+## Getting Started
+
+It is easy for you to get started using Metis. We try to keep the [documentation](https://github.com/StroblIndustries/Metis/wiki) updated, so consider it a reliable source for learning Metis, looking into changes with versions, etc.
+
+You can get started by [setting up Metis](https://github.com/StroblIndustries/Metis/wiki/Setting-Up-Metis) and utilizing [file IO functions](https://github.com/StroblIndustries/Metis/wiki/File-IO).
+
+## Keeping Up To Date
+
+You can find out what we have in the works (*or in our crosshairs*) by checking out the [public tasklist](https://github.com/StroblIndustries/Metis/blob/master/Tasklist.md). You're more than [welcome to contribute](https://github.com/StroblIndustries/Metis/pulls), [report issues / bugs](https://github.com/StroblIndustries/Metis/issues) and discuss via our upcoming mailing list.
+
+## License
 
 Metis is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0 "Apache License v2.0").
-
-Additional Files Worth Noting:
-
-1. [Our Public Tasklist](https://github.com/StroblIndustries/Metis/blob/master/Tasklist.md)
-
-2. [Apache License v2.0](https://github.com/StroblIndustries/Metis/blob/master/License.txt)
