@@ -1,4 +1,4 @@
-## About Metis
+### About Metis
 
 Metis is an open source and highly robust JSON distributed database / storage solution capable of functionality such as:
 
@@ -10,16 +10,23 @@ Metis is an open source and highly robust JSON distributed database / storage so
 
 4. Typescript / Javascript implementation with zero dependencies (*such as jQuery*).
 
-## Getting Started
+### Getting Started
 
-It is easy for you to get started using Metis. We try to keep the [documentation](https://github.com/StroblIndustries/Metis/wiki) updated, so consider it a reliable source for learning Metis, looking into changes with versions, etc.
+It is easy for you to get started using Metis by reading our thorough and constantly updated [documentation](https://github.com/StroblIndustries/Metis/wiki). You can easily jump in and [set up Metis](https://github.com/StroblIndustries/Metis/wiki/Setting-Up-Metis) and utilize [file IO functions](https://github.com/StroblIndustries/Metis/wiki/File-IO)!
 
-You can get started by [setting up Metis](https://github.com/StroblIndustries/Metis/wiki/Setting-Up-Metis) and utilizing [file IO functions](https://github.com/StroblIndustries/Metis/wiki/File-IO).
+### Keeping Up To Date
 
-## Keeping Up To Date
+You can find out what we have in the works (*or in our crosshairs*) by checking out:
+* [Open Drafts On Metis Features / Functionality](https://github.com/StroblIndustries/Metis/wiki#open-drafts-on-metis-features--functionality)
+* [Roadmap](https://github.com/StroblIndustries/Metis/wiki/Roadmap)
+* [Tasklist](https://github.com/StroblIndustries/Metis/wiki/Tasklist)
 
-You can find out what we have in the works (*or in our crosshairs*) by checking out the [public tasklist](https://github.com/StroblIndustries/Metis/blob/master/Tasklist.md). You're more than [welcome to contribute](https://github.com/StroblIndustries/Metis/pulls), [report issues / bugs](https://github.com/StroblIndustries/Metis/issues) and discuss via our upcoming mailing list.
+We have news regarding Metis on the Strobl Industries' [Twitter](https://twitter.com/StroblIndustry) account and we'll try to keep the news up to date on [Facebook](https://facebook.com/Strobl.Industries) and [Google+](https://plus.google.com/116914039528809670714). Any significant releases will generally [have a blog post](https://stroblindustries.com/blog)!
 
-## License
+### Contributing
+
+You're more than welcome to [contribute](https://github.com/StroblIndustries/Metis/pulls), [report issues / bugs](https://github.com/StroblIndustries/Metis/issues) and discuss via our upcoming mailing list.
+
+### License
 
 Metis is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0 "Apache License v2.0").
