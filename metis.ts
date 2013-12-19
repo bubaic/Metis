@@ -217,7 +217,7 @@ class Metis { // Class definition "Metis"
 
 					this.ioQueue[nodeNum][fileName]["action"] = fileAction; // Set the file's action for the specific node to the fileAction variable. This will overwrite any prior action.
 
-					if(fileAction !== "r") { // If we are not reading, set the contentOrDestinationNodes variable
+					if (fileAction !== ("r" && "d")) { // If we are not reading or deleting files, set the contentOrDestinationNodes variable
 						this.ioQueue[nodeNum][fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes;
 					}
 				}
