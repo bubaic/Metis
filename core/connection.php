@@ -2,16 +2,7 @@
 
 	// These are Connection related functions for MetisDB.
 
-	/* List of Functions, In Order, With Description:
-
-		getNodeList - Returns the json decoded nodeList, searches current working directory and it's parent directory for the nodeList.
-
-		getNodeInfo - Returns the value of a parameter from a specific node.
-
-		establishConnection - This function returns a connection based on the requested node and node information. This function covers local file IO, FTP and MySQLi
-
-		-----
-
+	/*
 		Copyright 2013 Strobl Industries
 
 		Licensed under the Apache License, Version 2.0 (the "License");

@@ -45,4 +45,4 @@ that the error is the result of failing to read a file (necessary for updating w
 
 ## Utility Errors
 
-- 5.01 - No fileName defined when doing full DB backups. A fileName needs to be defined to reduce the chances that the backup overwrites a different one.
+- 5.01 - No table defined in the options of the mysqlToMetis() function.

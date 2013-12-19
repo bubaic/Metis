@@ -2,33 +2,7 @@
 
 	// These are file IO related functions
 
-	/* List of Functions, In Order, With Description:
-
-		fileHashing - This returns the hashed string of the name of a file. It uses a unique hash specific to the requested file name.
-
-		navigateToLocalMetisData - This function navigates to the data folder of the local Metis "install". It requires the Address given by getNodeList()
-		so it can change directory to the directory where Metis is "installed" in order to change to the Metis/data folder.
-
-		fileActionHandler - This function is the primary file IO function of Metis, dealing with creating, reading, updating and deleting files. It
-		can be called directory or indirectly through alias functions like createFile, readFile, updateFile and deleteFile.
-
-		decodeJsonFile - This returns an array based on JSON decode.
-
-		createJsonFile - This creates a file based on the multidimensional array it receives, along with basic data such as name of file,
-		and location to store it.
-
-		readJsonFile - This returns the JSON Encoded file based on the file name and location.
-
-		updateJsonFile - This updates a JSON file (with input being an array of connections, the file name (hashed), and a multi-dimensional array.
-
-		deleteJsonFile - This deletes the stored JSON file. The requested file to be deleted can also be deleted from multiple MetisDB nodes.
-
-		replicator - This function replicates JSON files across a FTP and local nodes. You must specify the origin node (FTP or local), the
-		nodes you wish to replicate to (this list of nodes must be individual items in an array), and the JSON files you wish to copy. It will copy the
-		file(s) with its existing name and overwrite the file if it already exists on that node.
-
-		-----
-
+	/* 
 		Copyright 2013 Strobl Industries
 
 		Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,19 +24,21 @@
 		return substr($fileName_Hashed, 1, 28); // Ensures that it doesn't break on derping Windows systems.
 	}
 
-	function navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation){
+	function navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation = null){
 		chdir($_SERVER['DOCUMENT_ROOT'] . "/" . $nodeAddress);
 		chdir("Metis"); // Jump into the Metis folder
 		chdir("data"); // Jump into the data folder.
 
-		if (chdir($nodePreferentialLocation) == false){ // If we failed to change directory to the local node's preferential location...
-			return 2.01; // Return the error code #2.01.
+		if ($nodePreferentialLocation !== null){ // If the preferential location is defined (it is acceptable for it to NOT only for the mysqlToMetis functionality)
+			if (chdir($nodePreferentialLocation) == false){ // If we failed to change directory to the local node's preferential location...
+				return 2.01; // Return the error code #2.01.
+			}
 		}
 	}
 
-	function fileActionHandler($nodeNum, array $files, $fileAction, array $fileContent_JsonArray = null){
+	function fileActionHandler($nodeNum, array $files, $fileAction, array $contentOrDestinationNodes = null){
 		global $nodeList; //Get the node list as a multi-dimensional array.
-		$fileContent = null; // fileContent variable used to return file content or errors.
+		$fileContent = array(); // fileContent array used to store all file content (or error codes)
 		$originalDirectory = getcwd(); // Get the current directory prior to moving to other directories.
 
 		if (count($files) == 1){ // If the amount of files to interact of with is one (a single file)
@@ -84,61 +60,63 @@
 
 						if ($nodePreferentialLocation !== ""){ // If the node's preferential location is not empty
 
-							if ($nodeType == "local"){
+							if ($nodeType == "local"){ // If we are fetching locally rather than remote
 								navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
 
 								foreach ($files as $fileName_NotHashed){
 									$fileName_Hashed = fileHashing($fileName_NotHashed); // Generate the hashed file name.
 
-									if (($fileAction == "r") || ($fileAction == "a")){
+									if (($fileAction == "r") || ($fileAction == "a")){ // If we will be reading content or appending content (which requires reading the file content)
 										$thisFileContent = file_get_contents($fileName_Hashed . ".json"); // Read the file
 
 										if ($thisFileContent == false){ // If we failed to fetch the file
-											return 2.06; // Return the error code #2.06.
+											$thisFileContent = 2.06; // Rather than immediately failing, declare the fileContent as INT 2.06 (failed to fetch file)
+										}
+										else{
+											$thisFileContent = decodeJsonFile($thisFileContent); // Decode the file content into a multi-dimensional array
 										}
 									}
 
-									if ($fileAction == "r"){
-										if ($multiFile == false){ // If we are not fetching multiple files
-											$fileContent = $thisFileContent; // The file content we'll be returning is the content of this file
-										}
-										else{
-											$fileContent = $fileContent . "\"$fileName_NotHashed\" : " . $thisFileContent . ","; // Append the contents of this file into the fileContent, ensuring it is something like ["config"] : {FILE_CONTENT}
-										}
-									}
-									elseif (atlasui_string_check($fileAction, array("w", "a")) !== false){
+									if ($fileAction == "w" || ($thisFileContent !== 2.06 && $fileAction == "a")){ // If we are writing content OR appending (and thereby requiring thisFileContent to not be 2.06
 										if ($fileAction == "w"){
-											$jsonData = json_encode($fileContent_JsonArray); // Encode the multidimensional array as JSON
+											$jsonData = json_encode($contentOrDestinationNodes); // Encode the multidimensional array as JSON
 										}
 										else{
-											$jsonData = array_merge(json_decode($thisFileContent, true), $fileContent_JsonArray); // Merge the two arrays (prior to that, decode the contents of the fetched file)
+											$jsonData = array_merge($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
 											$jsonData = json_encode($jsonData); // Convert back to JSON for writing.
 										}
 
-										if ($jsonData == false){
-											return 3.01; // Return the error code #3.01.
+										if ($jsonData == false){ // If we failed to encode the data to JSON
+											$thisFileContent = 3.01; // Return the error code #3.01.
 										}
-										else{
+										else{ // If we did NOT fail to encode the data to JSON
 											$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler.
 
 											if ($fileHandler !== false){ // If we successfully opened the file for writing
 												fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
 												fclose($fileHandler); // Close the file location.
 												touch($fileName_Hashed . ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
-												return "0.00"; // Return success code
+												$thisFileContent = "0.00"; // Return success code
 											}
 											else{
-												return 2.05; // Return the error code #2.06.
+												$thisFileContent = 2.05; // Return the error code #2.06.
 											}
 										}
 									}
-									else{ // If the fileAction is "d" (delete, last option), then we're deleting files
+									elseif ($fileAction == "d"){ // If the fileAction is "d" (delete, last option), then we're deleting files
 										if (unlink($fileName_Hashed . ".json") !== false){ // If deleting the file is a success
-											return "0.00"; // Return success code
+											$thisFileContent = "0.00"; // Return success code
 										}
 										else{
-											return 4.01; // Return error code for deletion
+											$thisFileContent = 4.01; // Return error code for deletion
 										}
+									}
+									
+									if ($multiFile == false){ // If we are not fetching multiple files
+										$fileContent = $thisFileContent; // The file content  we'll be returning is the content of this file
+									}
+									else{
+										$fileContent[$fileName_NotHashed] = $thisFileContent; // Add the file name as key and file content as the val in the array.
 									}
 								}
 							}
@@ -148,8 +126,8 @@
 								$remoteRequestData["nodeNum"] = $nodePreferentialLocation; // Assign the nodeNum from the nodePreferentialLocation, which in the case of remote nodes, is the remote node number to call from.
 								$remoteRequestData["files"] = $files; // Assign the files array from the files array given to fileActionHandler
 
-								if (is_null($fileContent_JsonArray) == false){ // If the fileContent_JsonArray is NOT null, meaning it exists
-									$remoteRequestData["contentOrDestinationNodes"] = $fileContent_JsonArray; // Assign that content to the contentOrDestinationNodes key
+								if (is_null($contentOrDestinationNodes) == false){ // If the fileContent_JsonArray is NOT null, meaning it exists
+									$remoteRequestData["contentOrDestinationNodes"] = $contentOrDestinationNodes; // Assign that content to the contentOrDestinationNodes key
 								}
 
 								$remoteRequestData_JsonFormat = json_encode($remoteRequestData, true); // Convert / encode the multi-dimensional array to JSON.
@@ -175,14 +153,8 @@
 					return 1.03; // Return the error code #1.03.
 				}
 
-				chdir($originalDirectory);
-
-				if ($multiFile == false){
-					return $fileContent;
-				}
-				else{
-					return "{" . substr($fileContent, 0, -1) . "}";
-				}
+				chdir($originalDirectory); // Return to the original directory
+				return json_encode($fileContent); // Return the JSON encoded version (string) of the fileContent (which is an array)
 			}
 			else{ // If the fileAction is NOT read, write, append or delete
 				return 2.03; // Return the error code #2.03;
@@ -203,23 +175,23 @@
 		return $jsonDecodedValue;
 	}
 
-	function createJsonFile($nodeNum, array $files, array $fileContent_JsonArray){
-		return fileActionHandler($nodeNum, $files, "w", $fileContent_JsonArray);
+	function createJsonFile($nodeNum, array $files, array $contentOrDestinationNodes){
+		return fileActionHandler($nodeNum, $files, "w", $contentOrDestinationNodes);
 	}
 
 	function readJsonFile($nodeNum, array $files){ // This function is an abstraction for reading files and offers multi-file reading functionality
 		return fileActionHandler($nodeNum, $files, "r"); // Return the JSON file or error code from fileActionHandler
 	}
 
-	function updateJsonFile($nodeNum, array $files, array $fileContent_JsonArray, $fileAppend = false){
-		if ($fileAppend !== false){
-			$fileActionMode = "a";
+	function updateJsonFile($nodeNum, array $files, array $contentOrDestinationNodes, $fileAppend = false){
+		if ($fileAppend == false){ // If we are updating the file but not appending
+			$fileActionMode = "w"; // Set the fileActionMode to w (write)
 		}
-		else{
-			$fileActionMode = "w";
+		else{ // If we are updating the file and appending (and/or overwriting content)
+			$fileActionMode = "a"; // Set the fileActionMode to a (append)
 		}
 
-		return fileActionHandler($nodeNum, $files, $fileActionMode, $fileContent_JsonArray);
+		return fileActionHandler($nodeNum, $files, $fileActionMode, $contentOrDestinationNodes);
 	}
 
 	function deleteJsonFile($nodeNum, array $files){

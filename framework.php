@@ -20,10 +20,9 @@
 	*/
 
 	include("core/connection.php"); // Connection System
-	include("core/fileIO.php"); // File Input / Output, include encoding and decoding files
-	//include("core/querying.php"); // Metis Query System (SQL-Like Query For Doing Metis Stuff)
+	include("core/fileIO.php"); // File Input / Output, encoding and decoding files, etc.
 	//include("core/security.php"); // Security (Functionality Not Yet Known Or Implemented)
-	include("core/utilities.php"); // Misc. utilities, such as conversion from MySQL to Metis / JSON
+	include("core/utilities.php"); // Misc. utilities, such as conversion from MySQL to Metis
 
 	$nodeList = getNodeList();
 ?>
