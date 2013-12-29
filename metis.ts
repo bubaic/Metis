@@ -1,19 +1,33 @@
 // This is the Metis Javascript / Typescript Implementation
 
 class Metis { // Class definition "Metis"
-	enableLocalStorage: Boolean;
+	enableHeadlessMetis : Boolean;
+	enableLocalStorage : Boolean;
 	ioQueue: Object = new Object;
-	metisCallbackLocation: string;
+	metisCallbackLocation : string;
 	userOnline : Boolean;
 
-	constructor(metisCallbackUrl: string, enableLocalStorageBoolean?: Boolean, userOfflineByDefault ?: Boolean) { // Constructor that requires URL (string) that is the callback URL (http://example.com/Metis/callback)
-		this.metisCallbackLocation = metisCallbackUrl;
-
-		if(enableLocalStorageBoolean !== undefined) { // If the developer has defined whether Local Storage should be enabled or not
-			this.enableLocalStorage = enableLocalStorageBoolean; // Set the value of enableLocalStorage to the boolean that the dev. set
+	constructor(enableHeadlessMetisOption : Boolean, metisCallbackUrl ?: string, enableLocalStorageBoolean ?: Boolean, userOfflineByDefault ?: Boolean) { // Constructor that requires defining the headless server mode and IF set to false, the callback URL
+		if (enableHeadlessMetisOption == true){ // If the developer has defined enableHeadlessMetisOption as true
+			this.enableHeadlessMetis = true;
+			this.enableLocalStorage = true; // Force enableLocalStorage to true, as that is required to be headless
 		}
-		else { // If the developer has NOT defined whether to enable or disable the Local Storage
-			this.enableLocalStorage = false; // Set the enableLocalStorage to false
+		else{ // If the developer has NOT defined whether HeadlessMetis should be enabled OR the developer has set it to false
+			this.enableHeadlessMetis = false;
+
+			if (metisCallbackUrl !== undefined){ // If metisCallbackUrl is defined
+				this.metisCallbackLocation = metisCallbackUrl;
+
+				if (enableLocalStorageBoolean !== undefined) { // If the developer has defined whether Local Storage should be enabled or not
+					this.enableLocalStorage = enableLocalStorageBoolean; // Set the value of enableLocalStorage to the boolean that the dev. set
+				}
+				else{ // If the developer has NOT defined whether to enable or disable the Local Storage
+					this.enableLocalStorage = false; // Set the enableLocalStorage to false
+				}
+			}
+			else{ // If the callback URL is not defined
+				console.log("You have defined enableHeadlessMetisOption as FALSE but have NOT provided a callback URL. Expect errors.");
+			}
 		}
 
 		if (userOfflineByDefault == undefined || false){ // If the developer has not defined userOfflineByDefault or has set it to false
@@ -22,20 +36,20 @@ class Metis { // Class definition "Metis"
 		else { // If the developer has defined it AND it is set to true
 			this.userOnline = false;
 		}
-
 	}
 
 	init() { // Initialization function that essentially sets the event listener / handler for "online", since we can't do this within the constructor.
-		document.addEventListener("online", this.processIOQueue, false); // Add an event listener that listens to the "online" event, which means the user went from offline to online and we need to process our IO queue, if there is one
-		document.addEventListener("offline", this.toggleOfflineStatus, false); // Add an event listener that listens to the "offline" event. When the user goes offline, we'll change this.userOffline to true so fileActionHandler can send data to ioQueue.
+		if (this.enableHeadlessMetis == false){ // If enableHeadlessMetis is set to false, then add the event listeners, since they essentially enable server communication
+			document.addEventListener("online", this.processIOQueue, false); // Add an event listener that listens to the "online" event, which means the user went from offline to online and we need to process our IO queue, if there is one
+			document.addEventListener("offline", this.toggleOfflineStatus, false); // Add an event listener that listens to the "offline" event. When the user goes offline, we'll change this.userOffline to true so fileActionHandler can send data to ioQueue.
+		}
 	}
 
 	// #region Object Handling
 
 	objectMerge(existingFileContent : Object, newFileContent : Object) { // This function merges objects and object properties into a single returned Object. This is a solution to not being able to use .concat()
-
 		for (var objectProperty in newFileContent) { // For each objectProperty in the newFileContent
-			if(newFileContent[objectProperty].constructor == Object) { // If this particular property of the newFileContent object is an object itself
+			if (newFileContent[objectProperty].constructor == Object) { // If this particular property of the newFileContent object is an object itself
 				if (existingFileContent[objectProperty] !== undefined) { // If the existingFileContent property IS set already
 					existingFileContent[objectProperty] = this.objectMerge(existingFileContent[objectProperty], newFileContent[objectProperty]); // Do a recursive object merge
 				}
@@ -115,16 +129,21 @@ class Metis { // Class definition "Metis"
 						necessaryFilesForRemoteIO.push(fileName); // Add the fileName to the necessaryFilesForRemoteIO string array for fetching remotely
 					}
 				}
-				else if (fileAction == "w") { // If we are going be either writing to a new file
-					localStorage.setItem(localFileName, JSON.stringify(contentOrDestinationNodes)); // Create a new LocalStorage file with the content (which has been converted to JSON)
-				}
-				else if (fileAction == "a") { // If we are appending (or changing) content to an existing file
-					var updatedFileContent = JSON.stringify(this.objectMerge(localFileContent, contentOrDestinationNodes)); // Merge the localFileContent object and the content we are appending
-					localStorage.setItem(localFileName, updatedFileContent); // Add the file name with the new local file content
-				}
-				else if(fileAction == "d") { // If we are going to be deleting files
-					localStorage.removeItem(localFileName); // Remove the file from localStorage
-				}
+                else{ // If the fileAction is not read, meaning we will be doing a write, append or delete
+				    if (fileAction == "w") { // If we are going be either writing to a new file
+					    localStorage.setItem(localFileName, JSON.stringify(contentOrDestinationNodes)); // Create a new LocalStorage file with the content (which has been converted to JSON)
+                    }
+				    else if (fileAction == "a") { // If we are appending (or changing) content to an existing file
+					    var updatedFileContent = JSON.stringify(this.objectMerge(localFileContent, contentOrDestinationNodes)); // Merge the localFileContent object and the content we are appending
+					    localStorage.setItem(localFileName, updatedFileContent); // Add the file name with the new local file content
+				    }
+				    else if(fileAction == "d") { // If we are going to be deleting files
+					    localStorage.removeItem(localFileName); // Remove the file from localStorage
+				    }
+                    
+                    fileContent[fileName] = this.decodeJsonFile('{"status" : "0.00"}'); // Add fileName to the fileContent, with status of the action as successful
+                }
+
 				// There is no check for replication, since that is purely a remote function that requires a connection
 			}
 		}
@@ -132,93 +151,95 @@ class Metis { // Class definition "Metis"
 			necessaryFilesForRemoteIO = files;
 		}
 
-		if(this.userOnline == true) { // If the user is online, create an XHR and process the request
-			if((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) { // If either we are reading AND there are still necessary remote files to fetch OR we are not reading files
-				var standardJsonFormData: any = {}; // Define the custom formdata object (type any)
+		if (this.enableHeadlessMetis == false){ // If enableHeadlessMetis is set to false, then we are allowed to make XHR calls
+			if(this.userOnline == true) { // If the user is online, create an XHR and process the request
+				if((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) { // If either we are reading AND there are still necessary remote files to fetch OR we are not reading files
+					var standardJsonFormData: any = {}; // Define the custom formdata object (type any)
 
-				standardJsonFormData.fileAction = fileAction; // Set the fileAction key / val to the fileAction arg
-				standardJsonFormData.nodeNum = nodeNum; // Set the nodeNum key / val to the nodeNum arg
+					standardJsonFormData.fileAction = fileAction; // Set the fileAction key / val to the fileAction arg
+					standardJsonFormData.nodeNum = nodeNum; // Set the nodeNum key / val to the nodeNum arg
 
-				if(fileAction == "r") { // If we are reading files, we should use our post-LocalStorage IO variable
-					standardJsonFormData.files = necessaryFilesForRemoteIO;
-				}
-				else { // If we are not just reading files, it's a good idea to send ALL the requested file names to the server (so files can be appropriately added, updated, etc.)
-					standardJsonFormData.files = files; // Set the files key / val to the files array
-				}
+					if(fileAction == "r") { // If we are reading files, we should use our post-LocalStorage IO variable
+						standardJsonFormData.files = necessaryFilesForRemoteIO;
+					}
+					else { // If we are not just reading files, it's a good idea to send ALL the requested file names to the server (so files can be appropriately added, updated, etc.)
+						standardJsonFormData.files = files; // Set the files key / val to the files array
+					}
 
-				if(contentOrDestinationNodes !== undefined) { // If we either have content or in the case of replication, destination nodes
-					standardJsonFormData.contentOrDestinationNodes = contentOrDestinationNodes; // Set the contentOrDestination Nodes key / val to the contentOrDestinationNodes arg
-				}
+					if(contentOrDestinationNodes !== undefined) { // If we either have content or in the case of replication, destination nodes
+						standardJsonFormData.contentOrDestinationNodes = contentOrDestinationNodes; // Set the contentOrDestination Nodes key / val to the contentOrDestinationNodes arg
+					}
 
-				var metisJSONData: string = JSON.stringify(standardJsonFormData); // Define metisJSONData as a string that is the stringified version of our formdata
-				var metisXHRManager: XMLHttpRequest = new XMLHttpRequest; // Create a new XMLHttpRequest
-				var metisXHRResponse: string; // Define a variable (siXHRResponse) as a string.
+					var metisJSONData: string = JSON.stringify(standardJsonFormData); // Define metisJSONData as a string that is the stringified version of our formdata
+					var metisXHRManager: XMLHttpRequest = new XMLHttpRequest; // Create a new XMLHttpRequest
+					var metisXHRResponse: string; // Define a variable (siXHRResponse) as a string.
 
-				/* This is a simply XHR ready state handler function for metisXHRManager */
-				function returnMetisContext() {
-					if(metisXHRManager.readyState == 4) { // If the ready state is 4 (done)
-						if(metisXHRManager.status == 200) { // If the callback script exists (returns content no matter)
-							metisXHRResponse = metisXHRManager.responseText; // Assign the responseText from the XHR call to the metisXHRResponse
-						}
-						else { // If the callback script does not exist
-							metisXHRResponse = "HTTP ERROR CODE: " + metisXHRManager.status; // Assign an http error code context to the metisXHRResponse 
+					/* This is a simply XHR ready state handler function for metisXHRManager */
+					function returnMetisContext() {
+						if(metisXHRManager.readyState == 4) { // If the ready state is 4 (done)
+							if(metisXHRManager.status == 200) { // If the callback script exists (returns content no matter)
+								metisXHRResponse = metisXHRManager.responseText; // Assign the responseText from the XHR call to the metisXHRResponse
+							}
+							else { // If the callback script does not exist
+								metisXHRResponse = "HTTP ERROR CODE: " + metisXHRManager.status; // Assign an http error code context to the metisXHRResponse
+							}
 						}
 					}
+
+					metisXHRManager.onreadystatechange = returnMetisContext; // Assign the returnMetisContext function to the readystatechange event of metisXHRManager
+					metisXHRManager.open("POST", this.metisCallbackLocation, false); // Open the connection to the callback location, using POST, async as false
+					metisXHRManager.send(metisJSONData); // Send the JSON data
+
+					if (fileAction == "r" && metisXHRResponse.indexOf("HTTP ERROR CODE") == -1) { // If the fileAction was read and the XHR call didn't return an HTTP error code
+						var remoteFileContent: Object = this.decodeJsonFile(metisXHRResponse); // Decode the JSON, purely for the purposes of merging it with the the locally fetched file content and for saving in localStorage
+
+						for(var i = 0;i < necessaryFilesForRemoteIO.length;i++) {
+							var fileName: string = necessaryFilesForRemoteIO[i];
+
+							if(necessaryFilesForRemoteIO.length == 1) { // If we only requested one file, therefore the object we generated won't have a sub-object starting with the file name
+								fileContent[fileName] = remoteFileContent;
+							}
+							else { // If we requested more than one file
+								fileContent[fileName] = remoteFileContent[fileName]; // Assign the fileContent[fileName to have the associated file's content
+							}
+
+							if(this.enableLocalStorage == true) {
+								if(necessaryFilesForRemoteIO.length == 1) { // Once again checking if we only requested one file, if so then we'll just stringify the entire object
+									localStorage.setItem(nodeNum + "#" + fileName, JSON.stringify(remoteFileContent));
+								}
+								else {
+									localStorage.setItem(nodeNum + "#" + fileName, JSON.stringify(remoteFileContent[fileName]));
+								}
+							}
+						}
+					}
+					else if(fileAction !== "r") { // If we were not reading however the request was deemed successful
+						fileContent = remoteFileContent; // Set the fileContent to the remoteFileContent. We do this so the developer can determine if there was an error code or success code returned by the XHR call.
+					}
+				}
+			}
+			else{ // If the user is NOT online
+				if(fileAction !== "r") { // If we were not reading files, we'll overwrite the necessaryFilesForRemoteIO with the entire files array
+					necessaryFilesForRemoteIO = files;
 				}
 
-				metisXHRManager.onreadystatechange = returnMetisContext; // Assign the returnMetisContext function to the readystatechange event of metisXHRManager
-				metisXHRManager.open("POST", this.metisCallbackLocation, false); // Open the connection to the callback location, using POST, async as false
-				metisXHRManager.send(metisJSONData); // Send the JSON data
-
-				if (fileAction == "r" && metisXHRResponse.indexOf("HTTP ERROR CODE") == -1) { // If the fileAction was read and the XHR call didn't return an HTTP error code
-					var remoteFileContent: Object = this.decodeJsonFile(metisXHRResponse); // Decode the JSON, purely for the purposes of merging it with the the locally fetched file content and for saving in localStorage
-
+				if(necessaryFilesForRemoteIO.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
 					for(var i = 0;i < necessaryFilesForRemoteIO.length;i++) {
 						var fileName: string = necessaryFilesForRemoteIO[i];
 
-						if(necessaryFilesForRemoteIO.length == 1) { // If we only requested one file, therefore the object we generated won't have a sub-object starting with the file name
-							fileContent[fileName] = remoteFileContent;
-						}
-						else { // If we requested more than one file
-							fileContent[fileName] = remoteFileContent[fileName]; // Assign the fileContent[fileName to have the associated file's content
+						if (this.ioQueue.hasOwnProperty(nodeNum) == false){ // If the nodeNum is not set in the ioQueue, we need to create it as a new object
+							this.ioQueue[nodeNum] = new Object;
 						}
 
-						if(this.enableLocalStorage == true) {
-							if(necessaryFilesForRemoteIO.length == 1) { // Once again checking if we only requested one file, if so then we'll just stringify the entire object
-								localStorage.setItem(nodeNum + "#" + fileName, JSON.stringify(remoteFileContent));
-							}
-							else {
-								localStorage.setItem(nodeNum + "#" + fileName, JSON.stringify(remoteFileContent[fileName]));
-							}
+						if (this.ioQueue[nodeNum].hasOwnProperty(fileName) == false){ // If the fileName is not set within the nodeNum object, we need to create it as a new object.
+							this.ioQueue[nodeNum][fileName] = new Object;
 						}
-					}
-				}
-				else if(fileAction !== "r") { // If we were not reading however the request was deemed successful
-					fileContent = remoteFileContent; // Set the fileContent to the remoteFileContent. We do this so the developer can determine if there was an error code or success code returned by the XHR call.
-				}
-			}
-		}
-		else { // If the user is NOT online
-			if(fileAction !== "r") { // If we were not reading files, we'll overwrite the necessaryFilesForRemoteIO with the entire files array
-				necessaryFilesForRemoteIO = files;
-			}
 
-			if(necessaryFilesForRemoteIO.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
-				for(var i = 0;i < necessaryFilesForRemoteIO.length;i++) {
-					var fileName: string = necessaryFilesForRemoteIO[i];
+						this.ioQueue[nodeNum][fileName]["action"] = fileAction; // Set the file's action for the specific node to the fileAction variable. This will overwrite any prior action.
 
-					if (this.ioQueue.hasOwnProperty(nodeNum) == false){ // If the nodeNum is not set in the ioQueue, we need to create it as a new object
-						this.ioQueue[nodeNum] = new Object;
-					}
-
-					if (this.ioQueue[nodeNum].hasOwnProperty(fileName) == false){ // If the fileName is not set within the nodeNum object, we need to create it as a new object.
-						this.ioQueue[nodeNum][fileName] = new Object;
-					}
-
-					this.ioQueue[nodeNum][fileName]["action"] = fileAction; // Set the file's action for the specific node to the fileAction variable. This will overwrite any prior action.
-
-					if (fileAction !== ("r" && "d")) { // If we are not reading or deleting files, set the contentOrDestinationNodes variable
-						this.ioQueue[nodeNum][fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes;
+						if (fileAction !== ("r" && "d")) { // If we are not reading or deleting files, set the contentOrDestinationNodes variable
+							this.ioQueue[nodeNum][fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes;
+						}
 					}
 				}
 			}
