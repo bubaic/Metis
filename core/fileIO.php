@@ -82,7 +82,7 @@
 											$jsonData = json_encode($contentOrDestinationNodes); // Encode the multidimensional array as JSON
 										}
 										else{
-											$jsonData = array_merge($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
+											$jsonData = array_replace_recursive($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
 											$jsonData = json_encode($jsonData); // Convert back to JSON for writing.
 										}
 
