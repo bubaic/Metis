@@ -1,8 +1,8 @@
 <?php
 	/*
-		Metis is an open source JSON Distribution Database. MetisDB requires AtlasUI Web Framework
+		Metis is an open source and highly robust JSON distributed database / storage solution. MetisDB requires AtlasUI Web Framework v0.40
 		in order to carry out important operations such as string hashing. AtlasUI Web Framework is distributed
-		and applies under its own license. You can find AtlasUI Web Framework at https://github.com/JoshStrobl/AtlasUI.
+		and applies under the Apache License v2.0. You can find AtlasUI Web Framework at https://github.com/JoshStrobl/AtlasUI.
 		This header applies to ALL files included with Metis.
 
 		-----
