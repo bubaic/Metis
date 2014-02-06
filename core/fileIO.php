@@ -20,7 +20,7 @@
 
 	function fileHashing($fileName_Unsanitized){
 		$fileName = str_replace(" ", "", atlasui_string_clean($fileName_Unsanitized, 1, true)); // Clean the file name of weird characters and whitespaces.
-		$fileName_Hashed = atlasui_encrypt($fileName, 100000, substr($fileName, 0, 10)); // Create a hashed name of the file.
+		$fileName_Hashed = atlasui_hashing($fileName, 100000, substr($fileName, 0, 10)); // Create a hashed name of the file.
 		return substr($fileName_Hashed, 1, 28); // Ensures that it doesn't break on derping Windows systems.
 	}
 
