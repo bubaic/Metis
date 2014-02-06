@@ -4,8 +4,6 @@
 		"Node Name" : "Local Storage",
 		"Node Type" : "local",
 		"Address" : "/path/to/parent/directory",
-		"Username" : "",
-		"Password" : "",
 		"Preferential Location" : "folder_in_Metis_data"
 	},
 
@@ -13,8 +11,6 @@
 		"Node Name" : "Remote Storage",
 		"Node Type" : "remote",
 		"Address" : "https://example.com/Metis",
-		"Username" : "",
-		"Password" : "",
 		"Preferential Location" : "node_number_on_remote"
 	}
 

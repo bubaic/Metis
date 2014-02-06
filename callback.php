@@ -2,7 +2,7 @@
 	include("../Framework/framework.php"); // [Reference: https://github.com/JoshStrobl/AtlasUI]
 	include("framework.php"); // [Reference: https://github.com/StroblIndustries/Metis]
 
-	$metisCallbackData_Json = file_get_contents("php://input", "r"); // Read the JSON data sent to the callback script
+	$metisCallbackData_Json = file_get_contents("php://input"); // Read the JSON data sent to the callback script
 	$metisCallbackData = decodeJsonFile($metisCallbackData_Json); // Decode the JSON content into a multi-dimensional array
 
 	if (is_array($nodeList) == true){ // If the nodeList is valid (is an array)
