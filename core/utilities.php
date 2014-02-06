@@ -18,6 +18,58 @@
 		 limitations under the License.
 	*/
 
+	function fileExists($nodeNum, array $files){ // This function checks if a file exists within a node
+		global $nodeList;
+
+		if ($nodeList !== 1.01){ // If we successfully fetched the nodeList
+			if ($nodeList[$nodeNum] !== null){ // If the node exists
+
+				$nodeAddress = getNodeInfo($nodeList, $nodeNum, "Address"); // Get the address / directory of the Node.
+				$nodeType = getNodeInfo($nodeList, $nodeNum, "Node Type"); // Get the type of node that is being used.
+				$nodePreferentialLocation = getNodeInfo($nodeList, $nodeNum, "Preferential Location"); // Get the preferential location for the Node.
+
+				if ($nodeAddress !== 1.03){ // If getting the node info did not fail
+					if ($nodeType == "local"){ // If the Node is local, then continue
+						$successfulNavigation = navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Navigate to the Node directory
+
+						if ($successfulNavigation !== 2.01){ // If the navigation was successful
+							$filesToFilesExistArray = array();
+							$filesInArray = count($files); // Get the number of files in the array
+
+							foreach ($files as $fileName){ // For each file in the array
+								$fileExists = is_file(fileHashing($fileName) . ".json"); // Get the boolean value if the file exists (use is_file so we don't need to include path like in file_exists)
+
+								if ($filesInArray > 1){ // If there is more than one file, use an array
+									$filesToFilesExistArray[$fileName] = $fileExists; // Declare that the fileName exists or not (ex: "bacon" = true)
+								}
+								else{ // If there is NOT more than one file
+									$filesToFilesExistArray = $fileExists; // Change array to bool, set to the boolean value of fileExists
+								}
+							}
+
+							return $filesToFilesExistArray;
+						}
+						else{
+							return 2.01; // Return error code #2.01
+						}
+					}
+					else{
+						return 5.02; // Return error code #5.02
+					}
+				}
+				else{
+					return 1.03; // Return error code #5.03;
+				}
+			}
+			else{
+				return 1.02; // Return error code #1.02
+			}
+		}
+		else{
+			return 1.01; // Return error code #1.01
+		}
+	}
+
 	function mysqlToMetis($mysqliConnection, $nodeNum, array $options){
 		global $nodeList; //Get the node list as a multi-dimensional array
 

@@ -61,63 +61,68 @@
 						if ($nodePreferentialLocation !== ""){ // If the node's preferential location is not empty
 
 							if ($nodeType == "local"){ // If we are fetching locally rather than remote
-								navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
+								$successfulNavigation = navigateToLocalMetisData($nodeAddress, $nodePreferentialLocation); // Go to the data directory
 
-								foreach ($files as $fileName_NotHashed){
-									$fileName_Hashed = fileHashing($fileName_NotHashed); // Generate the hashed file name.
+								if ($successfulNavigation !== 2.01){
+									foreach ($files as $fileName_NotHashed){
+										$fileName_Hashed = fileHashing($fileName_NotHashed); // Generate the hashed file name.
 
-									if (($fileAction == "r") || ($fileAction == "a")){ // If we will be reading content or appending content (which requires reading the file content)
-										$thisFileContent = file_get_contents($fileName_Hashed . ".json"); // Read the file
+										if (($fileAction == "r") || ($fileAction == "a")){ // If we will be reading content or appending content (which requires reading the file content)
+											$thisFileContent = file_get_contents($fileName_Hashed . ".json"); // Read the file
 
-										if ($thisFileContent == false){ // If we failed to fetch the file
-											$thisFileContent = 2.06; // Rather than immediately failing, declare the fileContent as INT 2.06 (failed to fetch file)
-										}
-										else{
-											$thisFileContent = decodeJsonFile($thisFileContent); // Decode the file content into a multi-dimensional array
-										}
-									}
-
-									if ($fileAction == "w" || ($thisFileContent !== 2.06 && $fileAction == "a")){ // If we are writing content OR appending (and thereby requiring thisFileContent to not be 2.06
-										if ($fileAction == "w"){
-											$jsonData = json_encode($contentOrDestinationNodes); // Encode the multidimensional array as JSON
-										}
-										else{
-											$jsonData = array_replace_recursive($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
-											$jsonData = json_encode($jsonData); // Convert back to JSON for writing.
+											if ($thisFileContent == false){ // If we failed to fetch the file
+												$thisFileContent = 2.06; // Rather than immediately failing, declare the fileContent as INT 2.06 (failed to fetch file)
+											}
+											else{
+												$thisFileContent = decodeJsonFile($thisFileContent); // Decode the file content into a multi-dimensional array
+											}
 										}
 
-										if ($jsonData == false){ // If we failed to encode the data to JSON
-											$thisFileContent = 3.01; // Return the error code #3.01.
-										}
-										else{ // If we did NOT fail to encode the data to JSON
-											$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler.
+										if ($fileAction == "w" || ($thisFileContent !== 2.06 && $fileAction == "a")){ // If we are writing content OR appending (and thereby requiring thisFileContent to not be 2.06
+											if ($fileAction == "w"){
+												$jsonData = json_encode($contentOrDestinationNodes); // Encode the multidimensional array as JSON
+											}
+											else{
+												$jsonData = array_replace_recursive($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
+												$jsonData = json_encode($jsonData); // Convert back to JSON for writing.
+											}
 
-											if ($fileHandler !== false){ // If we successfully opened the file for writing
-												fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
-												fclose($fileHandler); // Close the file location.
-												touch($fileName_Hashed . ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
+											if ($jsonData == false){ // If we failed to encode the data to JSON
+												$thisFileContent = 3.01; // Return the error code #3.01.
+											}
+											else{ // If we did NOT fail to encode the data to JSON
+												$fileHandler = fopen($fileName_Hashed . ".json", "w+"); // Create a file handler.
+
+												if ($fileHandler !== false){ // If we successfully opened the file for writing
+													fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
+													fclose($fileHandler); // Close the file location.
+													touch($fileName_Hashed . ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
+													$thisFileContent = "0.00"; // Return success code
+												}
+												else{
+													$thisFileContent = 2.05; // Return the error code #2.06.
+												}
+											}
+										}
+										elseif ($fileAction == "d"){ // If the fileAction is "d" (delete, last option), then we're deleting files
+											if (unlink($fileName_Hashed . ".json") !== false){ // If deleting the file is a success
 												$thisFileContent = "0.00"; // Return success code
 											}
 											else{
-												$thisFileContent = 2.05; // Return the error code #2.06.
+												$thisFileContent = 4.01; // Return error code for deletion
 											}
 										}
-									}
-									elseif ($fileAction == "d"){ // If the fileAction is "d" (delete, last option), then we're deleting files
-										if (unlink($fileName_Hashed . ".json") !== false){ // If deleting the file is a success
-											$thisFileContent = "0.00"; // Return success code
+
+										if ($multiFile == false){ // If we are not fetching multiple files
+											$fileContent = $thisFileContent; // The file content  we'll be returning is the content of this file
 										}
 										else{
-											$thisFileContent = 4.01; // Return error code for deletion
+											$fileContent[$fileName_NotHashed] = $thisFileContent; // Add the file name as key and file content as the val in the array.
 										}
 									}
-									
-									if ($multiFile == false){ // If we are not fetching multiple files
-										$fileContent = $thisFileContent; // The file content  we'll be returning is the content of this file
-									}
-									else{
-										$fileContent[$fileName_NotHashed] = $thisFileContent; // Add the file name as key and file content as the val in the array.
-									}
+								}
+								else{
+									$fileContent = 2.01;
 								}
 							}
 							elseif ($nodeType == "remote"){ // If we are dealing with a remote node (local-to-local)

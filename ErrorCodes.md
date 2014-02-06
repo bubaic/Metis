@@ -46,3 +46,4 @@ that the error is the result of failing to read a file (necessary for updating w
 ## Utility Errors
 
 - 5.01 - No table defined in the options of the mysqlToMetis() function.
+- 5.02 - fileExists currently only allows local node searching.
