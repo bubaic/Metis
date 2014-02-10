@@ -1,0 +1,5 @@
+options:
+    engine:
+        type: string
+        default: "nginx"
+        description: "Currently two web servers are supported: nginx and apache2. Most websites deployed with Juju utilize nginx, so it is set as the default."

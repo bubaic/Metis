@@ -1,0 +1,13 @@
+# Overview
+
+Metis is an open source and highly robust JSON distributed database / storage solution. This charm will install Metis in /var/www/Metis.
+
+# Installation
+
+To deploy this charm, you will need at least: an http server (whether it be apache or nginx) that has access to executing PHP, a working Juju installation and a successful bootstrap. Once bootstrapped, deploy the Metis charm by doing:
+	juju deploy metis
+
+And now expose the service:
+	juju expose metis
+
+All done! You've now deployed Metis on your juju system
