@@ -22,7 +22,7 @@
 		$phpRoot = $_SERVER['DOCUMENT_ROOT']; // Get the server root, which we'll use to determine at what point we should stop doing recursive checking.
 		$originalDirectory = getcwd(); // Get the current working directory so we can change back to it after fetching the node list.
 		$numberOfAttempts = 0; // Set the number of attempts to try to find the Metis directory (every attempt look's at a prior parent directory)
-		$currentSearchDirectory = null; // Set the current search directory. This is used to track our progress as we move up the file system.
+		$currentSearchDirectory = null; // Set the current search directory. This is used to track our progress as we move up the file system tree.
 		$metisExistsInDirectory = false; // Preemptive setting of metisExistsInDirectory to false. If we find Metis folder in a directory, we set it to true.
 
 		while ($numberOfAttempts < 6){
@@ -31,15 +31,10 @@
 			}
 
 			$currentWorkingDirectory = getcwd(); // Get the current working directory for the purpose of scanning.
-			$currentWorkingDirectory_FileDirectoryList = scandir($currentWorkingDirectory); // Scan the directory (currentWorkingDirectory_FileDirectoryList is then an array)
 
-			foreach($currentWorkingDirectory_FileDirectoryList as $key => $thisFileOrDirectory){ // For each item in the array
-				if ($thisFileOrDirectory == "Metis"){ // If the item is called "Metis"
-					if (is_dir($thisFileOrDirectory) == true){ // Lets make sure someone isn't being silly by naming a file "Metis"
-						$metisExistsInDirectory = true; // Assign the metisExistsInDirectory to true
-						break 2; // Break out of the foreach and while loop. As we have the currentSearchDirectory saved, we do not need to do some sort of unnecessary re-assigning of that variable.
-					}
-				}
+			if (is_dir("Metis") == true){ // If Metis exists in the directory and is a directory
+				$metisExistsInDirectory = true; // Assign the metisExistsInDirectory to true
+				break 1; // Break out of the while loop. As we have the currentSearchDirectory saved, we do not need to do some sort of unnecessary re-assigning of that variable.
 			}
 
 			if ($currentSearchDirectory == null){ // If the currentSearchDirectory is the originalDirectory
