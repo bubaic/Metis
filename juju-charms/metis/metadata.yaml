@@ -1,7 +1,7 @@
 name: metis
 summary: "Metis is an open source JSON distributed database / storage system. "
 description: "This will install and setup Metis to run on your Apache or Nginx server."
-maintainer: "Joshua Strobl"
+maintainer: "Joshua Strobl <joshua@stroblindustries.com>"
 categories: 
     - databases
     - file-servers

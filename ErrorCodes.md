@@ -15,8 +15,9 @@ that the error is the result of failing to read a file (necessary for updating w
 - 1.01 - Invalid or missing nodeList.
 - 1.02 - Node does not exist.
 - 1.03 - Failing to get a particular value from a node.
-- 1.04 - atlasui_http_request failed (CURL error).
-- 1.05 - atlasui_sql_connect() returned a false, meaning you failed to connect to the MySQL database.
+- 1.04 - "backup" is defined as a preferential location for a Node. This is a system-only folder.
+- 1.05 - atlasui_http_request failed (CURL error).
+- 1.06 - atlasui_sql_connect() returned a false, meaning you failed to connect to the MySQL database.
 
 ---
 
@@ -25,9 +26,8 @@ that the error is the result of failing to read a file (necessary for updating w
 - 2.02 - The node's type is not "local" or "remote".
 - 2.03 - The action fileActionHandler is taking is not valid. It needs to be r, w, a, or d.
 - 2.04 - The node's preferential location is empty (string length is 0).
-- 2.05 - Files defined for interaction are not strings.
-- 2.06 - File does not exist.
-- 2.07 - Json Decoding has failed (refer to [PHP documentation](http://php.net/manual/en/function.json-decode.php)). You may want to use json_last_error() to find the issue.
+- 2.05 - File does not exist.
+- 2.06 - Json Decoding has failed (refer to [PHP documentation](http://php.net/manual/en/function.json-decode.php)). You may want to use json_last_error() to find the issue.
 
 ---
 

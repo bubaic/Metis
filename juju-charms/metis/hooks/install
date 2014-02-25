@@ -1,5 +1,21 @@
 #!/bin/bash
-set -eux # If any command fails, stop execution.
+set -e # If any command fails, stop execution.
+
+installAtlasUI(){ #Function to pull and install AtlasUI Web Framework
+	atlasui="https://github.com/JoshStrobl/AtlasUI/raw/master/stable.zip" # Define the AtlasUI stable.zip to download
+	wget "$atlasui" -O /tmp/atlasui.zip
+
+	# Install AtlasUI Web Framework
+	echo "Installing AtlasUI"
+
+	if [ ! -f /var/www/AtlasUI/framework.php ]; then #If AtlasUI is NOT already installed
+		mkdir -p /var/www/
+		chmod -R 1777 /var/www/
+	fi
+
+	unzip /tmp/atlasui.zip -du /var/www/ # Extract Metis to /var/www/AtlasUI
+	rm -f /tmp/atlasui.zip # Remove atlasui.zip
+}
 
 installMetis(){ #Function to pull and install Metis
 	metis="https://github.com/StroblIndustries/Metis/raw/master/stable.zip" # Define the Metis stable.zip to download
@@ -9,27 +25,40 @@ installMetis(){ #Function to pull and install Metis
 	echo "Installing Metis"
 
 	if [ ! -f /var/www/Metis/framework.php ]; then #If Metis is NOT already installed
-		mkdir -p /var/www/Metis/
-		chmod -R 1777 /var/www/Metis
+		mkdir -p /var/www/
+		chmod -R 1777 /var/www/
 	fi
 
-	unzip /tmp/metis.zip -d /var/www/Metis/ # Extract Metis to /var/www/Metis
+	unzip /tmp/metis.zip -du /var/www/ # Extract Metis to /var/www/Metis
 	rm -f /tmp/metis.zip # Remove metis.zip
 }
 
 apt-get install -y wget unzip
 
+atlasuiVersionUrl="https://github.com/JoshStrobl/AtlasUI/raw/master/VERSION.txt" # Define the AtlasUI VERSION to download
 metisVersionUrl="https://github.com/StroblIndustries/Metis/raw/master/VERSION.txt" # Define the Metis VERSION to download
+
+wget "$atlasuiVersionUrl" -O /tmp/atlasuiVersion.txt
 wget "$metisVersionUrl" -O /tmp/metisVersion.txt
 
+newestAtlasUIVersion=$(</tmp/atlasuiVersion.txt) # Get the newest AtlasUI version
 newestMetisVersion=$(</tmp/metisVersion.txt) # Get the newest Metis version
 
 # Check for existing installs
 echo "Checking for existing Metis installs"
 
-if [ -f /var/www/Metis/framework.php ]; then #If Metis is already installed
+if [ -f /var/www/Metis/framework.php ]; then #If Metis is already installed (meaning AtlasUI is already installed)
+	currentAtlasUIVersion=$(</var/www/AtlasUI/VERSION.txt) # Get the current AtlasUI version that is already installed
 	currentMetisVersion=$(</var/www/Metis/VERSION.txt) # Get the current Metis version that is already installed 
 
+	if [ "$newestAtlasUIVersion" != "$currentAtlasUIVersion" ]; then # If the current version of AtlasUI is not the latest
+		echo "Found an existing but outdated AtlasUI install. Updating now."
+		rm -rf /var/www/AtlasUI # Remove old AtlasUI Web Framework
+		installAtlasUI # Install AtlasUI
+	else
+		echo "Found an existing and up-to-date AtlasUI install. Doing nothing."
+	fi	
+	
 	if [ "$newestMetisVersion" != "$currentMetisVersion" ]; then # If the current version of Metis is not the latest
 		echo "Found an existing but outdated Metis install. Updating now."
 
@@ -55,13 +84,14 @@ else #If Metis is NOT already installed
 	preferredEngine='config-get engine'
 
 	if [ "$preferredEngine" == "nginx" ]; then # If engine is nginx
-		apt-get install -y php5 php5-fpm php5-curl
+		apt-get install -y nginx php5 php5-fpm php5-curl
 	elif [ "$preferredEngine" == "apache2" ]; then #If engine is apache(2)
-		apt-get install -y php5-cgi curl libapache2-mod-php5 php5-cli php5-curl
+		apt-get install -y apache2 php5-cgi curl libapache2-mod-php5 php5-cli php5-curl
 	fi
 
 	# End of Dependency Checking
 
+	installAtlasUI #Install AtlasUI (fresh install)
 	installMetis #Install Metis (fresh install)
 fi
 

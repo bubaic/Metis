@@ -2,12 +2,38 @@
 
 Metis is an open source and highly robust JSON distributed database / storage solution. This charm will install Metis in /var/www/Metis.
 
-# Installation
+# Installation / Deploying
 
-To deploy this charm, you will need at least: an http server (whether it be apache or nginx) that has access to executing PHP, a working Juju installation and a successful bootstrap. Once bootstrapped, deploy the Metis charm by doing:
+## Requirements
+
+To deploy this charm, you will need at least: an http server (whether it be apache or nginx) that has access to executing PHP, a working Juju installation and a successful bootstrap.
+
+## Initial Configuration
+
+By default, Metis will download / check for dependencies relating to nginx. If you are wanting to deploy Metis on an apache server, modify the config.yaml engine to "apache2".
+
+## Deploying
+
+Once bootstrapped and you have modified the configuration if necessary, deploy the Metis charm by doing:
 	juju deploy metis
 
-And now expose the service:
+When you deploy Metis, it will:
+
+- Check if nginx or apache2 is installed. If not, it will automatically download nginx.
+- Check if the necessary PHP libraries are installed (primarily php5 and php5 CURL). If not, it will automatically download those dependencies.
+- Download the latest Metis version from https://github.com/StroblIndustries/Metis as well as it's dependency AtlasUI Web Framework (https://github.com/JoshStrobl/AtlasUI) and install those in /var/www/AtlasUI and /var/www/Metis.
+
+## Detailed Configuration
+
+Before exposing Metis, you will need to modify the nodeList.json file in /var/www/Metis as well as create the necessary folders in /var/www/Metis/data. You can read more about setting up Metis at https://github.com/StroblIndustries/Metis/wiki/Setting-Up-Metis
+
+# Exposing Metis
+
+After you have modified the nodeList.json file and created the necessary folders within /var/www/Metis/data/, you are welcome to expose the Metis service by doing the following:
 	juju expose metis
 
 All done! You've now deployed Metis on your juju system
+
+# Find a bug or have feedback?
+
+If you have found a bug, issue, or wanting to file feature requests, you can do so at https://github.com/StroblIndustries/Metis/issues

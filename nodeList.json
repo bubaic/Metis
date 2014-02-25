@@ -1,9 +1,23 @@
 {
 
+	"Example Node Group" : {
+		"Node Type" : "group",
+
+		"Backup Data" : {
+			"Enabled" : true,
+			"Location" : "1"
+		},
+
+		"1" : {
+			"Node Name" : "Node in Node Group",
+			"Node Type" : "local",
+			"Preferential Location" : "folder_in_Metis_data"
+		}
+	},
+
 	"1" : {
 		"Node Name" : "Local Storage",
 		"Node Type" : "local",
-		"Address" : "/path/to/parent/directory",
 		"Preferential Location" : "folder_in_Metis_data"
 	},
 
@@ -11,7 +25,7 @@
 		"Node Name" : "Remote Storage",
 		"Node Type" : "remote",
 		"Address" : "https://example.com/Metis",
-		"Preferential Location" : "node_number_on_remote"
+		"Preferential Location" : "Name of Node Group or Node Number"
 	}
 
 }

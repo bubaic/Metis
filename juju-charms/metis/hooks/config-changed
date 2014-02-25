@@ -1,11 +1,18 @@
 #!/bin/bash
+set -e
 
 preferredEngine='config-get engine'
 
 if [ $preferredEngine == "nginx" ]; then # If engine is nginx
-	apt-get install -y php5 php5-fpm
+	stop apache2
+	apt-get remove -y apache2 php5-cgi curl libapache2-mod-php5 php5-cli
+	apt-get clean -y
+	apt-get install -y nginx php5 php5-fpm
+	start nginx
 else #If engine is apache(2)
-	apt-get install -y php5-cgi curl libapache2-mod-php5 php5-cli
+	stop nginx
+	apt-get remove -y nginx php5 php5-fpm
+	apt-get clean -y
+	apt-get install -y apache2 php5-cgi curl libapache2-mod-php5 php5-cli
+	start apache2
 fi
-
-hooks/restart

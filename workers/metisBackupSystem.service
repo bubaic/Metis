@@ -1,0 +1,6 @@
+[Unit]
+Description=Metis - Automated Backup System
+
+[Service]
+Type=oneshot
+ExecStart=/bin/php -f /var/www/Metis/backupSystem.php

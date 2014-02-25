@@ -19,10 +19,12 @@
 		permissions and limitations under the License.
 	*/
 
-	include("core/connection.php"); // Connection System
 	include("core/fileIO.php"); // File Input / Output, encoding and decoding files, etc.
 	//include("core/security.php"); // Security (Functionality Not Yet Known Or Implemented)
+	include("core/system.php"); // Metis system functionality (mainly related to Nodes)
 	include("core/utilities.php"); // Misc. utilities, such as conversion from MySQL to Metis
 
-	$nodeList = getNodeList();
+	$returnedNodeListData = getNodeList();
+	$nodeList = $returnedNodeListData[0];
+	$directoryHostingMetis = $returnedNodeListData[1];
 ?>

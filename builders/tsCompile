@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ ! -f /usr/bin/tsc ]; then # If the Typescript compiler is NOT installed
+	npm install typescript@0.9.5 # Install Typescript via NPM
+fi
+
+if [ ! -f /usr/bin/yuicompressor ]; then # If yuicompressor is NOT installed
+	npm install yuicompressor # Install yuicompressor via NPM
+fi
+
+cd ../
+allJSFiles="$(ls -R *.ts)" # Get all Javascript files recursively
+
+for file in "$allJSFiles"; do
+	fileNameWithoutExtension=${file%%.ts}
+	echo "Compiling $file from Typescript to Javascript"
+	tsc --removeComments $file --out "$fileNameWithoutExtension.js"
+	echo "Minifying $fileNameWithoutExtension.js to $fileNameWithoutExtension.min.js"
+	yuicompressor --type=js "$fileNameWithoutExtension.js" -o "$fileNameWithoutExtension.min.js"
+done
