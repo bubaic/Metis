@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e # If any command fails, stop execution.
+set -eux # If any command fails, stop execution.
 
 installAtlasUI(){ #Function to pull and install AtlasUI Web Framework
 	atlasui="https://github.com/JoshStrobl/AtlasUI/raw/master/stable.zip" # Define the AtlasUI stable.zip to download
@@ -13,7 +13,7 @@ installAtlasUI(){ #Function to pull and install AtlasUI Web Framework
 		chmod -R 1777 /var/www/
 	fi
 
-	unzip /tmp/atlasui.zip -du /var/www/ # Extract Metis to /var/www/AtlasUI
+	unzip /tmp/atlasui.zip -d /var/www/ # Extract Metis to /var/www/AtlasUI
 	rm -f /tmp/atlasui.zip # Remove atlasui.zip
 }
 
@@ -29,7 +29,7 @@ installMetis(){ #Function to pull and install Metis
 		chmod -R 1777 /var/www/
 	fi
 
-	unzip /tmp/metis.zip -du /var/www/ # Extract Metis to /var/www/Metis
+	unzip /tmp/metis.zip -d /var/www/ # Extract Metis to /var/www/Metis
 	rm -f /tmp/metis.zip # Remove metis.zip
 }
 
