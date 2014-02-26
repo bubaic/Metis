@@ -1,18 +1,14 @@
 #!/bin/bash
-set -eux
+set -e
 
-preferredEngine='config-get engine'
+preferredEngine=$(config-get engine)
 
-if [ $preferredEngine == "nginx" ]; then # If engine is nginx
-	/etc/init.d/apache2 stop
-
+if [ "$preferredEngine" == "nginx" ]; then # If engine is nginx
 	apt-get remove -y apache2 php5-cgi curl libapache2-mod-php5 php5-cli
 	apt-get install -y nginx php5 php5-fpm
+	service nginx start
 else #If engine is apache(2)
-	/etc/init.d/nginx stop
-
 	apt-get remove -y nginx php5 php5-fpm
 	apt-get install -y apache2 php5-cgi curl libapache2-mod-php5 php5-cli
+	service apache2 start
 fi
-
-/etc/init.d/$preferredEngine start

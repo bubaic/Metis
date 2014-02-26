@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+preferredEngine=$(config-get engine)
+
+if [ "$preferredEngine" == "nginx" ]; then # If engine is nginx
+	service nginx start
+else #If engine is apache(2)
+	service apache2 start
+fi

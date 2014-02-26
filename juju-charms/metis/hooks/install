@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eux # If any command fails, stop execution.
+set -e # If any command fails, stop execution.
 
 installAtlasUI(){ #Function to pull and install AtlasUI Web Framework
 	atlasui="https://github.com/JoshStrobl/AtlasUI/raw/master/stable.zip" # Define the AtlasUI stable.zip to download
@@ -7,11 +7,6 @@ installAtlasUI(){ #Function to pull and install AtlasUI Web Framework
 
 	# Install AtlasUI Web Framework
 	echo "Installing AtlasUI"
-
-	if [ ! -f /var/www/AtlasUI/framework.php ]; then #If AtlasUI is NOT already installed
-		mkdir -p /var/www/
-		chmod -R 1777 /var/www/
-	fi
 
 	unzip /tmp/atlasui.zip -d /var/www/ # Extract Metis to /var/www/AtlasUI
 	rm -f /tmp/atlasui.zip # Remove atlasui.zip
@@ -23,11 +18,6 @@ installMetis(){ #Function to pull and install Metis
 
 	# Install Metis
 	echo "Installing Metis"
-
-	if [ ! -f /var/www/Metis/framework.php ]; then #If Metis is NOT already installed
-		mkdir -p /var/www/
-		chmod -R 1777 /var/www/
-	fi
 
 	unzip /tmp/metis.zip -d /var/www/ # Extract Metis to /var/www/Metis
 	rm -f /tmp/metis.zip # Remove metis.zip
@@ -79,9 +69,10 @@ else #If Metis is NOT already installed
 	echo "Found no Metis install. Doing fresh-install run."
 
 	# Dependency Checking (No sense in re-installing dependencies)
+
 	echo "Doing some dependency checking."
 
-	preferredEngine='config-get engine'
+	preferredEngine=$(config-get engine)
 
 	if [ "$preferredEngine" == "nginx" ]; then # If engine is nginx
 		apt-get install -y nginx php5 php5-fpm php5-curl
@@ -90,6 +81,9 @@ else #If Metis is NOT already installed
 	fi
 
 	# End of Dependency Checking
+
+	mkdir -p /var/www/
+	chmod -R 1777 /var/www/
 
 	installAtlasUI #Install AtlasUI (fresh install)
 	installMetis #Install Metis (fresh install)
