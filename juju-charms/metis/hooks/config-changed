@@ -2,7 +2,6 @@
 set -eux
 
 preferredEngine='config-get engine'
-oppositeEngine=''
 
 if [ $preferredEngine == "nginx" ]; then # If engine is nginx
 	/etc/init.d/apache2 stop
