@@ -28,10 +28,11 @@
 
 	function navigateToLocalMetisData($nodePreferentialLocation = null){
 		global $directoryHostingMetis;
+
 		$directoryPriorToMove = getcwd();
 
-		if ($directoryHostingMetis !== "../"){
-			chdir("/" . $directoryHostingMetis);
+		if ($directoryHostingMetis !== null){
+			chdir($directoryHostingMetis);
 		}
 
 		chdir("Metis"); // Jump into the Metis folder
@@ -53,6 +54,7 @@
 	function backupQueuer(array $parsedNodeData, array $files, $fileAction){
 		global $nodeList; // Get the node list as a multi-dimensional array
 		$directoryPriorToBackupMove = navigateToLocalMetisData("backup"); // Navigate to the backup folder
+
 		$backupQueue_Json = file_get_contents(fileHashing("backup-queue") . ".json"); // Read the contents of the backup-queue file
 
 		$backupQueue_md5Hash = md5($backupQueue_Json); // Generate md5 hash of the file before it potentially being modified

@@ -19,12 +19,14 @@
 	*/
 
 	function getNodeList(){
-		$phpRoot = $_SERVER['DOCUMENT_ROOT']; // Get the server root, which we'll use to determine at what point we should stop doing recursive checking.
+		$phpRoot = $_SERVER['DOCUMENT_ROOT']; // Variable to hold the root of PHP
 		$originalDirectory = getcwd(); // Get the current working directory so we can change back to it after fetching the node list.
 		$numberOfAttempts = 0; // Set the number of attempts to try to find the Metis directory (every attempt look's at a prior parent directory)
 		$currentWorkingDirectory = null; // Set the current working directory. This is used to track the current directory we are in.
 		$currentSearchDirectory = null; // Set the current search directory. This is used to track our progress as we move up the file system tree.
+
 		$metisExistsInFileSystem = false; // Preemptive setting of metisExistsInDirectory to false. If we find Metis folder in a directory, we set it to true.
+		$directoryHostingMetis = ""; // Exact FS string of where Metis is hosted
 
 		while ($numberOfAttempts < 6){
 			if ($currentSearchDirectory !== null){ // If the current search directory is NOT null (as in it has already searched the originalDirectory)
@@ -35,54 +37,69 @@
 
 			if (is_dir("Metis") == true){ // If Metis exists in the directory and is a directory
 				$metisExistsInFileSystem = true; // Assign the metisExistsInDirectory to true
-				break 1; // Break out of the while loop. As we have the currentSearchDirectory saved, we do not need to do some sort of unnecessary re-assigning of that variable.
+				break; // Break out of while loop since we found the directory
 			}
 			else{ // If Metis does NOT exist in the directory
-				if ($currentSearchDirectory == null){ // If the currentSearchDirectory is the originalDirectory
-					if ($originalDirectory !== $phpRoot){ // We make sure that the originalDirectory is not the PHP root.
+				if ($currentWorkingDirectory !== $_SERVER['DOCUMENT_ROOT']){ // If we are not at root of the FS accessible by PHP
+					if ($currentSearchDirectory == null){ // If we have yet to navigate up the FS tree
 						$currentSearchDirectory = "../"; // Change the currentSearchDirectory to search the parent of the currentWorkingDirectory.
 					}
-					else{ // We are already at the PHP root...
-						$metisExistsInFileSystem = false;
-						break 1;
+					else{ // If we have already navigated up the FS tree to a point
+						$currentSearchDirectory = $currentSearchDirectory . "../"; // Append an additional ../ to the currentSearchDirectory
 					}
 				}
-				else{ // If the currentSearchDirectory is not the originalDirectory (ie. the directory we were first starting out in)
-					if ($currentWorkingDirectory !== $phpRoot){ // We make sure the current working directory is not the PHP root.
-						$currentSearchDirectory = $currentSearchDirectory . "../";
-					}
-					else{ // We are already at the PHP root...
-						$metisExistsInFileSystem = false;
-						break 1;
-					}
+				else{ // If we are at the root of the FS accessible by PHP
+					$metisExistsInFileSystem = false;
+					break; // Break out of while loop since we haven't found the directory and there is nothing else to search
 				}
-
-				chdir($originalDirectory); // Reset our location
-				$numberOfAttempts = $numberOfAttempts + 1; // Assuming we got this far in the function, add one to the numberOfAttempts to make sure we don't forever do recursive navigating.
 			}
+
+			chdir($originalDirectory); // Reset our location
+			$numberOfAttempts = $numberOfAttempts + 1;
 		}
 
-		if ($metisExistsInFileSystem == true){ // If Metis DOES exist somewhere that we've searched...
-			$directoryHostingMetis = $originalDirectory; // Initially define the directory that hosts Metis as the original directory (current working directory)
-			chdir($originalDirectory); // Move to the original working directory (used once again just to make sure we're there).
+		if ($metisExistsInFileSystem == true){ // If Metis DOES exist somehwere that we've searched
+			chdir($phpRoot); //Redirect  to the PHP root
+			$fauxPHPRoot = getcwd(); // Get most likely the faux PHP root (issue on shared hosts usually). Will return DOCUMENT_ROOT under non-stupid hosts, self-hosting, VPS, etc
 
-			if ($currentSearchDirectory !== null){ // If the directory where Metis was found is NOT the originalDirectory
-				$directoryHostingMetis = $currentSearchDirectory; // Define the directory that hosts Metis as the searched directory
-				chdir($currentSearchDirectory);  // Move to the directory that Metis is in (by navigating up the filesystem tree to the directory that Metis exists in
+			$originalDirectory_WithoutRoot = str_replace($fauxPHPRoot, "", $originalDirectory); // Remove the PHP root from the Original Directory string, ex. /var/www/bacon/isyummy/ becomes /bacon/isyummy.
+
+			if ($originalDirectory_WithoutRoot !== ("/" || "")){ // If it turns out the originalDirectory is not empty or root (otherwise meaning Metis is hosting in the PHP root)
+				$instancesOfParentChanging = substr_count($currentSearchDirectory, "../"); // Count the number of instances of ../ (instances in which the parent directory changed / we travelled up the FS)
+
+				$originalDirectory_FolderCount = substr_count($originalDirectory_WithoutRoot, "/"); // Get the number of folders into the FS we are (ex: /var/www/bacon/isyummy is two, since it'd be /bacon/isyummy)
+				$originalDirectory_IndividualFolders = explode("/", $originalDirectory_WithoutRoot); // Get an array of the names of the individual folders in the originalDirectory
+				$whileCounter = 0; // While INT to keep track of number of instances we've added to the
+
+				if (strpos($originalDirectory_WithoutRoot, "/Metis") !== false){ // If there is /Metis in the directory name (which happens when using callback)
+					$originalDirectory_FolderCount = $originalDirectory_FolderCount - 1; // Remove 1 from the folder count
+					$originalDirectory_IndividualFolders = array_values(array_diff($originalDirectory_IndividualFolders, array("Metis"))); // Filter out the Metis folder and reset the numerical indices.
+
+					$instancesOfParentChanging = $originalDirectory_FolderCount + 1; // Increase the folder count by one (since we removed one array item and currentSearchDirectory goes back one to leave the Metis folder during calback)
+				}
+
+				while ($whileCounter < $instancesOfParentChanging){ // While we have cycled through
+					$directoryHostingMetis = $directoryHostingMetis . "/" . $originalDirectory_IndividualFolders[$whileCounter + 1]; // Append array item+1 (since / is counted as array[0]) to the directoryHostingMetis string
+					$whileCounter = $whileCounter + 1;
+				}
+
+				$directoryHostingMetis = $directoryHostingMetis . "/"; // Add the slash at the end of the directory
 			}
-			else{ // If the directory where metis was found IS the originalDirectory
-				$directoryHostingMetis = $currentWorkingDirectory;
-			}
+
+			$directoryHostingMetis = $fauxPHPRoot . $directoryHostingMetis; // Append the faux PHP root so we get a full path
+			chdir($directoryHostingMetis);
 
 			$nodeList = decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Read the nodeList.json from the Metis folder and have it decoded into a multi-dimensional array (assigned to nodeList).
 		}
-		else{
-			$nodeList = 1.01; // Assign nodeList as error code 1.01, which is what'll be returned.
+		else{ // If we did NOT find Metis in the FS
+			$nodeList = 1.01; // Assign nodeList as error code 1.01, which is what'll be returned.		}
 		}
 
 		chdir($originalDirectory); // Move to the original directory
 		return array($nodeList, $directoryHostingMetis); // Return the decoded nodeList or the error code AND the directory hosting Metis
 	}
+
+	// #endregion
 
 	// #region Node Group / Node Parser
 	/* This function converts acceptable Node Group / Node structured string syntax into a multi-dimensional array,
