@@ -18,7 +18,7 @@
 		 limitations under the License.
 	*/
 
-	function fileExists($nodeDataDefined, array $files){ // This function checks if a file exists within a node
+	function fileExists($nodeDataDefined, $files){ // This function checks if a file exists within a node
 		return fileActionHandler($nodeDataDefined, $files, "e"); // Call fileActionHandler wth the "e" (exists) fileAction
 	}
 

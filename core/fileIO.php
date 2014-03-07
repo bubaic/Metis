@@ -162,7 +162,7 @@
 
 	// #endregion
 
-	function fileActionHandler($nodeDataDefined, array $files, $fileAction, array $contentOrDestinationNodes = null){
+	function fileActionHandler($nodeDataDefined, $files, $fileAction, array $contentOrDestinationNodes = null){
 		global $nodeList; //Get the node list as a multi-dimensional array.
 
 		if ($nodeList !== 1.01){ // If the nodeList was successfully fetched, we'll continue our file IO process
@@ -175,12 +175,22 @@
 
 			// #endregion
 
-			if (count($files) == 1){ // If the amount of files to interact of with is one (a single file)
+			// #region File Checking
+
+			if (gettype($files) == "string"){ // If only one file is specified
+				$files = (array) $files; // Convert to an array
 				$multiFile = false; // We are not dealing with multiple files
 			}
-			else{ // If we are interacting with a multitude of files
-				$multiFile = true; // We are dealing with multiple files, so multiFile needs to be set to true
+			else{
+				if (count($files) == 1){ // If the amount of files to interact of with is one (a single file)
+					$multiFile = false; // We are not dealing with multiple files
+				}
+				else{ // If we are interacting with a multitude of files
+					$multiFile = true; // We are dealing with multiple files, so multiFile needs to be set to true
+				}
 			}
+
+			// #endregion
 
 			foreach ($nodeData as $nodeOrGroup => $potentialNodesDefined){ // Recursively go through each Node within an array or within a Node Group
 				if (nodeInfo($nodeOrGroup, "Node Type") == "group"){ // If this individual $nodeOrGroup is a Node Group (rather than an array of Nodes)
@@ -347,15 +357,15 @@
 		return $jsonDecodedValue;
 	}
 
-	function createJsonFile($nodeData, array $files, array $contentOrDestinationNodes){
+	function createJsonFile($nodeData, $files, array $contentOrDestinationNodes){
 		return fileActionHandler($nodeData, $files, "w", $contentOrDestinationNodes);
 	}
 
-	function readJsonFile($nodeData, array $files){ // This function is an abstraction for reading files and offers multi-file reading functionality
+	function readJsonFile($nodeData, $files){ // This function is an abstraction for reading files and offers multi-file reading functionality
 		return fileActionHandler($nodeData, $files, "r"); // Return the JSON file or error code from fileActionHandler
 	}
 
-	function updateJsonFile($nodeData, array $files, array $contentOrDestinationNodes, $fileAppend = true){
+	function updateJsonFile($nodeData, $files, array $contentOrDestinationNodes, $fileAppend = true){
 		if ($fileAppend == false){ // If we are updating the file but not appending
 			$fileActionMode = "w"; // Set the fileActionMode to w (write)
 		}
@@ -366,14 +376,23 @@
 		return fileActionHandler($nodeData, $files, $fileActionMode, $contentOrDestinationNodes);
 	}
 
-	function deleteJsonFile($nodeData, array $files){
+	function deleteJsonFile($nodeData, $files){
 		return fileActionHandler($nodeData, $files, "d");
 	}
 
-	function replicator($nodeData, $nodeDestinations, array $files){
+	function replicator($nodeData, $nodeDestinations, $files){
 		global $nodeList; // Fetch the Node List as a multidimensional array.
 
 		if ($nodeList !== 1.01){ // Check if getNodeList from $nodeList global is an int / error.
+
+			// #region File Checking
+
+			if (gettype($files) == "string"){ // If only one file is specified
+				$files = (array) $files; // Convert to an array
+			}
+
+			// #endregion
+
 			foreach ($files as $fileName_NotHashed){ // Cycle through each file in the array
 				$fileContent_JsonFormat = readJsonFile($nodeData, array($fileName_NotHashed)); // Read the individual file we are replicating
 
