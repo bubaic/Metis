@@ -18,7 +18,7 @@
 		 limitations under the License.
 	*/
 
-	function getNodeList(){
+	function metisInit(){
 		$phpRoot = $_SERVER['DOCUMENT_ROOT']; // Variable to hold the root of PHP
 		$originalDirectory = getcwd(); // Get the current working directory so we can change back to it after fetching the node list.
 		$numberOfAttempts = 0; // Set the number of attempts to try to find the Metis directory (every attempt look's at a prior parent directory)
@@ -69,7 +69,7 @@
 
 				$originalDirectory_FolderCount = substr_count($originalDirectory_WithoutRoot, "/"); // Get the number of folders into the FS we are (ex: /var/www/bacon/isyummy is two, since it'd be /bacon/isyummy)
 				$originalDirectory_IndividualFolders = explode("/", $originalDirectory_WithoutRoot); // Get an array of the names of the individual folders in the originalDirectory
-				$whileCounter = 0; // While INT to keep track of number of instances we've added to the
+				$whileCounter = 0; // While INT to keep track of number of instances we've added to the directoryHostingMetis
 
 				if (strpos($originalDirectory_WithoutRoot, "/Metis") !== false){ // If there is /Metis in the directory name (which happens when using callback)
 					$originalDirectory_FolderCount = $originalDirectory_FolderCount - 1; // Remove 1 from the folder count
@@ -78,12 +78,13 @@
 					$instancesOfParentChanging = $originalDirectory_FolderCount + 1; // Increase the folder count by one (since we removed one array item and currentSearchDirectory goes back one to leave the Metis folder during calback)
 				}
 
-				while ($whileCounter < $instancesOfParentChanging){ // While we have cycled through
-					$directoryHostingMetis = $directoryHostingMetis . "/" . $originalDirectory_IndividualFolders[$whileCounter + 1]; // Append array item+1 (since / is counted as array[0]) to the directoryHostingMetis string
+				$originalDirectory_IndividualFolders = array_values(array_diff($originalDirectory_IndividualFolders, array(""))); // Remove the initial "" root (/) folder
+
+				while ($whileCounter <= $instancesOfParentChanging){ // Cycle through each instance of the parent changing
+					$directoryHostingMetis = $directoryHostingMetis . "/" . $originalDirectory_IndividualFolders[$whileCounter]; // Append array item to the directoryHostingMetis string
 					$whileCounter = $whileCounter + 1;
 				}
 
-				$directoryHostingMetis = $directoryHostingMetis . "/"; // Add the slash at the end of the directory
 			}
 
 			$directoryHostingMetis = $fauxPHPRoot . $directoryHostingMetis; // Append the faux PHP root so we get a full path

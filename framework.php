@@ -24,7 +24,7 @@
 	include("core/system.php"); // Metis system functionality (mainly related to Nodes)
 	include("core/utilities.php"); // Misc. utilities, such as conversion from MySQL to Metis
 
-	$returnedNodeListData = getNodeList();
+	$returnedNodeListData = metisInit();
 	$nodeList = $returnedNodeListData[0];
 	$directoryHostingMetis = $returnedNodeListData[1];
 ?>

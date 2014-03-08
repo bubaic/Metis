@@ -383,7 +383,7 @@
 	function replicator($nodeData, $nodeDestinations, $files){
 		global $nodeList; // Fetch the Node List as a multidimensional array.
 
-		if ($nodeList !== 1.01){ // Check if getNodeList from $nodeList global is an int / error.
+		if ($nodeList !== 1.01){ // Check if metisInit() from $nodeList global is an int / error.
 
 			// #region File Checking
 
