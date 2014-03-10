@@ -227,8 +227,13 @@ class Metis { // Class definition "Metis"
 						if (localStorage.getItem(fileName) !== null){ // If the key does exist in localStorage
 							fileContent[fileName] = "local";
 						}
-						else{ // If the key does not exist in localStorage, push to necessaryFilesForRemoteIO so we can check online
-							necessaryFilesForRemoteIO.push(fileName);
+						else{ // If the key does not exist in localStorage, check if headless mode is enable and do variable assigning / array pushing accordingly
+							if (this.enableHeadlessMetis == true){ // If headless Metis is enabled
+								fileContent[fileName] = false; // Set it to false, since we are only checking locally (no remote connection due to enableHeadlessMetis)
+							}
+							else{ // If enableHeadlessMetis is NOT enabled
+								necessaryFilesForRemoteIO.push(fileName); // Add the fileName to the necessaryFilesForRemoteIO, since we are able to do XHR calls
+							}
 						}
 					}
 				}
