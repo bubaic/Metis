@@ -88,6 +88,10 @@ var Metis = (function () {
             nodeDataDefined = nodeData.toString();
         }
 
+        if (typeof filesToQueue == "string") {
+            filesToQueue = [filesToQueue];
+        }
+
         for (var fileIndex in filesToQueue) {
             var fileName = filesToQueue[fileIndex];
             if (this.ioQueue.hasOwnProperty(fileName) == false) {
@@ -133,7 +137,7 @@ var Metis = (function () {
         var necessaryFilesForRemoteIO = [];
 
         if (typeof files == "string") {
-            files = new Array(files);
+            files = [files];
         }
 
         if (this.enableLocalStorage == true) {
@@ -173,7 +177,11 @@ var Metis = (function () {
                         if (localStorage.getItem(fileName) !== null) {
                             fileContent[fileName] = "local";
                         } else {
-                            necessaryFilesForRemoteIO.push(fileName);
+                            if (this.enableHeadlessMetis == true) {
+                                fileContent[fileName] = false;
+                            } else {
+                                necessaryFilesForRemoteIO.push(fileName);
+                            }
                         }
                     }
                 }

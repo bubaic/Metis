@@ -79,7 +79,7 @@ class Metis { // Class definition "Metis"
 		this.userOnline = false;
 	}
 
-	addToIOQueue(nodeData : any, filesToQueue : string[], fileAction : string, contentOrDestinationNodes ?: any){ // This function adds items to the ioQueue
+	addToIOQueue(nodeData : any, filesToQueue : any, fileAction : string, contentOrDestinationNodes ?: any){ // This function adds items to the ioQueue
 		var nodeDataDefined : string = "";
 
 		if (typeof nodeData == "string"){ // If the nodeData is already a string format
@@ -117,6 +117,10 @@ class Metis { // Class definition "Metis"
 		}
 		else if (typeof nodeData == "number"){ // If the nodeData is a number
 			nodeDataDefined = nodeData.toString(); // Convert to string
+		}
+
+		if (typeof filesToQueue == "string"){ // If the filesToQueue is a string
+			filesToQueue = [filesToQueue]; // Convert filesToQueue to an array
 		}
 
 		for (var fileIndex in filesToQueue){
@@ -178,8 +182,8 @@ class Metis { // Class definition "Metis"
 
 		// #region Files Checking
 
-		if (typeof files == "string"){ // If files is a string (one file)
-			files = new Array(files); // Convert to an array with a single item
+		if (typeof files == "string"){ // If the filesToQueue is a string
+			files = [files]; // Convert filesToQueue to an array
 		}
 
 		// #endregion
@@ -328,17 +332,17 @@ class Metis { // Class definition "Metis"
 	}
 
 	/* This function is for reading one or a multitude of files from a Metis node */
-	readJsonFile(nodeData: string, files: string[]) {
+	readJsonFile(nodeData: string, files: any) {
 		return this.fileActionHandler(nodeData, files, "r");
 	}
 
 	/* This function is for creating one or a multitude of files from a Metis node */
-	createJsonFile(nodeData: string, files: string[], jsonEncodedContent: Object) {
+	createJsonFile(nodeData: string, files : any, jsonEncodedContent: Object) {
 		return this.fileActionHandler(nodeData, files, "w", jsonEncodedContent);
 	}
 
 	/* This function is for updating one or a multitude of files from a Metis node */
-	updateJsonFile(nodeData: string, files: string[], jsonEncodedContent: Object, appendContent ?: Boolean) {
+	updateJsonFile(nodeData: string, files : any, jsonEncodedContent: Object, appendContent ?: Boolean) {
 		if(appendContent == (undefined || false)) {
 			return this.fileActionHandler(nodeData, files, "w", jsonEncodedContent);
 		}
@@ -348,18 +352,18 @@ class Metis { // Class definition "Metis"
 	}
 
 	/* This function is for deleting one or a multitude of files from a Metis node */
-	deleteJsonFile(nodeData: string, files: string[]) {
+	deleteJsonFile(nodeData: string, files : any) {
 		return this.fileActionHandler(nodeData, files, "d");
 	}
 
 	/* This function is for checking if one or a multitude of files from a Metis Node Group or Nodes exists */
 
-	fileExists(nodeData : any, files: string[]){
+	fileExists(nodeData : any, files : any){
 		return this.fileActionHandler(nodeData, files, "e");
 	}
 
 	/* This function is for replication / duplicating one or a multitude of files from an origin node to one or multiple destination nodes */
-	replicator(nodeData: string, nodeDestinations: string[], files: string[]) {
+	replicator(nodeData: string, nodeDestinations: string[], files : any) {
 		return this.fileActionHandler(nodeData, files, "rp", nodeDestinations);
 	}
 }

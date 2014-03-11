@@ -1,20 +1,60 @@
 #!/bin/bash
 
+currentMetisDirectory=$(pwd) # Get the current Metis directory
+currentMetisDirectory=${currentMetisDirectory%builders} #Remove the builders folder, if it exists, from the directory
+
+# Node / NPM & Package Manager Checking
+
+isNodeInstalled=true #Default to true, will change to false otherwise
+
+if [ ! -f /usr/bin/nodejs ]; then # If nodejs does not exist
+	if [ ! -f /usr/bin/node ]; then If nodejs is most certainly not installed
+		isNodeInstalled=false
+	fi
+elif [ -f /usr/bin/nodejs ]; then # If nodejs is installed
+	if [ ! -f /usr/bin/node ]; then # If nodejs is installed but not properly symlinked
+		sudo ln -s /usr/bin/nodejs /usr/bin/node
+	fi
+fi
+
+if [ $isNodeInstalled = false ]; then # If Node.JS and typically NPM (since nodejs is a dep of npm) are not installed
+
+	cd /home/"$USER"/ # Go to the home directory of the user
+
+	if [ -f /usr/bin/apt-get ]; then # If the user is using apt-get for package management
+		sudo apt-get install -y nodejs npm
+	elif [ -f /usr/bin/pacman ]; then # If the user is using pacman for package management
+		sudo pacman -S nodejs npm
+	elif [ -f /usr/bin/yum ]; then  # If the user is using yum for package management
+		sudo yum install nodejs npm
+	elif [ -f /usr/bin/zypper ]; then #If the user is using zypper for package management
+		sudo zypper install nodejs npm
+	fi
+
+fi
+
+# End of Node / NPM & Package Manager Checking
+
 if [ ! -f /usr/bin/tsc ]; then # If the Typescript compiler is NOT installed
-	npm install typescript@0.9.5 # Install Typescript via NPM
+	cd /home/"$USER"/ #Go to the user's home directory to ensure node_modules are install in node_modules
+	npm install typescript@0.9.7 # Install Typescript via NPM
+	sudo ln -s /home/"$USER"/node_modules/typescript/bin/tsc /usr/bin/tsc # Ensure Typescript Compiler is symlinked
 fi
 
 if [ ! -f /usr/bin/yuicompressor ]; then # If yuicompressor is NOT installed
+	cd /home/"$USER"/ #Go to the user's home directory to ensure node_modules are install
 	npm install yuicompressor # Install yuicompressor via NPM
+	sudo ln -s /home/"$USER"/node_modules/yuicompressor/nodejs/cli.js /usr/bin/yuicompressor # Ensure yuicompressor is symlinked
 fi
 
-cd ../
+cd "$currentMetisDirectory" # Go to the current Metis directory if we are not already in it
 allJSFiles="$(ls -R *.ts)" # Get all Javascript files recursively
 
-for file in "$allJSFiles"; do
+for file in $allJSFiles; do
 	fileNameWithoutExtension=${file%%.ts}
 	echo "Compiling $file from Typescript to Javascript"
-	tsc --removeComments $file --out "$fileNameWithoutExtension.js"
+	tsc --removeComments "$file" --out "$fileNameWithoutExtension.js"
 	echo "Minifying $fileNameWithoutExtension.js to $fileNameWithoutExtension.min.js"
 	yuicompressor --type=js "$fileNameWithoutExtension.js" -o "$fileNameWithoutExtension.min.js"
+	echo "Finished minification process. Ignore any potential 'Picked up JAVA_TOOL_OPTIONS[...]' notices from yuicompressor!"
 done
