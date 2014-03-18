@@ -1,7 +1,7 @@
 #!/bin/bash
 
-currentMetisDirectory=$(pwd) # Get the current Metis directory
-currentMetisDirectory=${currentMetisDirectory%builders} #Remove the builders folder, if it exists, from the directory
+currentDirectory=$(pwd) # Get the current Metis directory
+currentDirectory=${currentDirectory%builders} #Remove the builders folder, if it exists, from the directory
 
 # Node / NPM & Package Manager Checking
 
@@ -47,14 +47,19 @@ if [ ! -f /usr/bin/yuicompressor ]; then # If yuicompressor is NOT installed
 	sudo ln -s /home/"$USER"/node_modules/yuicompressor/nodejs/cli.js /usr/bin/yuicompressor # Ensure yuicompressor is symlinked
 fi
 
-cd "$currentMetisDirectory" # Go to the current Metis directory if we are not already in it
-allJSFiles="$(ls -R *.ts)" # Get all Javascript files recursively
+cd "$currentDirectory" # Go to the current directory if we are not already in it
+allTSFiles=$(find -name "*.ts") # Get all Javascript files recursively
 
-for file in $allJSFiles; do
-	fileNameWithoutExtension=${file%%.ts}
-	echo "Compiling $file from Typescript to Javascript"
-	tsc --removeComments "$file" --out "$fileNameWithoutExtension.js"
-	echo "Minifying $fileNameWithoutExtension.js to $fileNameWithoutExtension.min.js"
-	yuicompressor --type=js "$fileNameWithoutExtension.js" -o "$fileNameWithoutExtension.min.js"
-	echo "Finished minification process. Ignore any potential 'Picked up JAVA_TOOL_OPTIONS[...]' notices from yuicompressor!"
+for file in $allTSFiles; do
+	if [[ "$file" != *.d.ts ]]; then # If it is not a declaration file (exists after using tsCompile once)
+		fileNameWithoutPathRemnant="${file#./}" # Remove the ./ from the directory
+		fileNameWithoutExtension=${fileNameWithoutPathRemnant%%.ts}
+
+		echo "Compiling $fileNameWithoutPathRemnant from Typescript to Javascript"
+		tsc --removeComments "$fileNameWithoutPathRemnant" --declaration --out "$fileNameWithoutExtension.js"
+		echo "Minifying $fileNameWithoutExtension.js to $fileNameWithoutExtension.min.js"
+		yuicompressor --type=js "$fileNameWithoutExtension.js" -o "$fileNameWithoutExtension.min.js" &> /dev/null
+		echo "Finished minification process of $fileNameWithoutPathRemnant"
+		printf "\n" # Since we may have multiple files we are compiling and compressing, let's put a break between each file segment to make it more readable.
+	fi
 done
