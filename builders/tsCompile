@@ -63,3 +63,8 @@ for file in $allTSFiles; do
 		printf "\n" # Since we may have multiple files we are compiling and compressing, let's put a break between each file segment to make it more readable.
 	fi
 done
+
+if [ -f "$currentDirectory/builders/tsHook" ]; then # If tsHook exists, we will execute the file (it acts as a post-compile hook)
+	source "$currentDirectory/builders/tsHook"
+	hook
+fi
