@@ -63,7 +63,7 @@ for file in $allTSFiles; do
 
 		if [ $FILE_CHANGED == "CHANGED" ]; then # If the file has been changed
 			echo "File is new or has been changed. Now compiling from Typescript to Javascript."
-			tsc --removeComments "$fileNameWithoutPathRemnant" --declaration --out "$fileNameWithoutExtension.js"
+			tsc --removeComments --target 'ES5' "$fileNameWithoutPathRemnant" --declaration --out "$fileNameWithoutExtension.js"
 			echo "Minifying $fileNameWithoutExtension.js to $fileNameWithoutExtension.min.js"
 			yuicompressor --type=js "$fileNameWithoutExtension.js" -o "$fileNameWithoutExtension.min.js" &> /dev/null
 			echo "Finished compiling and minification process of $fileNameWithoutPathRemnant"
