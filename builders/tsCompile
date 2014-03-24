@@ -2,6 +2,7 @@
 
 currentDirectory=$(pwd) # Get the current Metis directory
 currentDirectory=${currentDirectory%builders} #Remove the builders folder, if it exists, from the directory
+source "$currentDirectory/builders/tsFunctions" # Import Functions Dependency
 
 # Node / NPM & Package Manager Checking
 
@@ -48,18 +49,28 @@ if [ ! -f /usr/bin/yuicompressor ]; then # If yuicompressor is NOT installed
 fi
 
 cd "$currentDirectory" # Go to the current directory if we are not already in it
-allTSFiles=$(find -name "*.ts") # Get all Javascript files recursively
+allTSFiles=$(find -name "*.ts") # Get all Typescript files recursively
 
 for file in $allTSFiles; do
 	if [[ "$file" != *.d.ts ]]; then # If it is not a declaration file (exists after using tsCompile once)
 		fileNameWithoutPathRemnant="${file#./}" # Remove the ./ from the directory
 		fileNameWithoutExtension=${fileNameWithoutPathRemnant%%.ts}
 
-		echo "Compiling $fileNameWithoutPathRemnant from Typescript to Javascript"
-		tsc --removeComments "$fileNameWithoutPathRemnant" --declaration --out "$fileNameWithoutExtension.js"
-		echo "Minifying $fileNameWithoutExtension.js to $fileNameWithoutExtension.min.js"
-		yuicompressor --type=js "$fileNameWithoutExtension.js" -o "$fileNameWithoutExtension.min.js" &> /dev/null
-		echo "Finished minification process of $fileNameWithoutPathRemnant"
+		echo "------$fileNameWithoutPathRemnant------"
+		echo "Checking if this file is new or has been changed."
+
+		fileChanged $fileNameWithoutPathRemnant
+
+		if [ $FILE_CHANGED == "CHANGED" ]; then # If the file has been changed
+			echo "File is new or has been changed. Now compiling from Typescript to Javascript."
+			tsc --removeComments "$fileNameWithoutPathRemnant" --declaration --out "$fileNameWithoutExtension.js"
+			echo "Minifying $fileNameWithoutExtension.js to $fileNameWithoutExtension.min.js"
+			yuicompressor --type=js "$fileNameWithoutExtension.js" -o "$fileNameWithoutExtension.min.js" &> /dev/null
+			echo "Finished compiling and minification process of $fileNameWithoutPathRemnant"
+		else
+			echo "File is not new or has not been changed."
+		fi
+
 		printf "\n" # Since we may have multiple files we are compiling and compressing, let's put a break between each file segment to make it more readable.
 	fi
 done
