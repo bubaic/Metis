@@ -62,38 +62,15 @@
 			chdir($phpRoot); //Redirect  to the PHP root
 			$fauxPHPRoot = getcwd(); // Get most likely the faux PHP root (issue on shared hosts usually). Will return DOCUMENT_ROOT under non-stupid hosts, self-hosting, VPS, etc
 
-			$originalDirectory_WithoutRoot = str_replace($fauxPHPRoot, "", $originalDirectory); // Remove the PHP root from the Original Directory string, ex. /var/www/bacon/isyummy/ becomes /bacon/isyummy.
+			$directoryHostingMetis_WithoutRoot = str_replace($fauxPHPRoot, "", $currentWorkingDirectory); // Remove the PHP root from the Original Directory string, ex. /var/www/bacon/isyummy/ becomes /bacon/isyummy.
 
-			if ($originalDirectory_WithoutRoot !== ("/" || "")){ // If it turns out the originalDirectory is not empty or root (otherwise meaning Metis is hosting in the PHP root)
-				$instancesOfParentChanging = substr_count($currentSearchDirectory, "../"); // Count the number of instances of ../ (instances in which the parent directory changed / we travelled up the FS)
-
-				$originalDirectory_FolderCount = substr_count($originalDirectory_WithoutRoot, "/"); // Get the number of folders into the FS we are (ex: /var/www/bacon/isyummy is two, since it'd be /bacon/isyummy)
-				$originalDirectory_IndividualFolders = explode("/", $originalDirectory_WithoutRoot); // Get an array of the names of the individual folders in the originalDirectory
-				$whileCounter = 0; // While INT to keep track of number of instances we've added to the directoryHostingMetis
-
-				if (strpos($originalDirectory_WithoutRoot, "/Metis") !== false){ // If there is /Metis in the directory name (which happens when using callback)
-					$originalDirectory_FolderCount = $originalDirectory_FolderCount - 1; // Remove 1 from the folder count
-					$originalDirectory_IndividualFolders = array_values(array_diff($originalDirectory_IndividualFolders, array("Metis"))); // Filter out the Metis folder and reset the numerical indices.
-
-					$instancesOfParentChanging = $originalDirectory_FolderCount + 1; // Increase the folder count by one (since we removed one array item and currentSearchDirectory goes back one to leave the Metis folder during calback)
-				}
-
-				$originalDirectory_IndividualFolders = array_values(array_diff($originalDirectory_IndividualFolders, array(""))); // Remove the initial "" root (/) folder
-
-				while ($whileCounter <= $instancesOfParentChanging){ // Cycle through each instance of the parent changing
-					$directoryHostingMetis = $directoryHostingMetis . "/" . $originalDirectory_IndividualFolders[$whileCounter]; // Append array item to the directoryHostingMetis string
-					$whileCounter = $whileCounter + 1;
-				}
-
-			}
-
-			$directoryHostingMetis = $fauxPHPRoot . $directoryHostingMetis; // Append the faux PHP root so we get a full path
+			$directoryHostingMetis = str_replace("//", "/", $fauxPHPRoot . $directoryHostingMetis_WithoutRoot); // Append the faux PHP root so we get a full path
 			chdir($directoryHostingMetis);
 
 			$nodeList = decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Read the nodeList.json from the Metis folder and have it decoded into a multi-dimensional array (assigned to nodeList).
 		}
 		else{ // If we did NOT find Metis in the FS
-			$nodeList = 1.01; // Assign nodeList as error code 1.01, which is what'll be returned.		}
+			$nodeList = 1.01; // Assign nodeList as error code 1.01, which is what'll be returned.
 		}
 
 		chdir($originalDirectory); // Move to the original directory

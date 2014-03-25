@@ -339,7 +339,10 @@
 				}
 			}
 
-			backupQueuer($nodeData, $files, $fileAction); // Send data to Backup Queuer
+			if ($fileAction !== "r"){ // If the fileAction is NOT read, then run the backupQueuer
+				$executeBackupQueuer = backupQueuer($nodeData, $files, $fileAction); // Send data to Backup Queuer (assign result to backupQueuer to suppress potential errors)
+			}
+
 			return json_encode($returnableFileContent); // Return the JSON encoded version (string) of the fileContent (which is an array)
 		}
 		else{ // If the nodeList is not valid / doesn't exist.
