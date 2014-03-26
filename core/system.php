@@ -62,9 +62,9 @@
 			chdir($phpRoot); //Redirect  to the PHP root
 			$fauxPHPRoot = getcwd(); // Get most likely the faux PHP root (issue on shared hosts usually). Will return DOCUMENT_ROOT under non-stupid hosts, self-hosting, VPS, etc
 
-			$directoryHostingMetis_WithoutRoot = str_replace($fauxPHPRoot, "", $currentWorkingDirectory); // Remove the PHP root from the Original Directory string, ex. /var/www/bacon/isyummy/ becomes /bacon/isyummy.
+			$directoryWithoutRoot = str_replace($fauxPHPRoot, "", $currentWorkingDirectory); // Remove the PHP root from the Original Directory string, ex. /var/www/bacon/isyummy/ becomes /bacon/isyummy.
 
-			$directoryHostingMetis = str_replace("//", "/", $fauxPHPRoot . $directoryHostingMetis_WithoutRoot); // Append the faux PHP root so we get a full path
+			$directoryHostingMetis = str_replace("//", "/", $fauxPHPRoot . $directoryWithoutRoot); // Append the faux PHP root so we get a full path
 			chdir($directoryHostingMetis);
 
 			$nodeList = decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Read the nodeList.json from the Metis folder and have it decoded into a multi-dimensional array (assigned to nodeList).

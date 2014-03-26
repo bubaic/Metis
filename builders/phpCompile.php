@@ -2,17 +2,17 @@
 	include("php-compressor.php"); // Include a modified version of PHP-compressor (code.google.com/p/php-compressor/)
 	chdir("../"); // Move to Metis root directory
 
+	$metisClassCompressor = new Compressor; // Generate a compressor that'll only be used in the end for compressing Metis beginning content
+	$metisClassCompressor->keep_line_breaks = false;
+
 	$metisClassContent = ""; // Declare metisClassContent, which will (as the name implies) be the content of the Metis class
 	$modules = array("core" => array("fileIO.php", "system.php", "utilities.php")); // Declare $modules as an array of folders and files that need to be compressed
 
-	$functionStrings = array( /* Array of functions that exist in Metis that need to be replaced with $this->function() */
-		"= fileHashing","= fileActionHandler", "= readJsonFile", "= decodeJsonFile", "= createJsonFile", "= updateJsonFile", "= replicator",
-		"= nodeDataParser", "= metisInit"
-	);
-
-	$functionStringsReplace = array( /* Strings of functions content that'll replace $functionStrings array items */
-		'= $this->fileHashing','= $this->fileActionHandler', '= $this->readJsonFile', '= $this->decodeJsonFile', '= $this->createJsonFile', '= $this->updateJsonFile',
-		'= $this->replicator','= $this->nodeDataParser', '= $this->metisInit'
+	$functionConversionArray = array( // Array of functions that need to be converted, their initial values (keys) and converted values (vals)
+		"= fileHashing" => '= $this->fileHashing', "= fileActionHandler" => '= $this->fileActionHandler', "= readJsonFile"=> '= $this->readJsonFile',
+		"= decodeJsonFile" => '= $this->decodeJsonFile', "= createJsonFile" => '= $this->createJsonFile', "= updateJsonFile" => '= $this->updateJsonFile',
+		"= replicator" => '= $this->replicator', "= nodeDataParser" => '= $this->nodeDataParser', "= metisInit" => '= $this->metisInit',
+		"= backupQueuer" => '= $this->backupQueuer'
 	);
 
 	foreach ($modules as $folderName => $files){ // For every folder listed in modules
@@ -23,8 +23,14 @@
 			$tmpFileContent = ""; // Create a variable that holds the file content
 
 			while (($fileContentLine = fgets($currentFileHandler)) !== false){ // For each line in the file
-				$newFileLine = str_replace($functionStrings, $functionStringsReplace, $fileContentLine); // Replace any function() call with $this->function()
-				$tmpFileContent = $tmpFileContent . $newFileLine; // Add the line to file content
+				if ((strpos($fileContentLine, 'global $nodeList') == false) && (strpos($fileContentLine, 'global $directoryHostingMetis') == false)){ // If the line does not have a global call
+					$newFileLine = str_replace(array_keys($functionConversionArray), array_values($functionConversionArray), $fileContentLine); // Replace any function() call with $this->function()
+					$newFileLine = str_replace(
+						array('$nodeList', '$directoryHostingMetis'),
+						array('$this->nodeList', '$this->directoryHostingMetis'), $newFileLine); // Replace any reference to public nodeList and directoryHostingMetis variables
+
+					$tmpFileContent = $tmpFileContent . $newFileLine; // Add the line to file content
+				}
 			}
 
 			fclose($currentFileHandler); // Close the file
@@ -48,7 +54,14 @@
 
 
 	echo "Doing final touches on Metis class. \n";
-	$metisClassContent = "class Metis{" . $metisClassContent . "\n }"; // Add the class Metis wrapper around the content
+
+	$metisConstructionContent = 'class Metis{public $nodeList = "";	public $directoryHostingMetis = "";function __construct(){$returnedNodeListData = $this->metisInit();
+	$this->nodeList = $returnedNodeListData[0];$this->directoryHostingMetis = $returnedNodeListData[1];}';
+
+	$metisClassCompressor->load(str_replace(array("\r", "\n"), "", $metisConstructionContent)); // Load the construction content
+	$metisConstructionContent_Compressed = $metisClassCompressor->run(); // Save the construction content compressed
+
+	$metisClassContent = $metisConstructionContent_Compressed . $metisClassContent . "}"; // Finalize the Metis class content by adding beginning and end to main code
 
 	echo "Saving Metis class. \n";
 	$compileSave = fopen("metis.min.php", "w+"); // Create a file Handler called compileSave
