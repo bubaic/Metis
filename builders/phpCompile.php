@@ -5,15 +5,35 @@
 	$metisClassContent = ""; // Declare metisClassContent, which will (as the name implies) be the content of the Metis class
 	$modules = array("core" => array("fileIO.php", "system.php", "utilities.php")); // Declare $modules as an array of folders and files that need to be compressed
 
+	$functionStrings = array( /* Array of functions that exist in Metis that need to be replaced with $this->function() */
+		"= fileHashing","= fileActionHandler", "= readJsonFile", "= decodeJsonFile", "= createJsonFile", "= updateJsonFile", "= replicator",
+		"= nodeDataParser", "= metisInit"
+	);
+
+	$functionStringsReplace = array( /* Strings of functions content that'll replace $functionStrings array items */
+		'= $this->fileHashing','= $this->fileActionHandler', '= $this->readJsonFile', '= $this->decodeJsonFile', '= $this->createJsonFile', '= $this->updateJsonFile',
+		'= $this->replicator','= $this->nodeDataParser', '= $this->metisInit'
+	);
+
 	foreach ($modules as $folderName => $files){ // For every folder listed in modules
 		echo "Going to /$folderName. \n";
 		chdir($folderName); // Move into the directory (ex. core)
 		foreach ($files as $fileName){ // For every file list in directory that we've whitelisted
+			$currentFileHandler = fopen($fileName, "r"); // Create a file handler (fileName)
+			$tmpFileContent = ""; // Create a variable that holds the file content
+
+			while (($fileContentLine = fgets($currentFileHandler)) !== false){ // For each line in the file
+				$newFileLine = str_replace($functionStrings, $functionStringsReplace, $fileContentLine); // Replace any function() call with $this->function()
+				$tmpFileContent = $tmpFileContent . $newFileLine; // Add the line to file content
+			}
+
+			fclose($currentFileHandler); // Close the file
+
 			$PHPCompressor = new Compressor; // Generate a new Compressor
-			$PHPCompress->keep_line_breaks = false;
+			$PHPCompressor->keep_line_breaks = false;
 
 			echo "Loading $fileName for compression. \n";
-			$PHPCompressor->load(file_get_contents($fileName)); // Load the file
+			$PHPCompressor->load($tmpFileContent); // Load the content into the compressor
 
 			echo "Compressing $fileName. \n";
 			$compressedFile = $PHPCompressor->run(); // Define compressedFile as the PHPCompressor output (compressed PHP)
@@ -24,6 +44,8 @@
 		}
 		chdir("../");
 	}
+
+
 
 	echo "Doing final touches on Metis class. \n";
 	$metisClassContent = "class Metis{" . $metisClassContent . "\n }"; // Add the class Metis wrapper around the content
