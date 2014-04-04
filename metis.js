@@ -14,7 +14,7 @@ var Metis = (function () {
                 if (enableLocalStorageBoolean !== undefined) {
                     this.enableLocalStorage = enableLocalStorageBoolean;
                 } else {
-                    this.enableLocalStorage = false;
+                    this.enableLocalStorage = true;
                 }
             } else {
                 console.log("You have defined enableHeadlessMetisOption as FALSE but have NOT provided a callback URL. Expect errors.");

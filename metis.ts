@@ -24,7 +24,7 @@ class Metis { // Class definition "Metis"
 					this.enableLocalStorage = enableLocalStorageBoolean; // Set the value of enableLocalStorage to the boolean that the dev. set
 				}
 				else { // If the developer has NOT defined whether to enable or disable the Local Storage
-					this.enableLocalStorage = false; // Set the enableLocalStorage to false
+					this.enableLocalStorage = true; // Set the enableLocalStorage to true
 				}
 			}
 			else { // If the callback URL is not defined
