@@ -2,14 +2,14 @@
 	
 	// These are misc. utilities
 
-	/* 
-		Copyright 2013 Strobl Industries
+	/*
+		Copyright 2013-2014 Strobl Industries
 
 		Licensed under the Apache License, Version 2.0 (the "License");
 		 you may not use this file except in compliance with the License.
 		 You may obtain a copy of the License at
 
-		     http://www.apache.org/licenses/LICENSE-2.0
+			 http://www.apache.org/licenses/LICENSE-2.0
 
 		 Unless required by applicable law or agreed to in writing, software
 		 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,12 +18,8 @@
 		 limitations under the License.
 	*/
 
-	function fileExists($nodeDataDefined, $files){ // This function checks if a file exists within a node
-		return fileActionHandler($nodeDataDefined, $files, "e"); // Call fileActionHandler wth the "e" (exists) fileAction
-	}
-
 	function mysqlToMetis($mysqliConnection, $nodeNum, array $options){
-		global $nodeList; //Get the node list as a multi-dimensional array
+		$nodeList = $GLOBALS['nodeList']; //Get the node list as a multi-dimensional array
 
 		if (is_object($mysqliConnection)){ // If the MySQL connection is an object, generally meaning it is a successful connection, then carry on with the conversion process
 			if ($nodeList !== 1.01){ // If we successfully fetched the nodeList

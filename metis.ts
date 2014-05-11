@@ -3,12 +3,10 @@
 class Metis { // Class definition "Metis"
 	enableHeadlessMetis: Boolean;
 	enableLocalStorage: Boolean;
-	ioQueue: Object = new Object;
 	metisCallbackLocation: string;
 	userOnline: Boolean;
 
-	constructor(enableHeadlessMetisOption: Boolean, metisCallbackUrl ?: string, enableLocalStorageBoolean?: Boolean, userOfflineByDefault?: Boolean) { // Constructor that requires defining the headless server mode and IF set to false, the callback URL
-
+	constructor(enableHeadlessMetisOption : Boolean, metisCallbackUrl ?: string, enableLocalStorageBoolean ?: Boolean, userOfflineByDefault ?: Boolean) { // Constructor that requires defining the headless server mode and IF set to false, the callback URL
 		if (enableHeadlessMetisOption == true) { // If the developer has defined enableHeadlessMetisOption as true
 			this.enableHeadlessMetis = true;
 			this.enableLocalStorage = true; // Force enableLocalStorage to true, as that is required to be headless
@@ -24,7 +22,16 @@ class Metis { // Class definition "Metis"
 					this.enableLocalStorage = enableLocalStorageBoolean; // Set the value of enableLocalStorage to the boolean that the dev. set
 				}
 				else { // If the developer has NOT defined whether to enable or disable the Local Storage
-					this.enableLocalStorage = true; // Set the enableLocalStorage to true
+					if (window.localStorage !== undefined){ // If the end user's browser supports LocalStorage
+						this.enableLocalStorage = true; // Set the enableLocalStorage to true
+
+						if (this.fileExists("internal", "ioQueue") !== "local"){ // If the ioQueue file does NOT already exist
+							this.createJsonFile("internal", "ioQueue", {}); // Create an empty ioQueue file
+						}
+					}
+					else{ // If the end user's browser does NOT support LocalStorage
+						this.enableLocalStorage = false; // Set the enableLocalStorage to false
+					}
 				}
 			}
 			else { // If the callback URL is not defined
@@ -32,7 +39,7 @@ class Metis { // Class definition "Metis"
 			}
 		}
 
-		if (userOfflineByDefault == (undefined || false)) { // If the developer has not defined userOfflineByDefault or has set it to false
+		if (userOfflineByDefault !== true) { // If the developer has not defined userOfflineByDefault or it is set to false (the user is offline by default)
 			this.userOnline = true;
 		}
 		else { // If the developer has defined it AND it is set to true
@@ -80,6 +87,8 @@ class Metis { // Class definition "Metis"
 	}
 
 	addToIOQueue(nodeData : any, filesToQueue : any, fileAction : string, contentOrDestinationNodes ?: any){ // This function adds items to the ioQueue
+		var ioQueue : Object = this.decodeJsonFile(this.readJsonFile("internal", "ioQueue"));
+
 		var nodeDataDefined : string = "";
 
 		if (typeof nodeData == "string"){ // If the nodeData is already a string format
@@ -125,37 +134,39 @@ class Metis { // Class definition "Metis"
 
 		for (var fileIndex in filesToQueue){
 			var fileName = filesToQueue[fileIndex]; // Define fileName equal to the value of the index fileIndex in the filesToQueue array
-			if (this.ioQueue.hasOwnProperty(fileName) == false){ // If the fileName is not defined in the ioQueue
-				this.ioQueue[fileName] = new Object; // Create the new fileName object in the ioQueue
+			if (ioQueue.hasOwnProperty(fileName) == false){ // If the fileName is not defined in the ioQueue
+				ioQueue[fileName] = {}; // Create the new fileName object in the ioQueue
 			}
 
-			if ((this.ioQueue[fileName]["action"] == "w") && (fileAction == "d")){ // If this file is queued for writing then is to be deleted before ioQueue is processed
-				this.ioQueue[fileName] = null; // Set the fileName to null to be garbage collected. No reason to send a delete action for a file that was never written remotely
+			if ((ioQueue[fileName]["action"] == "w") && (fileAction == "d")){ // If this file is queued for writing then is to be deleted before ioQueue is processed
+				ioQueue[fileName] = null; // Set the fileName to null to be garbage collected. No reason to send a delete action for a file that was never written remotely
 			}
 			else{ // If this file is queued but actions are logical.
-				this.ioQueue[fileName]["nodeData"] = nodeDataDefined; // Set the nodeData as the stringified nodeData content
-				this.ioQueue[fileName]["action"] = fileAction; // Set the action equal to the fileAction
+				ioQueue[fileName]["nodeData"] = nodeDataDefined; // Set the nodeData as the stringified nodeData content
+				ioQueue[fileName]["action"] = fileAction; // Set the action equal to the fileAction
 
 				if (fileAction == ("w" || "a")) { // If we are writing or appending content, set the contentOrDestinationNodes variable
-					this.ioQueue[fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes; // Set the contentOrDestinationNodes
+					ioQueue[fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes; // Set the contentOrDestinationNodes
 				}
 				else{ // If we are not writing or appending content
-					if (this.ioQueue[fileName].hasOwnProperty("contentOrDestinationNodes")){ // If the fileName has a contentOrDestinationNodes property
-						this.ioQueue[fileName]["contentOrDestinationNodes"] = null; // Set it to null so it can be garbage collected by the browser and so we won't unnecessarily send content when processing IO
+					if (ioQueue[fileName].hasOwnProperty("contentOrDestinationNodes")){ // If the fileName has a contentOrDestinationNodes property
+						ioQueue[fileName]["contentOrDestinationNodes"] = null; // Set it to null so it can be garbage collected by the browser and so we won't unnecessarily send content when processing IO
 					}
 				}
 			}
 		}
 
+		this.updateJsonFile("internal", "ioQueue", ioQueue, false); // Update the ioQueue content
 	}
 
 	processIOQueue() { // This function processes the ioQueue upon the user changing from offline to online status
+		var ioQueue : Object = this.decodeJsonFile(this.readJsonFile("internal", "ioQueue"));
 		this.userOnline = true; // Set the userOnline to true, meaning the is obviously online
 
-		for (var fileName in this.ioQueue) { // For each file
-			var nodeData : string = this.ioQueue[fileName]["nodeData"]; // Get the stringified nodeData
-			var fileAction : string = this.ioQueue[fileName]["action"]; // Get the requested fileAction
-			var contentOrDestinationNodes : any[] = this.ioQueue[fileName]["contentOrDestinationNodes"]; // Get either undefined, content for w/a, or an array of nodes for rp
+		for (var fileName in ioQueue) { // For each file
+			var nodeData : string = ioQueue[fileName]["nodeData"]; // Get the stringified nodeData
+			var fileAction : string = ioQueue[fileName]["action"]; // Get the requested fileAction
+			var contentOrDestinationNodes : any[] = ioQueue[fileName]["contentOrDestinationNodes"]; // Get either undefined, content for w/a, or an array of nodes for rp
 
 			/* Every time we do a queueItem process, check if we're still online. The logic behind this is that if we are online, we'll do the fileActionHandler and
 				it will not re-add the item to the ioQueue since we're still online. If we happen to go offline, it will cancel the for loop and NOT continue to
@@ -164,12 +175,14 @@ class Metis { // Class definition "Metis"
 
 			if (this.userOnline == true) {
 				this.fileActionHandler(nodeData, fileName, fileAction, contentOrDestinationNodes);
-				this.ioQueue[fileName] = null; // Delete the file from the nodeList. It will be garbage collected by the browser.
+				ioQueue[fileName] = null; // Delete the file from the nodeList. It will be garbage collected by the browser.
 			}
 			else{
 				break;
 			}
 		}
+
+		this.updateJsonFile("internal", "ioQueue", ioQueue, false); // Update the ioQueue content
 	}
 
 	// #endregion
@@ -177,7 +190,7 @@ class Metis { // Class definition "Metis"
 	// #region File Action Handler
 
 	fileActionHandler(nodeDataDefined : any, files : any, fileAction : string, contentOrDestinationNodes ?: any) {
-		var fileContent: Object = new Object; // Declare fileContent as an object
+		var fileContent: Object = {}; // Declare fileContent as an object
 		var necessaryFilesForRemoteIO : string[] = []; // Declare necessaryFilesForRemoteIO as a string array. This array may be used later after LocalStorage IO.
 
 		// #region Files Checking
@@ -235,7 +248,7 @@ class Metis { // Class definition "Metis"
 							if (this.enableHeadlessMetis == true){ // If headless Metis is enabled
 								fileContent[fileName] = false; // Set it to false, since we are only checking locally (no remote connection due to enableHeadlessMetis)
 							}
-							else{ // If enableHeadlessMetis is NOT enabled
+							else if ((this.enableHeadlessMetis !== true) && (nodeDataDefined !== "internal")){ // If enableHeadlessMetis is NOT enabled and we are checking if the ioQueue file exists internally
 								necessaryFilesForRemoteIO.push(fileName); // Add the fileName to the necessaryFilesForRemoteIO, since we are able to do XHR calls
 							}
 						}
@@ -249,74 +262,76 @@ class Metis { // Class definition "Metis"
 			necessaryFilesForRemoteIO = files;
 		}
 
-		if (this.enableHeadlessMetis == false){ // If enableHeadlessMetis is set to false, then we are allowed to make XHR calls
-			if(this.userOnline == true) { // If the user is online, create an XHR and process the request
-				if((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) { // If either we are reading AND there are still necessary remote files to fetch OR we are not reading files
-					var remoteIOData : any = {}; // Define the custom formdata object (type any)
+		if (nodeDataDefined !== "internal"){ // If we are not doing an internal Metis call
+			if (this.enableHeadlessMetis == false){ // If enableHeadlessMetis is set to false, then we are allowed to make XHR calls
+				if(this.userOnline == true) { // If the user is online, create an XHR and process the request
+					if((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) { // If either we are reading AND there are still necessary remote files to fetch OR we are not reading files
+						var remoteIOData : any = {}; // Define the custom formdata object (type any)
 
-					remoteIOData.nodeData = nodeDataDefined; // Set the nodeData key / val to the nodeData arg
+						remoteIOData.nodeData = nodeDataDefined; // Set the nodeData key / val to the nodeData arg
 
-					if(fileAction == ("r" || "e")) { // If we are reading files, we should use our post-LocalStorage IO variable
-						remoteIOData.files = necessaryFilesForRemoteIO;
-					}
-					else { // If we are not just reading files, it's a good idea to send ALL the requested file names to the server (so files can be appropriately added, updated, deleted, etc.)
-						remoteIOData.files = files; // Set the files key / val to the files array
-					}
-
-					remoteIOData.fileAction = fileAction;// Set the fileAction key / val to the fileAction arg
-
-					if (contentOrDestinationNodes !== (undefined || null)) { // If we either have content or in the case of replication, destination nodes
-						remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes; // Set the contentOrDestination Nodes key / val to the contentOrDestinationNodes arg
-					}
-
-					var xhrManager : XMLHttpRequest = new XMLHttpRequest; // Create a new XMLHttpRequest
-					var metisXHRResponse = ""; // Declare metisXHRResponse to hold the response of XHR call
-
-					function xhrResponseHandler() { // Create a function that is used as the handler for when the xhrManager returns some form of context
-						if (xhrManager.readyState == 4) { // If the XHR is considered "done"
-							if (xhrManager.status == 200) { // If the xhrManagerUrl was an HTTP 200
-								metisXHRResponse = xhrManager.responseText; // Assign the responseText to the xhrResponse variable
-							}
-							else{
-								metisXHRResponse = '{"error" : "HTTP ERROR CODE|' + xhrManager.status + '"}';
-							}
+						if(fileAction == ("r" || "e")) { // If we are reading files, we should use our post-LocalStorage IO variable
+							remoteIOData.files = necessaryFilesForRemoteIO;
 						}
-					}
-
-					xhrManager.onreadystatechange = xhrResponseHandler;
-					xhrManager.open("POST", this.metisCallbackLocation, false); // xhrManager will open a synchronous connection using the method defined in xhrManagerMethodType to the url defined in xhrManagerUrl
-					xhrManager.send(JSON.stringify(remoteIOData)); // Send the data
-
-					var remoteFileContent : Object = this.decodeJsonFile(metisXHRResponse); // Decode the JSON, purely for the purposes of merging it with the the locally fetched file content and for saving in localStorage
-
-					for (var fileIndex in necessaryFilesForRemoteIO){
-						var fileName : any = necessaryFilesForRemoteIO[fileIndex]; // Define fileName equal to the value of the index fileIndex in the necessaryFilesForRemoteIO array
-
-						if (necessaryFilesForRemoteIO.length == 1) { // If we only requested one file, therefore the object we generated won't have a sub-object starting with the file name
-							fileContent = remoteFileContent;
-						}
-						else { // If we requested more than one file
-							fileContent[fileName] = remoteFileContent[fileName]; // Assign the fileContent[fileName to have the associated file's content
+						else { // If we are not just reading files, it's a good idea to send ALL the requested file names to the server (so files can be appropriately added, updated, deleted, etc.)
+							remoteIOData.files = files; // Set the files key / val to the files array
 						}
 
-						if ((fileAction == "r") && (this.enableLocalStorage == true)){ // If we are reading files and Local Storage is enabled
-							if (necessaryFilesForRemoteIO.length == 1) { // Once again checking if we only requested one file, if so then we'll just stringify the entire object
-								localStorage.setItem(fileName, JSON.stringify(remoteFileContent));
+						remoteIOData.fileAction = fileAction;// Set the fileAction key / val to the fileAction arg
+
+						if (contentOrDestinationNodes !== (undefined || null)) { // If we either have content or in the case of replication, destination nodes
+							remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes; // Set the contentOrDestination Nodes key / val to the contentOrDestinationNodes arg
+						}
+
+						var xhrManager : XMLHttpRequest = new XMLHttpRequest; // Create a new XMLHttpRequest
+						var metisXHRResponse = ""; // Declare metisXHRResponse to hold the response of XHR call
+
+						function xhrResponseHandler() { // Create a function that is used as the handler for when the xhrManager returns some form of context
+							if (xhrManager.readyState == 4) { // If the XHR is considered "done"
+								if (xhrManager.status == 200) { // If the xhrManagerUrl was an HTTP 200
+									metisXHRResponse = xhrManager.responseText; // Assign the responseText to the xhrResponse variable
+								}
+								else{
+									metisXHRResponse = '{"error" : "HTTP ERROR CODE|' + xhrManager.status + '"}';
+								}
 							}
-							else {
-								localStorage.setItem(fileName, JSON.stringify(remoteFileContent[fileName]));
+						}
+
+						xhrManager.onreadystatechange = xhrResponseHandler;
+						xhrManager.open("POST", this.metisCallbackLocation, false); // xhrManager will open a synchronous connection using the method defined in xhrManagerMethodType to the url defined in xhrManagerUrl
+						xhrManager.send(JSON.stringify(remoteIOData)); // Send the data
+
+						var remoteFileContent : Object = this.decodeJsonFile(metisXHRResponse); // Decode the JSON, purely for the purposes of merging it with the the locally fetched file content and for saving in localStorage
+
+						for (var fileIndex in necessaryFilesForRemoteIO){
+							var fileName : any = necessaryFilesForRemoteIO[fileIndex]; // Define fileName equal to the value of the index fileIndex in the necessaryFilesForRemoteIO array
+
+							if (necessaryFilesForRemoteIO.length == 1) { // If we only requested one file, therefore the object we generated won't have a sub-object starting with the file name
+								fileContent = remoteFileContent;
+							}
+							else { // If we requested more than one file
+								fileContent[fileName] = remoteFileContent[fileName]; // Assign the fileContent[fileName to have the associated file's content
+							}
+
+							if ((fileAction == "r") && (this.enableLocalStorage == true)){ // If we are reading files and Local Storage is enabled
+								if (necessaryFilesForRemoteIO.length == 1) { // Once again checking if we only requested one file, if so then we'll just stringify the entire object
+									localStorage.setItem(fileName, JSON.stringify(remoteFileContent));
+								}
+								else {
+									localStorage.setItem(fileName, JSON.stringify(remoteFileContent[fileName]));
+								}
 							}
 						}
 					}
 				}
-			}
-			else { // If the user is NOT online
-				if(fileAction !== "r") { // If we were not reading files, we'll overwrite the necessaryFilesForRemoteIO with the entire files array
-					necessaryFilesForRemoteIO = files;
-				}
+				else { // If the user is NOT online
+					if(fileAction !== "r") { // If we were not reading files, we'll overwrite the necessaryFilesForRemoteIO with the entire files array
+						necessaryFilesForRemoteIO = files;
+					}
 
-				if(necessaryFilesForRemoteIO.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
-					this.addToIOQueue(nodeDataDefined, necessaryFilesForRemoteIO, fileAction, contentOrDestinationNodes); // Add items to the IO Queue
+					if(necessaryFilesForRemoteIO.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
+						this.addToIOQueue(nodeDataDefined, necessaryFilesForRemoteIO, fileAction, contentOrDestinationNodes); // Add items to the IO Queue
+					}
 				}
 			}
 		}

@@ -1,7 +1,6 @@
 declare class Metis {
     public enableHeadlessMetis: Boolean;
     public enableLocalStorage: Boolean;
-    public ioQueue: Object;
     public metisCallbackLocation: string;
     public userOnline: Boolean;
     constructor(enableHeadlessMetisOption: Boolean, metisCallbackUrl?: string, enableLocalStorageBoolean?: Boolean, userOfflineByDefault?: Boolean);

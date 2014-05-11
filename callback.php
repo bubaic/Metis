@@ -1,11 +1,11 @@
 <?php
-	include("../AtlasUI/framework.php"); // [Reference: https://github.com/JoshStrobl/AtlasUI]
-	include("framework.php"); // [Reference: https://github.com/StroblIndustries/Metis]
+	include("metis.min.php"); // [Reference: https://github.com/StroblIndustries/Metis]
+	$metis = new Metis(); // Define Metis
 
 	$metisCallbackData_Json = file_get_contents("php://input"); // Read the JSON data sent to the callback script
-	$metisCallbackData = decodeJsonFile($metisCallbackData_Json); // Decode the JSON content into a multi-dimensional array
+	$metisCallbackData = $metis->decodeJsonFile($metisCallbackData_Json); // Decode the JSON content into a multi-dimensional array
 
-	if (is_array($nodeList) == true){ // If the nodeList is valid (is an array)
+	if (is_array($metis->nodeList) == true){ // If the nodeList is valid (is an array)
 		if (is_array($metisCallbackData) == true){ // If the metisCallbackData is an array, it means the json_decode from decodeJsonFile was successful
 			$callbackNodeData = $metisCallbackData["nodeData"]; // Get the nodeNum we'll be working with (whether it is a replicator source or simply the node we'll be doing fileIO with)
 			$callbackFiles = $metisCallbackData["files"]; // Get array of files we'll be working with
@@ -16,19 +16,32 @@
 			}
 
 			if ($callbackFileAction !== "rp"){ // If we won't be replicating files
-				if (atlasui_string_check($callbackFileAction, array("r", "e", "d")) !== false){ // If we are reading or deleting a file
-					$fileIOReply = fileActionHandler($callbackNodeData, $callbackFiles, $callbackFileAction); // Assign the fileActionHandler response to fileIOReply
+				$nonWriteAction = false; // Default nonWriteAction to false
+
+				foreach(array("r", "e", "d") as $nonWriteActionString) { // Recursively check if we are doing a non-write action
+					if (strpos($callbackFileAction, $nonWriteActionString) !== false){ // If we are doing a read, exist-check, or deletion
+						$nonWriteAction = true; // Set nonWriteAction to true
+					}
+				}
+
+				if ($nonWriteAction !== false){ // If we are reading, deleting, or checking if a file exists
+					$fileIOReply = $metis->fileActionHandler($callbackNodeData, $callbackFiles, $callbackFileAction); // Assign the fileActionHandler response to fileIOReply
 				}
 				else{ // If we are NOT reading or deleting a file (a.k.a creating or updating)
-					$fileIOReply = fileActionHandler($callbackNodeData, $callbackFiles, $callbackFileAction, $callbackContentOrDestinationNodes); // Assign the fileActionHandler response to fileIOReply. Note the difference with this call is we applied the content.
+					$fileIOReply = $metis->fileActionHandler($callbackNodeData, $callbackFiles, $callbackFileAction, $callbackContentOrDestinationNodes); // Assign the fileActionHandler response to fileIOReply. Note the difference with this call is we applied the content.
 				}
 			}
 			else{ // If we will be replicating files
-				$fileIOReply = replicator($callbackNodeData, $contentOrDestinationNodes, $files); // Assign the replicator response to fileIOReply
+				$fileIOReply = $metis->replicator($callbackNodeData, $contentOrDestinationNodes, $files); // Assign the replicator response to fileIOReply
 			}
 
 			if (is_int($fileIOReply) == false){ // If the fileIOReply is NOT an int (it's either "0.00" indicating success or JSON content
-				echo $fileIOReply; // Reply with the JSON content or "0.00" success code
+				if ($fileIOReply !== '"0.00"'){ // If the file IO content isn't purely stating success
+					echo $fileIOReply; // Reply with the JSON content or "0.00" success code
+				}
+				else{ // IF the fileIOReply is a success code
+					echo '{"success" : "0.00"}'; // Reply with success key/val
+				}
 			}
 			else{ // If it IS an int, meaning an error
 				echo '{ "error" : ' . $fileIOReply . ' }'; // Reply with JSON, where key "Error" has a value of the error from $fileIOReply

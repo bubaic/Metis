@@ -1,6 +1,5 @@
 var Metis = (function () {
     function Metis(enableHeadlessMetisOption, metisCallbackUrl, enableLocalStorageBoolean, userOfflineByDefault) {
-        this.ioQueue = new Object;
         if (enableHeadlessMetisOption == true) {
             this.enableHeadlessMetis = true;
             this.enableLocalStorage = true;
@@ -14,14 +13,22 @@ var Metis = (function () {
                 if (enableLocalStorageBoolean !== undefined) {
                     this.enableLocalStorage = enableLocalStorageBoolean;
                 } else {
-                    this.enableLocalStorage = true;
+                    if (window.localStorage !== undefined) {
+                        this.enableLocalStorage = true;
+
+                        if (this.fileExists("internal", "ioQueue") !== "local") {
+                            this.createJsonFile("internal", "ioQueue", {});
+                        }
+                    } else {
+                        this.enableLocalStorage = false;
+                    }
                 }
             } else {
                 console.log("You have defined enableHeadlessMetisOption as FALSE but have NOT provided a callback URL. Expect errors.");
             }
         }
 
-        if (userOfflineByDefault == (undefined || false)) {
+        if (userOfflineByDefault !== true) {
             this.userOnline = true;
         } else {
             this.userOnline = false;
@@ -55,6 +62,8 @@ var Metis = (function () {
     };
 
     Metis.prototype.addToIOQueue = function (nodeData, filesToQueue, fileAction, contentOrDestinationNodes) {
+        var ioQueue = this.decodeJsonFile(this.readJsonFile("internal", "ioQueue"));
+
         var nodeDataDefined = "";
 
         if (typeof nodeData == "string") {
@@ -94,46 +103,51 @@ var Metis = (function () {
 
         for (var fileIndex in filesToQueue) {
             var fileName = filesToQueue[fileIndex];
-            if (this.ioQueue.hasOwnProperty(fileName) == false) {
-                this.ioQueue[fileName] = new Object;
+            if (ioQueue.hasOwnProperty(fileName) == false) {
+                ioQueue[fileName] = {};
             }
 
-            if ((this.ioQueue[fileName]["action"] == "w") && (fileAction == "d")) {
-                this.ioQueue[fileName] = null;
+            if ((ioQueue[fileName]["action"] == "w") && (fileAction == "d")) {
+                ioQueue[fileName] = null;
             } else {
-                this.ioQueue[fileName]["nodeData"] = nodeDataDefined;
-                this.ioQueue[fileName]["action"] = fileAction;
+                ioQueue[fileName]["nodeData"] = nodeDataDefined;
+                ioQueue[fileName]["action"] = fileAction;
 
                 if (fileAction == ("w" || "a")) {
-                    this.ioQueue[fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes;
+                    ioQueue[fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes;
                 } else {
-                    if (this.ioQueue[fileName].hasOwnProperty("contentOrDestinationNodes")) {
-                        this.ioQueue[fileName]["contentOrDestinationNodes"] = null;
+                    if (ioQueue[fileName].hasOwnProperty("contentOrDestinationNodes")) {
+                        ioQueue[fileName]["contentOrDestinationNodes"] = null;
                     }
                 }
             }
         }
+
+        this.updateJsonFile("internal", "ioQueue", ioQueue, false);
     };
 
     Metis.prototype.processIOQueue = function () {
+        var ioQueue = this.decodeJsonFile(this.readJsonFile("internal", "ioQueue"));
         this.userOnline = true;
 
-        for (var fileName in this.ioQueue) {
-            var nodeData = this.ioQueue[fileName]["nodeData"];
-            var fileAction = this.ioQueue[fileName]["action"];
-            var contentOrDestinationNodes = this.ioQueue[fileName]["contentOrDestinationNodes"];
+        for (var fileName in ioQueue) {
+            var nodeData = ioQueue[fileName]["nodeData"];
+            var fileAction = ioQueue[fileName]["action"];
+            var contentOrDestinationNodes = ioQueue[fileName]["contentOrDestinationNodes"];
 
             if (this.userOnline == true) {
                 this.fileActionHandler(nodeData, fileName, fileAction, contentOrDestinationNodes);
-                this.ioQueue[fileName] = null;
+                ioQueue[fileName] = null;
             } else {
                 break;
             }
         }
+
+        this.updateJsonFile("internal", "ioQueue", ioQueue, false);
     };
 
     Metis.prototype.fileActionHandler = function (nodeDataDefined, files, fileAction, contentOrDestinationNodes) {
-        var fileContent = new Object;
+        var fileContent = {};
         var necessaryFilesForRemoteIO = [];
 
         if (typeof files == "string") {
@@ -179,7 +193,7 @@ var Metis = (function () {
                         } else {
                             if (this.enableHeadlessMetis == true) {
                                 fileContent[fileName] = false;
-                            } else {
+                            } else if ((this.enableHeadlessMetis !== true) && (nodeDataDefined !== "internal")) {
                                 necessaryFilesForRemoteIO.push(fileName);
                             }
                         }
@@ -190,69 +204,71 @@ var Metis = (function () {
             necessaryFilesForRemoteIO = files;
         }
 
-        if (this.enableHeadlessMetis == false) {
-            if (this.userOnline == true) {
-                if ((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) {
-                    var remoteIOData = {};
+        if (nodeDataDefined !== "internal") {
+            if (this.enableHeadlessMetis == false) {
+                if (this.userOnline == true) {
+                    if ((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) {
+                        var remoteIOData = {};
 
-                    remoteIOData.nodeData = nodeDataDefined;
+                        remoteIOData.nodeData = nodeDataDefined;
 
-                    if (fileAction == ("r" || "e")) {
-                        remoteIOData.files = necessaryFilesForRemoteIO;
-                    } else {
-                        remoteIOData.files = files;
-                    }
-
-                    remoteIOData.fileAction = fileAction;
-
-                    if (contentOrDestinationNodes !== (undefined || null)) {
-                        remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes;
-                    }
-
-                    var xhrManager = new XMLHttpRequest;
-                    var metisXHRResponse = "";
-
-                    function xhrResponseHandler() {
-                        if (xhrManager.readyState == 4) {
-                            if (xhrManager.status == 200) {
-                                metisXHRResponse = xhrManager.responseText;
-                            } else {
-                                metisXHRResponse = '{"error" : "HTTP ERROR CODE|' + xhrManager.status + '"}';
-                            }
-                        }
-                    }
-
-                    xhrManager.onreadystatechange = xhrResponseHandler;
-                    xhrManager.open("POST", this.metisCallbackLocation, false);
-                    xhrManager.send(JSON.stringify(remoteIOData));
-
-                    var remoteFileContent = this.decodeJsonFile(metisXHRResponse);
-
-                    for (var fileIndex in necessaryFilesForRemoteIO) {
-                        var fileName = necessaryFilesForRemoteIO[fileIndex];
-
-                        if (necessaryFilesForRemoteIO.length == 1) {
-                            fileContent = remoteFileContent;
+                        if (fileAction == ("r" || "e")) {
+                            remoteIOData.files = necessaryFilesForRemoteIO;
                         } else {
-                            fileContent[fileName] = remoteFileContent[fileName];
+                            remoteIOData.files = files;
                         }
 
-                        if ((fileAction == "r") && (this.enableLocalStorage == true)) {
+                        remoteIOData.fileAction = fileAction;
+
+                        if (contentOrDestinationNodes !== (undefined || null)) {
+                            remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes;
+                        }
+
+                        var xhrManager = new XMLHttpRequest;
+                        var metisXHRResponse = "";
+
+                        function xhrResponseHandler() {
+                            if (xhrManager.readyState == 4) {
+                                if (xhrManager.status == 200) {
+                                    metisXHRResponse = xhrManager.responseText;
+                                } else {
+                                    metisXHRResponse = '{"error" : "HTTP ERROR CODE|' + xhrManager.status + '"}';
+                                }
+                            }
+                        }
+
+                        xhrManager.onreadystatechange = xhrResponseHandler;
+                        xhrManager.open("POST", this.metisCallbackLocation, false);
+                        xhrManager.send(JSON.stringify(remoteIOData));
+
+                        var remoteFileContent = this.decodeJsonFile(metisXHRResponse);
+
+                        for (var fileIndex in necessaryFilesForRemoteIO) {
+                            var fileName = necessaryFilesForRemoteIO[fileIndex];
+
                             if (necessaryFilesForRemoteIO.length == 1) {
-                                localStorage.setItem(fileName, JSON.stringify(remoteFileContent));
+                                fileContent = remoteFileContent;
                             } else {
-                                localStorage.setItem(fileName, JSON.stringify(remoteFileContent[fileName]));
+                                fileContent[fileName] = remoteFileContent[fileName];
+                            }
+
+                            if ((fileAction == "r") && (this.enableLocalStorage == true)) {
+                                if (necessaryFilesForRemoteIO.length == 1) {
+                                    localStorage.setItem(fileName, JSON.stringify(remoteFileContent));
+                                } else {
+                                    localStorage.setItem(fileName, JSON.stringify(remoteFileContent[fileName]));
+                                }
                             }
                         }
                     }
-                }
-            } else {
-                if (fileAction !== "r") {
-                    necessaryFilesForRemoteIO = files;
-                }
+                } else {
+                    if (fileAction !== "r") {
+                        necessaryFilesForRemoteIO = files;
+                    }
 
-                if (necessaryFilesForRemoteIO.length > 0) {
-                    this.addToIOQueue(nodeDataDefined, necessaryFilesForRemoteIO, fileAction, contentOrDestinationNodes);
+                    if (necessaryFilesForRemoteIO.length > 0) {
+                        this.addToIOQueue(nodeDataDefined, necessaryFilesForRemoteIO, fileAction, contentOrDestinationNodes);
+                    }
                 }
             }
         }

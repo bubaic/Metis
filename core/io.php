@@ -1,9 +1,9 @@
 <?php
 
-	// These are file IO related functions
+	// These are IO related functions
 
 	/* 
-		Copyright 2013 Strobl Industries
+		Copyright 2013-2014 Strobl Industries
 
 		Licensed under the Apache License, Version 2.0 (the "License");
 		 you may not use this file except in compliance with the License.
@@ -19,15 +19,25 @@
 	*/
 
 	function fileHashing($fileName_Unsanitized){
-		$fileName = str_replace(" ", "", atlasui_string_clean($fileName_Unsanitized, 1, true)); // Clean the file name of weird characters and whitespaces.
-		$fileName_Hashed = atlasui_hashing($fileName, 100000, substr($fileName, 0, 10)); // Create a hashed name of the file.
-		return substr($fileName_Hashed, 1, 28); // Ensures that it doesn't break on derping Windows systems.
+		$fileName = preg_replace('/[^a-z0-9]/', "", $fileName_Unsanitized); // Ensure the fileName is purely alpha-numerical
+
+		$saltString = substr($fileName, 0, 10); // Create a salt based on the fileName to the limit of ten
+		$cryptPrefix = '$6$rounds=100000$' . $saltString . "$"; // Set cryptPrefix as the cryptographic equiv. to sha512, 100000 rounds with a generated (not necessarily unique) salt
+		$hashRemovalLength = strlen($cryptPrefix); // Determine how much of the fileName_Hashed we'll need to remove, otherwise the hash will be prefixed with the type
+
+		/*
+			The file hash is essentially the sha512 version (w/ 100000 rounds) of the sha1 of md5 of sanitized fileName, with the removal of the prefix
+			and further cleaned up by removing forward and back slash as well as double quote.
+		*/
+
+		$fileName_Hashed = substr(str_replace(array("/", "\"", '"'), "", crypt(sha1(md5($fileName)), $cryptPrefix)), $hashRemovalLength);
+		return substr($fileName_Hashed, 1, 28); // Ensures that it doesn't break on Windows systems (as they have a file name length limit)
 	}
 
-	// #region Navigation of File System Tree and Metis
+	#region Navigation of File System Tree and Metis
 
 	function navigateToLocalMetisData($nodePreferentialLocation = null){
-		global $directoryHostingMetis;
+		$directoryHostingMetis = $GLOBALS['directoryHostingMetis'];
 
 		$directoryPriorToMove = getcwd();
 
@@ -39,20 +49,23 @@
 		chdir("data"); // Jump into the data folder.
 
 		if ($nodePreferentialLocation !== null){ // If the preferential location is defined (it is acceptable for it to NOT only for the mysqlToMetis functionality)
-			if (chdir($nodePreferentialLocation) == false){ // If we failed to change directory to the local node's preferential location...
-				return 2.01; // Return the error code #2.01.
+
+			if (is_dir($nodePreferentialLocation) == false){ // If the Node's preferential location does NOT exist
+				mkdir($nodePreferentialLocation); // Automatically create the node's preferential location
 			}
+
+			chdir($nodePreferentialLocation);
 		}
 
 		return $directoryPriorToMove;
 	}
 
-	// #endregion
+	#endregion
 
-	// #region Backup System - Backup Queuer
+	#region Backup System - Backup Queuer
 
 	function backupQueuer(array $parsedNodeData, array $files, $fileAction){
-		global $nodeList; // Get the node list as a multi-dimensional array
+		$nodeList = $GLOBALS['nodeList']; // Get the node list as a multi-dimensional array
 		$directoryPriorToBackupMove = navigateToLocalMetisData("backup"); // Navigate to the backup folder
 
 		$backupQueue_Json = file_get_contents(fileHashing("backup-queue") . ".json"); // Read the contents of the backup-queue file
@@ -69,7 +82,7 @@
 		$nodeGroupNodes_WithBackup = array(); // Array to hold any of the Node Group's Nodes that will be used for backup
 
 		foreach ($parsedNodeData as $nodeOrGroup => $potentialNodesInGroup){ // For each Node Group or Node in the parsed Node Data
-			if ($nodeList[$nodeOrGroup]["Backup Data"] !== null){ // If this Node Group or independent Node is meant to handle all backups of file IO
+			if (isset($nodeList[$nodeOrGroup]["Backup Data"])){ // If this Node Group or independent Node is meant to handle all backups of file IO
 				if ($nodeList[$nodeOrGroup]["Backup Data"]["Enabled"] == true){ // If this backup is enabled
 					$nodeGroupNodes_WithBackup[] = $nodeOrGroup;
 				}
@@ -85,7 +98,7 @@
 					}
 
 					foreach ($nodeGroupNodes as $nodeGroupNode){ // For each Node in Node Group
-						if ($nodeGroupNodes[$nodeGroupNode]["Backup Data"] !== null){ // If the Node has Backup elements
+						if (isset($nodeGroupNodes[$nodeGroupNode]["Backup Data"])){ // If the Node has Backup elements
 							if ($nodeGroupNodes[$nodeGroupNode]["Backup Data"]["Enabled"] == true){ // If this backup is enabled
 								$nodeGroupNodes_WithBackup[] = $nodeOrGroup . "#" . $nodeGroupNode; // Add it to the list of Nodes with backup
 							}
@@ -103,7 +116,7 @@
 					}
 
 					foreach ($files as $fileName){
-						if ($backupQueue[$nodeDataString][$fileName] !== null){ // If the file is already in the backup queue
+						if (isset($backupQueue[$nodeDataString][$fileName])){ // If the file is already in the backup queue
 							$backupQueueFileInfo = $backupQueue[$nodeDataString][$fileName]; // Declare backup queue file info as the data assigned to the file in queue
 							$backupQueueFileInfo_Action = $backupQueueFileInfo["action"]; // Declare this variable as the action that is queued to take place
 
@@ -136,9 +149,9 @@
 		chdir($directoryPriorToBackupMove);
 	}
 
-	// #endregion
+	#endregion
 
-	// #region File IO Array Merger
+	#region File IO Array Merger
 
 	function fileIOArrayMerger(array $fileSetsToMerge){ // This function handles merging arrays of file data intelligently (mainly to prevent overwriting valid content with INT errors)
 		$newArray = array();
@@ -160,22 +173,22 @@
 		return $newArray; // Return the new array of files and their content
 	}
 
-	// #endregion
+	#endregion
 
 	function fileActionHandler($nodeDataDefined, $files, $fileAction, array $contentOrDestinationNodes = null){
-		global $nodeList; //Get the node list as a multi-dimensional array.
+		$nodeList = $GLOBALS['nodeList']; //Get the node list as a multi-dimensional array.
 
 		if ($nodeList !== 1.01){ // If the nodeList was successfully fetched, we'll continue our file IO process
 			$returnableFileContent = array(); // fileContent array used to store all file content (or error codes)
 			$originalDirectory = getcwd(); // Get the current directory prior to moving to other directories.
 
-			// #region Node Group / Node Checking
+			#region Node Group / Node Checking
 
 			$nodeData = nodeDataParser($nodeDataDefined);
 
-			// #endregion
+			#endregion
 
-			// #region File Checking
+			#region File Checking
 
 			if (gettype($files) == "string"){ // If only one file is specified
 				$files = (array) $files; // Convert to an array
@@ -190,7 +203,7 @@
 				}
 			}
 
-			// #endregion
+			#endregion
 
 			foreach ($nodeData as $nodeOrGroup => $potentialNodesDefined){ // Recursively go through each Node within an array or within a Node Group
 				if (nodeInfo($nodeOrGroup, "Node Type") == "group"){ // If this individual $nodeOrGroup is a Node Group (rather than an array of Nodes)
@@ -296,7 +309,7 @@
 						}
 					}
 					else{ // If the Node Type is remote
-						$nodeAddress = nodeInfo($nodeNum, "Node Type", $nodeInfo_NodeList);
+						$nodeAddress = nodeInfo($nodeNum, "Address", $nodeInfo_NodeList);
 
 						$remoteRequestData = array(); // Create an array that'll hold key / vals that will eventually be converted to JSON to send to the callback script.
 						$remoteRequestData["fileAction"] = $fileAction; // Assign the fileAction from the fileAction given to fileActionHandler
@@ -308,19 +321,18 @@
 						}
 
 						$remoteRequestData_JsonFormat = json_encode($remoteRequestData, true); // Convert / encode the multi-dimensional array to JSON.
-						$returnedRemoteFilesContent = atlasui_http_request($nodeAddress . "/callback.php", "POST", $remoteRequestData_JsonFormat); // Do an atlasui_http_request (CURL) to the nodeAddress, method POST, with the JSON formatted data
+						$returnedRemoteFilesContent = http_request($nodeAddress, $remoteRequestData_JsonFormat); // Do an HTTP Request (CURL) to the nodeAddress / remote Metis cluster with the JSON formatted data
+						$remoteFileContent_Array = decodeJsonFile($returnedRemoteFilesContent);
 
 						if ($multiFile == true){ // If we were fetching multiple files
 							if (count($files) > 1){ // If we were fetching more than one file via the remote file IO
-								$remoteFileContent_Array = decodeJsonFile($returnedRemoteFilesContent);
-
 								foreach ($remoteFileContent_Array as $fileName => $content){
 									if (gettype($content) == "array"){ // If the content of the fileName is an array (meaning it successfully fetched content)
 										unset($files[$fileName]); //Remove the file from the $files array
 									}
 								}
 
-								$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, $returnedRemoteFilesContent)); // Properly merge the multiple files array
+								$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, $remoteFileContent_Array)); // Properly merge the multiple files array
 							}
 							else{
 								$fileName = $files[0]; // Assign the file's name to fileName so we can do the unsetting first THEN the fileIOArrayMerger
@@ -329,18 +341,18 @@
 									unset($files[0]); //Remove the file from the $files array
 								}
 
-								$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, array($fileName => $returnedRemoteFilesContent))); // Merge the single file returned with the rest
+								$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, array($fileName => $remoteFileContent_Array))); // Merge the single file returned with the rest
 							}
 						}
 						else{ // If we were only fetching a single file to begin with
-							$returnableFileContent = $returnedRemoteFilesContent;
+							$returnableFileContent = $remoteFileContent_Array;
 						}
 					}
 				}
 			}
 
 			if ($fileAction !== "r"){ // If the fileAction is NOT read, then run the backupQueuer
-				$executeBackupQueuer = backupQueuer($nodeData, $files, $fileAction); // Send data to Backup Queuer (assign result to backupQueuer to suppress potential errors)
+				$backupQueuerResponse = backupQueuer($nodeData, $files, $fileAction); // Send data to Backup Queuer
 			}
 
 			return json_encode($returnableFileContent); // Return the JSON encoded version (string) of the fileContent (which is an array)
@@ -348,6 +360,10 @@
 		else{ // If the nodeList is not valid / doesn't exist.
 			return 1.01; // Return the error code #1.01;
 		}
+	}
+
+	function createJsonFile($nodeData, $files, array $contentOrDestinationNodes){
+		return fileActionHandler($nodeData, $files, "w", $contentOrDestinationNodes);
 	}
 
 	function decodeJsonFile($jsonEncoded_Content){
@@ -360,8 +376,8 @@
 		return $jsonDecodedValue;
 	}
 
-	function createJsonFile($nodeData, $files, array $contentOrDestinationNodes){
-		return fileActionHandler($nodeData, $files, "w", $contentOrDestinationNodes);
+	function fileExists($nodeDataDefined, $files){ // This function checks if a file exists within a node
+		return fileActionHandler($nodeDataDefined, $files, "e"); // Call fileActionHandler wth the "e" (exists) fileAction
 	}
 
 	function readJsonFile($nodeData, $files){ // This function is an abstraction for reading files and offers multi-file reading functionality
@@ -383,39 +399,32 @@
 		return fileActionHandler($nodeData, $files, "d");
 	}
 
-	function replicator($nodeData, $nodeDestinations, $files){
-		global $nodeList; // Fetch the Node List as a multidimensional array.
+	function replicator($nodeDataDefined, $nodeDestinations, $files){
 
-		if ($nodeList !== 1.01){ // Check if metisInit() from $nodeList global is an int / error.
+		#region File Checking
 
-			// #region File Checking
+		if (gettype($files) == "string"){ // If only one file is specified
+			$files = (array) $files; // Convert to an array
+		}
 
-			if (gettype($files) == "string"){ // If only one file is specified
-				$files = (array) $files; // Convert to an array
-			}
+		#endregion
 
-			// #endregion
+		foreach ($files as $fileName_NotHashed){ // Cycle through each file in the array
+			$fileContent_JsonFormat = readJsonFile($nodeDataDefined, array($fileName_NotHashed)); // Read the individual file we are replicating
 
-			foreach ($files as $fileName_NotHashed){ // Cycle through each file in the array
-				$fileContent_JsonFormat = readJsonFile($nodeData, array($fileName_NotHashed)); // Read the individual file we are replicating
+			if (gettype($fileContent_JsonFormat) == "string"){ // If the fileContent_JsonFormat from readJsonFile() is not an int, generally meaning it isn't an error
+				$fileContent = decodeJsonFile($fileContent_JsonFormat); // Decode it into a multi-dimensional array for the purpose of using in createJsonFile
 
-				if (gettype($fileContent_JsonFormat) == "string"){ // If the fileContent_JsonFormat from readJsonFile() is not an int, generally meaning it isn't an error
-					$fileContent = decodeJsonFile($fileContent_JsonFormat); // Decode it into a multi-dimensional array for the purpose of using in createJsonFile
-
-					foreach ($nodeDestinations as $nodeDestination){ // Cycle through each node we are going to be replicating files to
-						createJsonFile($nodeDestination, array($fileName_NotHashed), $fileContent); // Create (or overwrite) the file you are replicating on the node destination
-					}
-				}
-				else{
-					return $fileContent_JsonFormat; // Return Error Code
+				foreach ($nodeDestinations as $nodeDestination){ // Cycle through each node we are going to be replicating files to
+					$createJsonFileResponse = createJsonFile($nodeDestination, array($fileName_NotHashed), $fileContent); // Create (or overwrite) the file you are replicating on the node destination
 				}
 			}
+			else{
+				return $fileContent_JsonFormat; // Return Error Code
+			}
+		}
 
-			return "0.00";
-		}
-		else{ // If the nodeSource does not exist
-			return $nodeList; // Return the error code.
-		}
+		return "0.00";
 	}
 
 ?>

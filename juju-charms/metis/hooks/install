@@ -1,17 +1,6 @@
 #!/bin/bash
 set -e # If any command fails, stop execution.
 
-installAtlasUI(){ #Function to pull and install AtlasUI Web Framework
-	atlasui="https://github.com/JoshStrobl/AtlasUI/raw/master/stable.zip" # Define the AtlasUI stable.zip to download
-	wget "$atlasui" -O /tmp/atlasui.zip
-
-	# Install AtlasUI Web Framework
-	echo "Installing AtlasUI"
-
-	unzip /tmp/atlasui.zip -d /var/www/ # Extract Metis to /var/www/AtlasUI
-	rm -f /tmp/atlasui.zip # Remove atlasui.zip
-}
-
 installMetis(){ #Function to pull and install Metis
 	metis="https://github.com/StroblIndustries/Metis/raw/master/stable.zip" # Define the Metis stable.zip to download
 	wget "$metis" -O /tmp/metis.zip
@@ -25,30 +14,18 @@ installMetis(){ #Function to pull and install Metis
 
 apt-get install -y wget unzip
 
-atlasuiVersionUrl="https://github.com/JoshStrobl/AtlasUI/raw/master/VERSION.txt" # Define the AtlasUI VERSION to download
 metisVersionUrl="https://github.com/StroblIndustries/Metis/raw/master/VERSION.txt" # Define the Metis VERSION to download
 
-wget "$atlasuiVersionUrl" -O /tmp/atlasuiVersion.txt
 wget "$metisVersionUrl" -O /tmp/metisVersion.txt
 
-newestAtlasUIVersion=$(</tmp/atlasuiVersion.txt) # Get the newest AtlasUI version
 newestMetisVersion=$(</tmp/metisVersion.txt) # Get the newest Metis version
 
 # Check for existing installs
 echo "Checking for existing Metis installs"
 
-if [ -f /var/www/Metis/framework.php ]; then #If Metis is already installed (meaning AtlasUI is already installed)
-	currentAtlasUIVersion=$(</var/www/AtlasUI/VERSION.txt) # Get the current AtlasUI version that is already installed
-	currentMetisVersion=$(</var/www/Metis/VERSION.txt) # Get the current Metis version that is already installed 
+if [ -f /var/www/Metis/framework.php ]; then #If Metis is already installed
+	currentMetisVersion=$(</var/www/Metis/VERSION.txt) # Get the current Metis version that is already installed
 
-	if [ "$newestAtlasUIVersion" != "$currentAtlasUIVersion" ]; then # If the current version of AtlasUI is not the latest
-		echo "Found an existing but outdated AtlasUI install. Updating now."
-		rm -rf /var/www/AtlasUI # Remove old AtlasUI Web Framework
-		installAtlasUI # Install AtlasUI
-	else
-		echo "Found an existing and up-to-date AtlasUI install. Doing nothing."
-	fi	
-	
 	if [ "$newestMetisVersion" != "$currentMetisVersion" ]; then # If the current version of Metis is not the latest
 		echo "Found an existing but outdated Metis install. Updating now."
 
@@ -85,7 +62,6 @@ else #If Metis is NOT already installed
 	mkdir -p /var/www/
 	chmod -R 1777 /var/www/
 
-	installAtlasUI #Install AtlasUI (fresh install)
 	installMetis #Install Metis (fresh install)
 fi
 

@@ -1,7 +1,5 @@
 <?php
-
-	include("../AtlasUI/framework.php");
-	include("framework.php"); // Include the Metis
+	include("metis.min.php"); // [Reference: https://github.com/StroblIndustries/Metis]
 
 	if ($nodeList !== 1.01){ // If we did not fail to get the Node List
 		navigateToLocalMetisData("backup");

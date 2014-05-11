@@ -1,21 +1,27 @@
 <?php
 
-	// These are Connection related functions for MetisDB.
+	// These are system (mainly internal) related functions
 
 	/*
-		Copyright 2013 Strobl Industries
+		Copyright 2013-2014 Strobl Industries
 
 		Licensed under the Apache License, Version 2.0 (the "License");
 		 you may not use this file except in compliance with the License.
 		 You may obtain a copy of the License at
 
-		     http://www.apache.org/licenses/LICENSE-2.0
+			 http://www.apache.org/licenses/LICENSE-2.0
 
 		 Unless required by applicable law or agreed to in writing, software
 		 distributed under the License is distributed on an "AS IS" BASIS,
 		 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 		 See the License for the specific language governing permissions and
 		 limitations under the License.
+	*/
+
+	#region Metis Initialization Function
+
+	/*
+		This function is responsible for the initialization of Metis, primarily finding the nodeList.json, decoding it from JSON to an Object / multi-dimensional array
 	*/
 
 	function metisInit(){
@@ -77,9 +83,50 @@
 		return array($nodeList, $directoryHostingMetis); // Return the decoded nodeList or the error code AND the directory hosting Metis
 	}
 
-	// #endregion
+	#endregion
 
-	// #region Node Group / Node Parser
+	#region Metis HTTP Request Handler
+
+	/*
+		This function is Metis' HTTP Request Handler, creating HTTP requests on the fly, primarily to do HTTP POST calls to remote Nodes / Node Groups
+	 */
+
+	function http_request($nodeAddress, $remoteRequestData_JsonFormat){
+		$httpRequest = curl_init();
+
+		/* Setting some essential cURL options */
+		curl_setopt($httpRequest, CURLOPT_CUSTOMREQUEST, "POST"); // Set the custom request to POST
+		curl_setopt($httpRequest, CURLOPT_CONNECTTIMEOUT, 15); // If the URL doesn't respond within 15 seconds, then we'll assume the remote Metis cluster is slow.
+		curl_setopt($httpRequest, CURLOPT_FAILONERROR, true); // Fails if HTTP code is 400 or greater (other examples: 403, 500)
+		curl_setopt($httpRequest, CURLOPT_FOLLOWLOCATION, false); // Do not follow PHP location header or redirects.
+		curl_setopt($httpRequest, CURLOPT_MAXREDIRS, 1); // If there is more than 1 redirect from a URL, stop the request.
+		curl_setopt($httpRequest, CURLOPT_RETURNTRANSFER, true); // Make sure to return as a string value rather than output it.
+		curl_setopt($httpRequest, CURLOPT_SSL_VERIFYPEER, false);
+
+		$httpRequestHeaders = array("Content-length: " . strlen($remoteRequestData_JsonFormat)); // Set the content length of the JSON data
+		curl_setopt($httpRequest, CURLOPT_HTTPHEADER, $httpRequestHeaders); // Set the CURLOPT_HTTPHEADER to our value.
+		curl_setopt($httpRequest, CURLOPT_URL, $nodeAddress . "/callback.php"); // Set the CURLOPT_URL to be the remote Metis cluster address + /callback.php
+		curl_setopt($httpRequest, CURLOPT_POSTFIELDS, $remoteRequestData_JsonFormat); // Set the POSTFIELDS to the JSON data
+
+		$httpResponse = curl_exec($httpRequest); // Execute the request and save it in response.
+		$httpRequestError = curl_error($httpRequest) ; // Get the error (or if there isn't an error, it returns 0) of the curl_init / http request.
+		curl_close($httpRequest); // Close CURL
+
+		if ($httpRequestError == 0){ // If there isn't an error
+			return $httpResponse; // Return the response
+		}
+		else{ // If there is an error
+			$curlErrorCodes = array(
+				"3" => "URL_MALFORMAT", "7" => "COULDNT_CONNECT", "18" => "PARTIAL_FILE",  "47" => "TOO_MANY_REDIRECTS", "63" => "FILESIZE_EXCEEDED", "67" => "LOGIN_DENIED"
+			); // Basically, create an array with common CURL errors that'd be related to actions performed when doing HTTP requests.
+			$curlErrorCodeReturned = settype($httpRequestError, "string"); // Convert the curl error from an integer to a string.
+			return $curlErrorCodes[$curlErrorCodeReturned]; // Return the error message.
+		}
+	}
+
+	#endregion
+
+	#region Node Group / Node Parser
 	/* This function converts acceptable Node Group / Node structured string syntax into a multi-dimensional array,
 		array checking, and number-to-string conversion.
 	*/
@@ -124,11 +171,14 @@
 		return $nodeData;
 	}
 
-	// #endregion
+	#endregion
 
+	#region Node Info
+
+	/* This function gets information regarding a particular Node or Node Group */
 	function nodeInfo($requestedNodeGroupOrNumber, $requestedNodeParameter, $optionalNodeList = null){
 		if ($optionalNodeList == null){ // If the optionalNodeList was NOT defined
-			global $nodeList; // Get the global node list as a multi-dimensional array
+			$nodeList = $GLOBALS['nodeList']; // Get the global node list as a multi-dimensional array
 		}
 		else{ // If it was defined
 			$nodeList = $optionalNodeList;
@@ -154,5 +204,7 @@
 			die($requestedNodeGroupOrNumber . " is not defined in nodeList.");
 		}
 	}
+
+	#endregion
 
 ?>

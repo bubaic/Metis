@@ -19,10 +19,10 @@
 		permissions and limitations under the License.
 	*/
 
-	include("core/fileIO.php"); // File Input / Output, encoding and decoding files, etc.
+	include("core/io.php"); // File Input / Output, encoding and decoding files, etc.
 	//include("core/security.php"); // Security (Functionality Not Yet Known Or Implemented)
-	include("core/system.php"); // Metis system functionality (mainly related to Nodes)
-	include("core/utilities.php"); // Misc. utilities, such as conversion from MySQL to Metis
+	include("core/sys.php"); // Metis system functionality, such as initialization, HTTP requests, Node Group / Node info
+	include("core/utils.php"); // Misc. utilities, such as conversion from MySQL to Metis
 
 	$returnedNodeListData = metisInit();
 	$nodeList = $returnedNodeListData[0];
