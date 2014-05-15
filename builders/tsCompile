@@ -40,7 +40,7 @@ fi
 
 if [ ! -f /usr/bin/tsc ]; then # If the Typescript compiler is NOT installed
 	cd /home/"$USER"/ #Go to the user's home directory to ensure node_modules are install in node_modules
-	npm install typescript@0.9.7 # Install Typescript via NPM
+	npm install typescript@1.0.1 # Install Typescript via NPM
 	sudo ln -s /home/"$USER"/node_modules/typescript/bin/tsc /usr/bin/tsc # Ensure Typescript Compiler is symlinked
 fi
 
