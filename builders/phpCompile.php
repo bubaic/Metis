@@ -1,9 +1,10 @@
 <?php
 	include("php-compressor.php"); // Include a modified version of PHP-compressor (code.google.com/p/php-compressor/)
+	$licenseHeader = file_get_contents("licenseHeader.txt"); // Get the Apache v2 license header to add to class content
 	chdir("../"); // Move to Metis root directory
 
 	$metisClassContent = ""; // Declare metisClassContent, which will (as the name implies) be the content of the Metis class
-	$modules = array("core" => array("io.php", "sys.php", "utils.php")); // Declare $modules as an array of folders and files that need to be compressed
+	$modules = array("core" => array("io.php", "queuer.php", "sys.php", "utils.php")); // Declare $modules as an array of folders and files that need to be compressed
 
 	$functionConversionArray = array( // Array of functions that need to be converted, their initial values (keys) and converted values (vals)
 		"= fileHashing" => '= $this->fileHashing', "(fileHashing" => '($this->fileHashing',
@@ -45,18 +46,26 @@
 
 	echo "Doing final touches on Metis class. \n";
 
-	$metisConstructionContent = 'class Metis{public $nodeList = "";	public $directoryHostingMetis = "";function __construct(){$returnedNodeListData = $this->metisInit();
-	$this->nodeList = $returnedNodeListData[0];$this->directoryHostingMetis = $returnedNodeListData[1];}';
-	$metisClassContent = "<?php " . $metisConstructionContent . $metisClassContent . "} ?>"; // Finalize the Metis class content by adding beginning and end to main code
+	$metisConstructionContent = 'class Metis{
+		public $nodeList = "";
+		public $directoryHostingMetis = "";
+		function __construct(){
+			$returnedNodeListData = $this->metisInit();
+			$this->nodeList = $returnedNodeListData[0];
+			$this->directoryHostingMetis = $returnedNodeListData[1];
+		}
+	';
+	$metisClassContent = "<?php " . $metisConstructionContent . $metisClassContent . "}"; // Finalize the Metis class content by adding beginning and end to main code
 
 	echo "Saving compressed Metis class. \n";
 
 	$metisClassCompressor = new Compressor; // Generate a compressor that'll only be used in the end for compressing Metis beginning content
 	$metisClassCompressor->keep_line_breaks = false; // Ensure all line breaks are removed
 	$metisClassCompressor->load($metisClassContent); // Load the Metis class content
-	$metisConstructionContent_Compressed = $metisClassCompressor->run(); // Run the compressor
+	$metisContent_Compressed = $metisClassCompressor->run(); // Run the compressor
 
-	file_put_contents("metis.min.php", $metisConstructionContent_Compressed); // Create a file Handler called compileSave
+	$finalizedMetisClassContent = str_replace("<?php", "<?php \n" . $licenseHeader . "\n", $metisContent_Compressed) . "\n?>"; // Prepend the Apache v2 license header to class content and append ending PHP tag
+	file_put_contents("metis.min.php", $finalizedMetisClassContent); // Create a file Handler called compileSave
 
 	echo "Finished compressed Metis. \n";
 ?>

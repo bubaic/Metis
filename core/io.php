@@ -1,5 +1,4 @@
 <?php
-
 	// These are IO related functions
 
 	/* 
@@ -48,7 +47,7 @@
 		chdir("Metis"); // Jump into the Metis folder
 		chdir("data"); // Jump into the data folder.
 
-		if ($nodePreferentialLocation !== null){ // If the preferential location is defined (it is acceptable for it to NOT only for the mysqlToMetis functionality)
+		if (isset($nodePreferentialLocation) && $nodePreferentialLocation !== null){ // If the preferential location is set, defined as NOT null
 
 			if (is_dir($nodePreferentialLocation) == false){ // If the Node's preferential location does NOT exist
 				mkdir($nodePreferentialLocation); // Automatically create the node's preferential location
@@ -58,95 +57,6 @@
 		}
 
 		return $directoryPriorToMove;
-	}
-
-	#endregion
-
-	#region Backup System - Backup Queuer
-
-	function backupQueuer(array $parsedNodeData, array $files, $fileAction){
-		$nodeList = $GLOBALS['nodeList']; // Get the node list as a multi-dimensional array
-		$directoryPriorToBackupMove = navigateToLocalMetisData("backup"); // Navigate to the backup folder
-
-		$backupQueue_Json = file_get_contents(fileHashing("backup-queue") . ".json"); // Read the contents of the backup-queue file
-
-		$backupQueue_md5Hash = md5($backupQueue_Json); // Generate md5 hash of the file before it potentially being modified
-
-		if (strlen(trim($backupQueue_Json)) > 2){ // If the JSON is not the default ({})
-			$backupQueue = decodeJsonFile($backupQueue_Json); // Convert to multi-dimensional array
-		}
-		else{
-			$backupQueue = array();
-		}
-
-		$nodeGroupNodes_WithBackup = array(); // Array to hold any of the Node Group's Nodes that will be used for backup
-
-		foreach ($parsedNodeData as $nodeOrGroup => $potentialNodesInGroup){ // For each Node Group or Node in the parsed Node Data
-			if (isset($nodeList[$nodeOrGroup]["Backup Data"])){ // If this Node Group or independent Node is meant to handle all backups of file IO
-				if ($nodeList[$nodeOrGroup]["Backup Data"]["Enabled"] == true){ // If this backup is enabled
-					$nodeGroupNodes_WithBackup[] = $nodeOrGroup;
-				}
-			}
-			else{ // If the Node Group or Node is NOT meant to handle all backups of file IO
-				if (nodeInfo($nodeOrGroup, "Node Type") == "group"){ // If the nodeOrGroup is a Node Group
-
-					if (gettype($potentialNodesInGroup) == "array"){ // If Nodes within the Node Group are already defined
-						$nodeGroupNodes = $potentialNodesInGroup;
-					}
-					else{ // If Nodes within the Node Group are not already defined
-						$nodeGroupNodes = nodeInfo($nodeOrGroup, "group-nodes"); // Fetch all Nodes in Group
-					}
-
-					foreach ($nodeGroupNodes as $nodeGroupNode){ // For each Node in Node Group
-						if (isset($nodeGroupNodes[$nodeGroupNode]["Backup Data"])){ // If the Node has Backup elements
-							if ($nodeGroupNodes[$nodeGroupNode]["Backup Data"]["Enabled"] == true){ // If this backup is enabled
-								$nodeGroupNodes_WithBackup[] = $nodeOrGroup . "#" . $nodeGroupNode; // Add it to the list of Nodes with backup
-							}
-						}
-					}
-				}
-				// Else don't add Node Group or Node to $nodeGroupNodes_WithBackup, therefore the backup queue adding gets skipped
-			}
-
-			if (count($nodeGroupNodes_WithBackup) > 0){ // If there are Nodes that have Backup Data.
-				foreach ($nodeGroupNodes_WithBackup as $nodeDataString){ // For each node listed in the nodeGroupNodes_WithBackup
-
-					if (gettype($backupQueue[$nodeDataString]) !== "array"){ // If the nodeDataString array is not already defined in the backupQueue
-						$backupQueue[$nodeDataString] = array();
-					}
-
-					foreach ($files as $fileName){
-						if (isset($backupQueue[$nodeDataString][$fileName])){ // If the file is already in the backup queue
-							$backupQueueFileInfo = $backupQueue[$nodeDataString][$fileName]; // Declare backup queue file info as the data assigned to the file in queue
-							$backupQueueFileInfo_Action = $backupQueueFileInfo["action"]; // Declare this variable as the action that is queued to take place
-
-							if ($backupQueueFileInfo_Action !== $fileAction){ // If we are doing a different action already queued up
-								if ((($backupQueueFileInfo_Action == "w") || ($backupQueueFileInfo_Action == "a")) && ($fileAction == "d")){ // If the currently queued action is to write or update a file and the action is to delete
-									$backupQueue[$nodeDataString][$fileName]["action"] = $fileAction; // Change the action to delete
-								}
-							}
-						}
-						else{// If the file does not exist in the backup queue
-							$backupQueue[$nodeDataString][$fileName] = array(); // Add fileName as a new item in the $nodeDataString array
-							$backupQueue[$nodeDataString][$fileName]["action"] = $fileAction; // Set the file's action to fileAction
-						}
-					}
-				}
-			}
-		}
-
-		$backupQueue_Json = json_encode($backupQueue);
-		$backupQueue_NewHash = md5($backupQueue_Json); // Get the new md5 hash of the encoded backup queue
-
-		if ($backupQueue_md5Hash !== $backupQueue_NewHash){ // If the hashes have changed (implies modification of the queue), do file IO
-			$fileName = fileHashing("backup-queue");
-			$fileHandler = fopen($fileName . ".json", "w+"); // Create a file handler.
-			fwrite($fileHandler, $backupQueue_Json); // Write the JSON data to the file.
-			fclose($fileHandler); // Close the file location.
-			touch($fileName. ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
-		} // else don't do anything, since no file IO is required
-
-		chdir($directoryPriorToBackupMove);
 	}
 
 	#endregion
@@ -162,7 +72,7 @@
 				if (is_null($newArray[$fileName])){ // If the fileName and it's content is NOT defined in the new array
 					$newArray[$fileName] = $fileSet[$fileName];
 				}
-				elseif (is_int($newArray[$fileName])){ // If the fileName is defined but is an INT (error)
+				elseif (is_float($newArray[$fileName])){ // If the fileName is defined but is an INT (error)
 					if (is_array($fileSet[$fileName])){ // If it turns out this fileSet's fileName has content
 						$newArray[$fileName] = $fileSet[$fileName];
 					}
@@ -207,8 +117,7 @@
 
 			foreach ($nodeData as $nodeOrGroup => $potentialNodesDefined){ // Recursively go through each Node within an array or within a Node Group
 				if (nodeInfo($nodeOrGroup, "Node Type") == "group"){ // If this individual $nodeOrGroup is a Node Group (rather than an array of Nodes)
-					$usingNodeGroups = true; // Using Node Groups = true
-
+					$usingNodeGroups = true; // Using Node Groups
 					if (gettype($potentialNodesDefined) == "array"){ // If there are Nodes already defined within the Node Group
 						$nodes = $potentialNodesDefined;
 					}
@@ -217,7 +126,7 @@
 					}
 				}
 				else{
-					$usingNodeGroups = false; // Using Node Groups = false
+					$usingNodeGroups = false; // Not using Node Groups
 					$nodes = array($nodeOrGroup);
 				}
 
@@ -233,7 +142,7 @@
 					$nodePreferentialLocation = nodeInfo($nodeNum, "Preferential Location", $nodeInfo_NodeList); // Get the preferential location for the Node.
 
 					if (($nodeType == "local") && ($nodePreferentialLocation !== "backup")){ // If the Node is local and the Node's Preferential Location is not the backup folder
-						$successfulNavigation = navigateToLocalMetisData($nodePreferentialLocation); // Go to the data directory
+						$successfulNavigation = navigateToLocalMetisData($nodePreferentialLocation); // Go to the necessary directory
 
 						if ($successfulNavigation !== 2.01){ // If we successfully navigated to the folder
 							foreach ($files as $fileName_NotHashed){ // For each file, do something with it in the local Node
@@ -243,19 +152,19 @@
 								if (($fileAction == "r") || ($fileAction == "a")){ // If we are either reading the file or appending to it (either way, we need the file)
 									$thisFileContent = file_get_contents($fileName . ".json"); // Read the file
 
-									if ($thisFileContent == false){ // If we failed to fetch the file
-										$thisFileContent = 2.05; // State thisFileContent is error #2.05.
-									}
-									else{
+									if ($thisFileContent !== false){ // If we successfully fetched the file
 										$thisFileContent = decodeJsonFile($thisFileContent); // If we successfully read the file, decode the JSON (no matter if we are reading or appending)
+									}
+									else{ // If we failed to fetch the file
+										$thisFileContent = 2.05; // State thisFileContent is error #2.05.
 									}
 								}
 
-								if (($fileAction == "w") || ($thisFileContent !== 2.05 && $fileAction == "a")){ // If we are writing content to the file or appending existing content
-									if ($fileAction == "a"){ // If we are appending content to an existing file
+								if (($fileAction == "w") || ($fileAction == "a")){ // If we are writing or appending content
+									if (($fileAction == "a") && (is_float($thisFileContent) == false)){ // If we are APPENDING content a file that DOES exist and is valid
 										$jsonData = array_replace_recursive($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
 									}
-									else{ // If we are only writing
+									else{ // If we are writing a file (or appending to a file that doesn't exist)
 										$jsonData = $contentOrDestinationNodes; // Assign the jsonData as contentOrDestinationNodes
 									}
 
@@ -312,15 +221,15 @@
 						$nodeAddress = nodeInfo($nodeNum, "Address", $nodeInfo_NodeList);
 
 						$remoteRequestData = array(); // Create an array that'll hold key / vals that will eventually be converted to JSON to send to the callback script.
-						$remoteRequestData["fileAction"] = $fileAction; // Assign the fileAction from the fileAction given to fileActionHandler
 						$remoteRequestData["nodeData"] = $nodePreferentialLocation; // Assign the nodeNum from the nodePreferentialLocation, which in the case of remote nodes, is the remote node number to call from.
+						$remoteRequestData["fileAction"] = $fileAction; // Assign the fileAction from the fileAction given to fileActionHandler
 						$remoteRequestData["files"] = $files; // Assign the files array from the files array given to fileActionHandler
 
-						if (is_null($contentOrDestinationNodes) == false){ // If the fileContent_JsonArray is NOT null, meaning it exists
+						if ($contentOrDestinationNodes !== null){ // If the contentOrDestinationNodes is NOT null, meaning it exists
 							$remoteRequestData["contentOrDestinationNodes"] = $contentOrDestinationNodes; // Assign that content to the contentOrDestinationNodes key
 						}
 
-						$remoteRequestData_JsonFormat = json_encode($remoteRequestData, true); // Convert / encode the multi-dimensional array to JSON.
+						$remoteRequestData_JsonFormat = json_encode($remoteRequestData); // Convert / encode the multi-dimensional array to JSON.
 						$returnedRemoteFilesContent = http_request($nodeAddress, $remoteRequestData_JsonFormat); // Do an HTTP Request (CURL) to the nodeAddress / remote Metis cluster with the JSON formatted data
 						$remoteFileContent_Array = decodeJsonFile($returnedRemoteFilesContent);
 
@@ -354,12 +263,19 @@
 			if ($fileAction !== "r"){ // If the fileAction is NOT read, then run the backupQueuer
 				$backupQueuerResponse = backupQueuer($nodeData, $files, $fileAction); // Send data to Backup Queuer
 			}
-
-			return json_encode($returnableFileContent); // Return the JSON encoded version (string) of the fileContent (which is an array)
 		}
 		else{ // If the nodeList is not valid / doesn't exist.
-			return 1.01; // Return the error code #1.01;
+			$returnableFileContent =  1.01; // Return the error code #1.01
 		}
+
+		if (is_float($returnableFileContent)){ // If the returnableFileContent is an error
+			$returnableFileContent = array("error" => $returnableFileContent); // Set returnableFileContent to an error array
+		}
+		elseif ($returnableFileContent == "0.00"){ // If the returnable content is purely a success code
+			$returnableFileContent = array("success" => "0.00"); // Set returnableFileContent as a success array
+		}
+
+		return json_encode($returnableFileContent); // Return the JSON encoded version (string) of the fileContent (which is an array)
 	}
 
 	function createJsonFile($nodeData, $files, array $contentOrDestinationNodes){

@@ -34,7 +34,7 @@
 		$metisExistsInFileSystem = false; // Preemptive setting of metisExistsInDirectory to false. If we find Metis folder in a directory, we set it to true.
 		$directoryHostingMetis = ""; // Exact FS string of where Metis is hosted
 
-		while ($numberOfAttempts < 6){
+		while ($metisExistsInFileSystem !== true && $numberOfAttempts < 6){ // While we have not found Metis in the file system and we haven't dug too deep! (d
 			if ($currentSearchDirectory !== null){ // If the current search directory is NOT null (as in it has already searched the originalDirectory)
 				chdir($currentSearchDirectory); // Move to the currentSearchDirectory (as defined at the end of the while loop).
 			}
@@ -64,13 +64,16 @@
 			$numberOfAttempts = $numberOfAttempts + 1;
 		}
 
-		if ($metisExistsInFileSystem == true){ // If Metis DOES exist somehwere that we've searched
-			chdir($phpRoot); //Redirect  to the PHP root
-			$fauxPHPRoot = getcwd(); // Get most likely the faux PHP root (issue on shared hosts usually). Will return DOCUMENT_ROOT under non-stupid hosts, self-hosting, VPS, etc
+		if ($metisExistsInFileSystem == true){ // If Metis DOES exist somewhere that we've searched
+			if ($phpRoot !== ""){ // If DOCUMENT_ROOT is not an empty string
+				chdir($phpRoot); // Redirect  to the PHP root
+				$fauxPHPRoot = getcwd(); // Get most likely the faux PHP root (issue on shared hosts usually). Will return DOCUMENT_ROOT under non-stupid hosts, self-hosting, VPS, etc
+				$directoryHostingMetis = str_replace($phpRoot, $fauxPHPRoot, $currentWorkingDirectory); // Remove the PHP root from the Original Directory string and replace with fauxPHPRoot
+			}
+			else{ // If DOCUMENT_ROOT is an empty string (can occur on php-cli installs)
+				$directoryHostingMetis = $currentWorkingDirectory; // Just set directoryHostingMetis to the current working directory
+			}
 
-			$directoryWithoutRoot = str_replace($fauxPHPRoot, "", $currentWorkingDirectory); // Remove the PHP root from the Original Directory string, ex. /var/www/bacon/isyummy/ becomes /bacon/isyummy.
-
-			$directoryHostingMetis = str_replace("//", "/", $fauxPHPRoot . $directoryWithoutRoot); // Append the faux PHP root so we get a full path
 			chdir($directoryHostingMetis);
 
 			$nodeList = decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Read the nodeList.json from the Metis folder and have it decoded into a multi-dimensional array (assigned to nodeList).
