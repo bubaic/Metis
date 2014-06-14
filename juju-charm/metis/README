@@ -21,7 +21,7 @@ When you deploy Metis, it will:
 
 - Check if nginx or apache2 is installed. If not, it will automatically download nginx.
 - Check if the necessary PHP libraries are installed (primarily php5 and php5 CURL). If not, it will automatically download those dependencies.
-- Download the latest Metis version from https://github.com/StroblIndustries/Metis and installs into /var/www/Metis.
+- Download the latest Metis version via Git from https://github.com/StroblIndustries/Metis and installs into /var/www/Metis.
 
 ## Detailed Configuration
 

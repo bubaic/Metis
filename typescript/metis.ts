@@ -1,90 +1,10 @@
 // This is the Metis Javascript / Typescript Implementation
 
 class Metis { // Class definition "Metis"
-	enableHeadlessMetis: Boolean;
-	enableLocalStorage: Boolean;
-	metisCallbackLocation: string;
-	userOnline: Boolean;
-
-	constructor(enableHeadlessMetisOption : Boolean, metisCallbackUrl ?: string, enableLocalStorageBoolean ?: Boolean, userOfflineByDefault ?: Boolean) { // Constructor that requires defining the headless server mode and IF set to false, the callback URL
-		if (enableHeadlessMetisOption == true) { // If the developer has defined enableHeadlessMetisOption as true
-			this.enableHeadlessMetis = true;
-			this.enableLocalStorage = true; // Force enableLocalStorage to true, as that is required to be headless
-			this.userOnline = false; // Set the user to offline
-		}
-		else { // If the developer has NOT defined whether HeadlessMetis should be enabled OR the developer has set it to false
-			this.enableHeadlessMetis = false;
-
-			if (metisCallbackUrl !== undefined) { // If metisCallbackUrl is defined
-				this.metisCallbackLocation = metisCallbackUrl;
-
-				if (enableLocalStorageBoolean !== undefined) { // If the developer has defined whether Local Storage should be enabled or not
-					this.enableLocalStorage = enableLocalStorageBoolean; // Set the value of enableLocalStorage to the boolean that the dev. set
-				}
-				else { // If the developer has NOT defined whether to enable or disable the Local Storage
-					if (window.localStorage !== undefined){ // If the end user's browser supports LocalStorage
-						this.enableLocalStorage = true; // Set the enableLocalStorage to true
-
-						if (this.fileExists("internal", "ioQueue") !== "local"){ // If the ioQueue file does NOT already exist
-							this.createJsonFile("internal", "ioQueue", {}); // Create an empty ioQueue file
-						}
-					}
-					else{ // If the end user's browser does NOT support LocalStorage
-						this.enableLocalStorage = false; // Set the enableLocalStorage to false
-					}
-				}
-			}
-			else { // If the callback URL is not defined
-				console.log("You have defined enableHeadlessMetisOption as FALSE but have NOT provided a callback URL. Expect errors.");
-			}
-		}
-
-		if (userOfflineByDefault !== true) { // If the developer has not defined userOfflineByDefault or it is set to false (the user is offline by default)
-			this.userOnline = true;
-		}
-		else { // If the developer has defined it AND it is set to true
-			this.userOnline = false;
-		}
-	}
-
-	// #region Metis Initialization
-
-	init() { // Initialization function that essentially sets the event listener / handler for "online", since we can't do this within the constructor.
-		if (this.enableHeadlessMetis == false) { // If enableHeadlessMetis is set to false, then add the event listeners, since they essentially enable server communication
-			document.addEventListener("online", this.processIOQueue, false); // Add an event listener that listens to the "online" event, which means the user went from offline to online and we need to process our IO queue, if there is one
-			document.addEventListener("offline", this.toggleOfflineStatus, false); // Add an event listener that listens to the "offline" event. When the user goes offline, we'll change this.userOffline to true so fileActionHandler can send data to ioQueue.
-		}
-	}
-
-	// #endregion
-
-	// #region Object Handling
-
-	objectMerge(primaryObject: Object, secondaryObject: Object) { // This function merges objects and object properties into a single returned Object. This is a solution to not being able to use .concat()
-		for (var objectProperty in secondaryObject) { // For each objectProperty in the newFileContent
-			if (typeof secondaryObject[objectProperty] == "object") { // If this particular property of the newFileContent object is an object itself
-				if (primaryObject[objectProperty] !== undefined) { // If the existingFileContent property IS set already
-					primaryObject[objectProperty] = this.objectMerge(primaryObject[objectProperty], secondaryObject[objectProperty]); // Do a recursive object merge
-				}
-				else { // If the existingFileContent property is NOT set
-					primaryObject[objectProperty] = secondaryObject[objectProperty];
-				}
-			}
-			else { // If newFileContent property is not an object
-				primaryObject[objectProperty] = secondaryObject[objectProperty]; // Do not do a merge, merely overwrite
-			}
-		}
-
-		return primaryObject; // Return the existingFileContent Object, which is now considered to be updated.
-	}
-
-	// #endregion
 
 	// #region IO Queue System / Local Storage
 
-	toggleOfflineStatus() {
-		this.userOnline = false;
-	}
+
 
 	addToIOQueue(nodeData : any, filesToQueue : any, fileAction : string, contentOrDestinationNodes ?: any){ // This function adds items to the ioQueue
 		var ioQueue : Object = this.decodeJsonFile(this.readJsonFile("internal", "ioQueue"));

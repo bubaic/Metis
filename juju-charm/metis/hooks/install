@@ -1,0 +1,56 @@
+#!/bin/bash
+set -e # If any command fails, stop execution.
+
+installMetis(){ #Function to pull and install Metis
+	# Clone the git repository
+	echo "Cloning Metis git repository (only master branch)."
+	mkdir -p /tmp/metis
+	git clone --branch master git@github.com:StroblIndustries/Metis.git /var/www/
+
+	# Remove unnecessary files from cloned repository
+	cd /var/www/Metis/
+	rm -rf /juju-charm /php /typescript /builders stable.zip # Remove the juju-charm, php, typescript, builder directories and stable.zip
+}
+
+apt-get install -y git # Ensure necessary git dependency exist.
+
+# Check for existing installs
+echo "Checking for existing Metis installs"
+
+if [ -f /var/www/Metis/metis.php ]; then #If Metis is already installed
+	echo "Found an existing Metis install. Updating now."
+
+	cp /var/www/Metis/nodeList.json /tmp/ # Copy nodeList.json
+	mv -r /var/www/Metis/data /tmp/ # Copy over existing data
+	rm -r /var/www/Metis # Uninstall Metis
+
+	installMetis # Reinstall Metis
+
+	# Re-install any old data
+	echo "Copying over old Metis config and data"
+	mv -f /tmp/nodeList.json /var/www/Metis/ # Copy over old nodeList.json
+	mv -r /tmp/data /var/www/Metis # Copy over Metis data folder
+else #If Metis is NOT already installed
+	echo "Found no Metis install. Doing fresh-install run."
+
+	# Dependency Checking (No sense in re-installing dependencies)
+
+	echo "Doing some dependency checking."
+
+	preferredEngine=$(config-get engine)
+
+	if [ "$preferredEngine" == "nginx" ]; then # If engine is nginx
+		apt-get install -y nginx php5 php5-fpm php5-curl
+	elif [ "$preferredEngine" == "apache2" ]; then #If engine is apache(2)
+		apt-get install -y apache2 php5-cgi curl libapache2-mod-php5 php5-cli php5-curl
+	fi
+
+	# End of Dependency Checking
+
+	mkdir -p /var/www/
+	chmod -R 1777 /var/www/
+
+	installMetis #Install Metis (fresh install)
+fi
+
+echo "Metis is done installing / updating."

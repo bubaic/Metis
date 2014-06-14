@@ -2,17 +2,17 @@
 set -e # If any command fails, stop execution.
 
 installMetis(){ #Function to pull and install Metis
-	metis="https://github.com/StroblIndustries/Metis/raw/master/stable.zip" # Define the Metis stable.zip to download
-	wget "$metis" -O /tmp/metis.zip
+    # Clone the git repository
+    echo "Cloning Metis git repository (only master branch)."
+	mkdir -p /tmp/metis
+    git clone --branch master git@github.com:StroblIndustries/Metis.git /var/www/
 
-	# Install Metis
-	echo "Installing Metis"
-
-	unzip /tmp/metis.zip -d /var/www/ # Extract Metis to /var/www/Metis
-	rm -f /tmp/metis.zip # Remove metis.zip
+    # Remove unnecessary files from cloned repository
+    cd /var/www/Metis/
+    rm -rf /juju-charm /php /typescript /builders stable.zip # Remove the juju-charm, php, typescript, builder directories and stable.zip
 }
 
-apt-get install -y wget unzip
+apt-get install -y git unzip wget
 
 metisVersionUrl="https://github.com/StroblIndustries/Metis/raw/master/VERSION.txt" # Define the Metis VERSION to download
 
@@ -23,7 +23,7 @@ newestMetisVersion=$(</tmp/metisVersion.txt) # Get the newest Metis version
 # Check for existing installs
 echo "Checking for existing Metis installs"
 
-if [ -f /var/www/Metis/framework.php ]; then #If Metis is already installed
+if [ -f /var/www/Metis/metis.php ]; then #If Metis is already installed
 	currentMetisVersion=$(</var/www/Metis/VERSION.txt) # Get the current Metis version that is already installed
 
 	if [ "$newestMetisVersion" != "$currentMetisVersion" ]; then # If the current version of Metis is not the latest
@@ -66,4 +66,4 @@ else #If Metis is NOT already installed
 fi
 
 rm -f /tmp/metisVersion.txt #Removing metisVersion.txt
-echo "Metis is done installing / updating."
+echo "Metis is done installing / updating."
