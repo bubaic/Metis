@@ -8,3 +8,5 @@ if [ "$preferredEngine" == "nginx" ]; then # If engine is nginx
 else #If engine is apache(2)
 	service apache2 stop
 fi
+
+echo "Oh, ok. Server needs a rest or something? $preferredEngine is no longer running."
