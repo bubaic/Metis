@@ -65,7 +65,7 @@
 	$metisContent_Compressed = $metisClassCompressor->run(); // Run the compressor
 
 	$finalizedMetisClassContent = str_replace("<?php", "<?php \n" . $licenseHeader . "\n", $metisContent_Compressed) . "\n?>"; // Prepend the Apache v2 license header to class content and append ending PHP tag
-	file_put_contents("metis.min.php", $finalizedMetisClassContent); // Create a file Handler called compileSave
+	file_put_contents("metis.php", $finalizedMetisClassContent); // Create a file Handler called compileSave
 
 	echo "Finished compressed Metis. \n";
 ?>
