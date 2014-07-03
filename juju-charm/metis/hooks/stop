@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+preferredEngine=$(config-get engine)
+
+if [ "$preferredEngine" == "nginx" ]; then # If engine is nginx
+	service nginx stop
+else #If engine is apache(2)
+	service apache2 stop
+fi
+
+echo "Oh, ok. Server needs a rest or something? $preferredEngine is no longer running."
