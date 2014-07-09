@@ -77,7 +77,7 @@ module metis.file {
 
 		if (nodeDataDefined !== "internal"){ // If we are not doing an internal Metis call
 			if (metis.core.metisFlags["Headless"] == false){ // If Headless Mode is disabled, then we are allowed to make XHR calls
-				if(metis.core.metisFlags["User Online"] == true) { // If the user is online, create an XHR and process the request
+				if((metis.core.metisFlags["User Online"] == true) && (metis.core.metisFlags["Battery OK"] == true)) { // If the user is online and Battery OK is true (battery level is not applicable or is above a particular percentage)
 					if((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) { // If either we are reading AND there are still necessary remote files to fetch OR we are not reading files
 						var remoteIOData : any = {}; // Define the custom formdata object (type any)
 
@@ -137,7 +137,7 @@ module metis.file {
 						}
 					}
 				}
-				else { // If the user is NOT online
+				else { // If the user is NOT online or their battery life is NOT sufficient
 					if(fileAction !== "r") { // If we were not reading files, we'll overwrite the necessaryFilesForRemoteIO with the entire files array
 						necessaryFilesForRemoteIO = files;
 					}

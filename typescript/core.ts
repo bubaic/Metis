@@ -34,6 +34,7 @@ module metis.core{
 		if (arguments["User Online"] == undefined){ // If User Online is not defined by default
 			if (arguments["Device"] == "Cloud"){ // If the user's Device is the Cloud (web)
 				arguments["User Online"] = window.navigator.onLine; // Set the User Online to their current navigator state
+				metis.core.metisFlags["Battery OK"] = true; // Set "Battery OK" to a fixed true.
 			}
 			else{ // If the user's Device is Cordova
 				if (navigator.connection.type !== Connection.NONE){ // If the connection is NOT none
@@ -42,6 +43,22 @@ module metis.core{
 				else{
 					arguments["User Online"] = false;
 				}
+
+				// #region Leverage Battery Status To Determine Whether To Process ioQueue
+
+				document.addEventListener("batterystatus", // Create an event handler that keeps track of battery status
+					function(batteryStatusInfo : BatteryStatusEvent){
+						if (batteryStatusInfo.isPlugged == true || batteryStatusInfo.level >= 15){ // If the device is plugged in OR the battery level is above 15%
+							metis.core.metisFlags["Battery OK"] = true; // Set "Battery OK" to true
+						}
+						else{ // If the device is NOT plugged in AND the battery life is below 15%
+							metis.core.metisFlags["Battery OK"] = false; // Set "Battery OK" to false
+						}
+					},
+					false
+				);
+
+				// #endregion
 			}
 		}
 

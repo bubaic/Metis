@@ -16,25 +16,6 @@ module metis.queuer{
 
 		document.addEventListener("online", this.Process(), false); // Add an event listener that listens to the "online" event, which means the user went from offline to online and we need to process our IO queue, if there is one
 		document.addEventListener("offline", this.ToggleStatus(), false); // Add an event listener that listens to the "offline" event. When the user goes offline, we'll change this.userOffline to true so fileActionHandler can send data to ioQueue.
-
-		if (metis.core.metisFlags["Device"] == "Cordova"){ // If the device in use is a mobile device using Cordova
-			// #region Leverage Battery Status To Determine Whether To Process ioQueue
-				document.addEventListener("batterystatus", // Create an event handler that keeps track of battery status
-					function(batteryStatusInfo : BatteryStatusEvent){
-						if (batteryStatusInfo.isPlugged == true || batteryStatusInfo.level >= 15){ // If the device is plugged in OR the battery level is above 15%
-							metis.core.metisFlags["Battery OK"] = true; // Set "Battery OK" to true
-						}
-						else{ // If the device is NOT plugged in AND the battery life is below 15%
-							metis.core.metisFlags["Battery OK"] = false; // Set "Battery OK" to false
-						}
-					},
-					false
-				)
-			// #endregion
-		}
-		else{ // If we are not using a Cordova device
-			metis.core.metisFlags["Battery OK"] = true; // Set "Battery OK" to a fixed true.
-		}
 	}
 
 	export function ToggleStatus() {

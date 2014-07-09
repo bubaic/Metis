@@ -56,18 +56,6 @@ var metis;
 
             document.addEventListener("online", this.Process(), false);
             document.addEventListener("offline", this.ToggleStatus(), false);
-
-            if (metis.core.metisFlags["Device"] == "Cordova") {
-                document.addEventListener("batterystatus", function (batteryStatusInfo) {
-                    if (batteryStatusInfo.isPlugged == true || batteryStatusInfo.level >= 15) {
-                        metis.core.metisFlags["Battery OK"] = true;
-                    } else {
-                        metis.core.metisFlags["Battery OK"] = false;
-                    }
-                }, false);
-            } else {
-                metis.core.metisFlags["Battery OK"] = true;
-            }
         }
         queuer.Init = Init;
 
@@ -221,7 +209,7 @@ var metis;
 
             if (nodeDataDefined !== "internal") {
                 if (metis.core.metisFlags["Headless"] == false) {
-                    if (metis.core.metisFlags["User Online"] == true) {
+                    if ((metis.core.metisFlags["User Online"] == true) && (metis.core.metisFlags["Battery OK"] == true)) {
                         if ((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) {
                             var remoteIOData = {};
 
@@ -358,12 +346,21 @@ var metis;
             if (arguments["User Online"] == undefined) {
                 if (arguments["Device"] == "Cloud") {
                     arguments["User Online"] = window.navigator.onLine;
+                    metis.core.metisFlags["Battery OK"] = true;
                 } else {
                     if (navigator.connection.type !== Connection.NONE) {
                         arguments["User Online"] = true;
                     } else {
                         arguments["User Online"] = false;
                     }
+
+                    document.addEventListener("batterystatus", function (batteryStatusInfo) {
+                        if (batteryStatusInfo.isPlugged == true || batteryStatusInfo.level >= 15) {
+                            metis.core.metisFlags["Battery OK"] = true;
+                        } else {
+                            metis.core.metisFlags["Battery OK"] = false;
+                        }
+                    }, false);
                 }
             }
 
