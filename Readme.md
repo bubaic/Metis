@@ -17,8 +17,9 @@ It is easy for you to get started using Metis by reading our thorough and consta
 ### Keeping Up To Date
 
 You can find out what we have in the works (*or in our crosshairs*) by checking out:
-* [Open Drafts On Metis Features / Functionality](https://github.com/StroblIndustries/Metis/wiki#open-drafts-on-metis-features--functionality)
 * [Current and Future Release Roadmap](https://github.com/StroblIndustries/Metis/wiki/Releases)
+* [Experimental Branch](https://github.com/StroblIndustries/Metis/tree/experimental)
+* [Open Drafts On Metis Features / Functionality](https://github.com/StroblIndustries/Metis/wiki#open-drafts-on-metis-features--functionality)
 
 We have news regarding Metis on the Strobl Industries' [Twitter](https://twitter.com/StroblIndustry) account and we'll try to keep the news up to date on [Facebook](https://facebook.com/Strobl.Industries) and [Google+](https://plus.google.com/116914039528809670714). Any significant releases will generally [have a blog post](https://stroblindustries.com/blog)!
 
