@@ -427,6 +427,11 @@ var metis;
     }
     metis.createJsonFile = createJsonFile;
 
+    function updateJsonFile(nodeDataDefined, files, append) {
+        return metis.file.Update(nodeDataDefined, files, append);
+    }
+    metis.updateJsonFile = updateJsonFile;
+
     function decodeJsonFile(content) {
         return metis.file.Decode(content);
     }

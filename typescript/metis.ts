@@ -25,6 +25,10 @@ module metis{
 		return metis.file.Create(nodeDataDefined, files, content);
 	}
 
+	export function updateJsonFile(nodeDataDefined : any, files : any, append : boolean){
+		return metis.file.Update(nodeDataDefined, files, append);
+	}
+
 	export function decodeJsonFile(content : string){
 		return metis.file.Decode(content);
 	}
