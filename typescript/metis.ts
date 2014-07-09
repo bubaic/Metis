@@ -12,6 +12,30 @@
 
 module metis{
 	export function Init(arguments : Object){
-		metis.core.Init(arguments);
+		return metis.core.Init(arguments);
 	}
+
+	// #region Backwards Compatible Function Calls
+
+	export function readJsonFile(nodeDataDefined : any, files : any){
+		return metis.file.Read(nodeDataDefined, files);
+	}
+
+	export function createJsonFile(nodeDataDefined : any, files : any, content: Object){
+		return metis.file.Create(nodeDataDefined, files, content);
+	}
+
+	export function decodeJsonFile(content : string){
+		return metis.file.Decode(content);
+	}
+
+	export function fileExists(nodeDataDefined : any, files : any){
+		return metis.file.Exists(nodeDataDefined, files);
+	}
+
+	export function replicator(nodeDataDefined : any, nodeDataDestinations : any, files : any){
+		return metis.file.Replicator(nodeDataDefined, nodeDataDestinations, files);
+	}
+
+	// #endregion
 }

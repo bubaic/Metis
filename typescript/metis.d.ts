@@ -36,4 +36,9 @@ declare module metis.core {
 }
 declare module metis {
     function Init(arguments: Object): void;
+    function readJsonFile(nodeDataDefined: any, files: any): any;
+    function createJsonFile(nodeDataDefined: any, files: any, content: Object): any;
+    function decodeJsonFile(content: string): any;
+    function fileExists(nodeDataDefined: any, files: any): any;
+    function replicator(nodeDataDefined: any, nodeDataDestinations: any, files: any): any;
 }

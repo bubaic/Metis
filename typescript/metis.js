@@ -413,7 +413,32 @@ var metis;
 var metis;
 (function (metis) {
     function Init(arguments) {
-        metis.core.Init(arguments);
+        return metis.core.Init(arguments);
     }
     metis.Init = Init;
+
+    function readJsonFile(nodeDataDefined, files) {
+        return metis.file.Read(nodeDataDefined, files);
+    }
+    metis.readJsonFile = readJsonFile;
+
+    function createJsonFile(nodeDataDefined, files, content) {
+        return metis.file.Create(nodeDataDefined, files, content);
+    }
+    metis.createJsonFile = createJsonFile;
+
+    function decodeJsonFile(content) {
+        return metis.file.Decode(content);
+    }
+    metis.decodeJsonFile = decodeJsonFile;
+
+    function fileExists(nodeDataDefined, files) {
+        return metis.file.Exists(nodeDataDefined, files);
+    }
+    metis.fileExists = fileExists;
+
+    function replicator(nodeDataDefined, nodeDataDestinations, files) {
+        return metis.file.Replicator(nodeDataDefined, nodeDataDestinations, files);
+    }
+    metis.replicator = replicator;
 })(metis || (metis = {}));
