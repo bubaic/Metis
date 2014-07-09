@@ -16,6 +16,25 @@ module metis.queuer{
 
 		document.addEventListener("online", this.Process(), false); // Add an event listener that listens to the "online" event, which means the user went from offline to online and we need to process our IO queue, if there is one
 		document.addEventListener("offline", this.ToggleStatus(), false); // Add an event listener that listens to the "offline" event. When the user goes offline, we'll change this.userOffline to true so fileActionHandler can send data to ioQueue.
+
+		if (metis.core.metisFlags["Device"] == "Cordova"){ // If the device in use is a mobile device using Cordova
+			// #region Leverage Battery Status To Determine Whether To Process ioQueue
+				document.addEventListener("batterystatus", // Create an event handler that keeps track of battery status
+					function(batteryStatusInfo : BatteryStatusEvent){
+						if (batteryStatusInfo.isPlugged == true || batteryStatusInfo.level >= 15){ // If the device is plugged in OR the battery level is above 15%
+							metis.core.metisFlags["Battery OK"] = true; // Set "Battery OK" to true
+						}
+						else{ // If the device is NOT plugged in AND the battery life is below 15%
+							metis.core.metisFlags["Battery OK"] = false; // Set "Battery OK" to false
+						}
+					},
+					false
+				)
+			// #endregion
+		}
+		else{ // If we are not using a Cordova device
+			metis.core.metisFlags["Battery OK"] = true; // Set "Battery OK" to a fixed true.
+		}
 	}
 
 	export function ToggleStatus() {
@@ -23,29 +42,31 @@ module metis.queuer{
 	}
 
 	export function Process(){
-		var ioQueue : Object = metis.file.Decode(metis.file.Read("internal", "ioQueue"));
-		this.userOnline = true; // Set the userOnline to true, meaning the is obviously online
+		if (metis.core.metisFlags["Battery OK"] == true){ // If the battery status is seemed to be a reasonable status to ensure a network call won't be detrimental to the battery life and thus user experience
+			var ioQueue : Object = metis.file.Decode(metis.file.Read("internal", "ioQueue"));
+			this.userOnline = true; // Set the userOnline to true, meaning the is obviously online
 
-		for (var fileName in ioQueue) { // For each file
-			var nodeData : string = ioQueue[fileName]["nodeData"]; // Get the stringified nodeData
-			var fileAction : string = ioQueue[fileName]["action"]; // Get the requested fileAction
-			var contentOrDestinationNodes : any[] = ioQueue[fileName]["contentOrDestinationNodes"]; // Get either undefined, content for w/a, or an array of nodes for rp
+			for (var fileName in ioQueue) { // For each file
+				var nodeData : string = ioQueue[fileName]["nodeData"]; // Get the stringified nodeData
+				var fileAction : string = ioQueue[fileName]["action"]; // Get the requested fileAction
+				var contentOrDestinationNodes : any[] = ioQueue[fileName]["contentOrDestinationNodes"]; // Get either undefined, content for w/a, or an array of nodes for rp
 
-			/* Every time we do a queueItem process, check if we're still online. The logic behind this is that if we are online, we'll do the fileActionHandler and
-			 it will not re-add the item to the ioQueue since we're still online. If we happen to go offline, it will cancel the for loop and NOT continue to
-			 attempt fileIO, which would just end up resulting in the same item being added to the queue and potentially creating an infinite loop.
-			 */
+				/* Every time we do a queueItem process, check if we're still online. The logic behind this is that if we are online, we'll do the fileActionHandler and
+				 it will not re-add the item to the ioQueue since we're still online. If we happen to go offline, it will cancel the for loop and NOT continue to
+				 attempt fileIO, which would just end up resulting in the same item being added to the queue and potentially creating an infinite loop.
+				 */
 
-			if (this.userOnline == true) {
-				metis.file.Handler(nodeData, fileName, fileAction, contentOrDestinationNodes);
-				ioQueue[fileName] = null; // Delete the file from the nodeList. It will be garbage collected by the browser.
+				if (this.userOnline == true) {
+					metis.file.Handler(nodeData, fileName, fileAction, contentOrDestinationNodes);
+					ioQueue[fileName] = null; // Delete the file from the nodeList. It will be garbage collected by the browser.
+				}
+				else{
+					break;
+				}
 			}
-			else{
-				break;
-			}
+
+			metis.file.Update("internal", "ioQueue", ioQueue, false); // Update the ioQueue content
 		}
-
-		metis.file.Update("internal", "ioQueue", ioQueue, false); // Update the ioQueue content
 	}
 
 	export function AddItem(nodeData : any, filesToQueue : any, fileAction : string, contentOrDestinationNodes ?: any){

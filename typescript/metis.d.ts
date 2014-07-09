@@ -5,13 +5,6 @@ declare module metis.devices.cloud {
     function Delete(fileName: string): void;
     function Exists(fileName: string): any;
 }
-declare module metis.devices.cordova {
-    function Read(): void;
-    function Write(): void;
-    function Exists(): void;
-    function Delete(): void;
-    function Replicate(): void;
-}
 declare module metis.queuer {
     function Init(): void;
     function ToggleStatus(): void;

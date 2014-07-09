@@ -6,7 +6,6 @@
 
 /// <reference path="definitions/cordova.d.ts" />
 /// <reference path="devices/cloud.ts" />
-/// <reference path="devices/cordova.ts" />
 /// <reference path="file.ts" />
 /// <reference path="queuer.ts" />
 
@@ -46,14 +45,7 @@ module metis.core{
 			}
 		}
 
-
-		if (arguments["Device"] == "Cloud"){ // If we are using the "Cloud" device
-			this.deviceIO = metis.devices.cloud; // Set deviceIO to metis.devices.cloud
-		}
-		else{ // Else = Device is Cordova
-			this.deviceIO = metis.devices.cordova; // Set deviceIO to metis.devices.cordova
-		}
-
+		this.deviceIO = metis.devices.cloud; // Set deviceIO to metis.devices.cloud
 
 		// #endregion
 

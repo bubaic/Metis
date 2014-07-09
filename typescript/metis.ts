@@ -5,7 +5,6 @@
  */
 
 /// <reference path="devices/cloud.ts" />
-/// <reference path="devices/cordova.ts" />
 /// <reference path="core.ts" />
 /// <reference path="file.ts" />
 /// <reference path="queuer.ts" />

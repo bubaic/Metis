@@ -48,34 +48,6 @@ var metis;
 })(metis || (metis = {}));
 var metis;
 (function (metis) {
-    (function (devices) {
-        (function (cordova) {
-            function Read() {
-            }
-            cordova.Read = Read;
-
-            function Write() {
-            }
-            cordova.Write = Write;
-
-            function Exists() {
-            }
-            cordova.Exists = Exists;
-
-            function Delete() {
-            }
-            cordova.Delete = Delete;
-
-            function Replicate() {
-            }
-            cordova.Replicate = Replicate;
-        })(devices.cordova || (devices.cordova = {}));
-        var cordova = devices.cordova;
-    })(metis.devices || (metis.devices = {}));
-    var devices = metis.devices;
-})(metis || (metis = {}));
-var metis;
-(function (metis) {
     (function (queuer) {
         function Init() {
             if (metis.file.Exists("internal", "ioQueue") !== "local") {
@@ -84,6 +56,18 @@ var metis;
 
             document.addEventListener("online", this.Process(), false);
             document.addEventListener("offline", this.ToggleStatus(), false);
+
+            if (metis.core.metisFlags["Device"] == "Cordova") {
+                document.addEventListener("batterystatus", function (batteryStatusInfo) {
+                    if (batteryStatusInfo.isPlugged == true || batteryStatusInfo.level >= 15) {
+                        metis.core.metisFlags["Battery OK"] = true;
+                    } else {
+                        metis.core.metisFlags["Battery OK"] = false;
+                    }
+                }, false);
+            } else {
+                metis.core.metisFlags["Battery OK"] = true;
+            }
         }
         queuer.Init = Init;
 
@@ -93,23 +77,25 @@ var metis;
         queuer.ToggleStatus = ToggleStatus;
 
         function Process() {
-            var ioQueue = metis.file.Decode(metis.file.Read("internal", "ioQueue"));
-            this.userOnline = true;
+            if (metis.core.metisFlags["Battery OK"] == true) {
+                var ioQueue = metis.file.Decode(metis.file.Read("internal", "ioQueue"));
+                this.userOnline = true;
 
-            for (var fileName in ioQueue) {
-                var nodeData = ioQueue[fileName]["nodeData"];
-                var fileAction = ioQueue[fileName]["action"];
-                var contentOrDestinationNodes = ioQueue[fileName]["contentOrDestinationNodes"];
+                for (var fileName in ioQueue) {
+                    var nodeData = ioQueue[fileName]["nodeData"];
+                    var fileAction = ioQueue[fileName]["action"];
+                    var contentOrDestinationNodes = ioQueue[fileName]["contentOrDestinationNodes"];
 
-                if (this.userOnline == true) {
-                    metis.file.Handler(nodeData, fileName, fileAction, contentOrDestinationNodes);
-                    ioQueue[fileName] = null;
-                } else {
-                    break;
+                    if (this.userOnline == true) {
+                        metis.file.Handler(nodeData, fileName, fileAction, contentOrDestinationNodes);
+                        ioQueue[fileName] = null;
+                    } else {
+                        break;
+                    }
                 }
-            }
 
-            metis.file.Update("internal", "ioQueue", ioQueue, false);
+                metis.file.Update("internal", "ioQueue", ioQueue, false);
+            }
         }
         queuer.Process = Process;
 
@@ -381,11 +367,7 @@ var metis;
                 }
             }
 
-            if (arguments["Device"] == "Cloud") {
-                this.deviceIO = metis.devices.cloud;
-            } else {
-                this.deviceIO = metis.devices.cordova;
-            }
+            this.deviceIO = metis.devices.cloud;
 
             this.metisFlags = arguments;
         }
