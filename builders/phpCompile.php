@@ -4,7 +4,7 @@
 	chdir("../"); // Move to Metis root directory
 
 	$metisClassContent = ""; // Declare metisClassContent, which will (as the name implies) be the content of the Metis class
-	$modules = array("core" => array("io.php", "queuer.php", "sys.php", "utils.php")); // Declare $modules as an array of folders and files that need to be compressed
+	$modules = array("php" => array("io.php", "queuer.php", "sys.php", "utils.php")); // Declare $modules as an array of folders and files that need to be compressed
 
 	$functionConversionArray = array( // Array of functions that need to be converted, their initial values (keys) and converted values (vals)
 		"= fileHashing" => '= $this->fileHashing', "(fileHashing" => '($this->fileHashing',
