@@ -8,9 +8,7 @@
 
 /// <reference path="plugins/BatteryStatus.d.ts"/>
 /// <reference path="plugins/Device.d.ts"/>
-/// <reference path="plugins/Dialogs.d.ts"/>
 /// <reference path="plugins/NetworkInformation.d.ts"/>
-/// <reference path="plugins/Push.d.ts"/>
 
 interface Cordova {
     /** Invokes native functionality by specifying corresponding service name, action and optional parameters.
