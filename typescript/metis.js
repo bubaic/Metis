@@ -2,45 +2,114 @@ var metis;
 (function (metis) {
     (function (devices) {
         (function (cloud) {
-            function Read(fileName) {
-                return localStorage.getItem(fileName);
-            }
-            cloud.Read = Read;
+            function Handle(uniqueIOId) {
+                var fileAction = metis.file.currentIO[uniqueIOId]["pending"]["action"];
+                var pendingFiles = metis.file.currentIO[uniqueIOId]["pending"]["files"];
+                var contentOrDestinationNodes = metis.file.currentIO[uniqueIOId]["pending"]["contentOrDestinationNodes"];
 
-            function Write(fileName, jsonObject, update) {
-                if (update == true) {
-                    var existingFileContent = this.Read(fileName);
-                    var fileContentObject = {};
+                var completedIO = metis.file.currentIO[uniqueIOId]["completed"];
+                var potentialCallback = metis.file.currentIO[uniqueIOId]["callback"];
+                var potentialCallbackExtraData = metis.file.currentIO[uniqueIOId]["callback-data"];
 
-                    if (existingFileContent !== null) {
-                        existingFileContent = JSON.parse(existingFileContent);
+                if (metis.file.currentIO[uniqueIOId]["pending"]["nodeData"] !== "internal") {
+                    if (metis.core.metisFlags["Headless"] == false) {
+                        if ((metis.core.metisFlags["User Online"] == true) && (metis.core.metisFlags["Battery OK"] == true)) {
+                            if (pendingFiles.length > 0) {
+                                var remoteIOData = {};
+
+                                remoteIOData.nodeData = metis.file.currentIO[uniqueIOId]["pending"]["nodeDataDefined"];
+                                remoteIOData.files = pendingFiles;
+                                remoteIOData.fileAction = fileAction;
+
+                                if (contentOrDestinationNodes !== (undefined || null)) {
+                                    remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes;
+                                }
+
+                                var xhrManager = new XMLHttpRequest;
+
+                                function xhrResponseHandler() {
+                                    if (xhrManager.readyState == 4) {
+                                        var remoteFileContent;
+
+                                        if (xhrManager.status == 200) {
+                                            remoteFileContent = metis.file.Decode(xhrManager.responseText);
+                                        } else {
+                                            remoteFileContent = { "error": "HTTP ERROR CODE|' + xhrManager.status + '" };
+                                        }
+
+                                        for (var fileName in remoteFileContent) {
+                                            var fileContent;
+
+                                            if (pendingFiles.length == 1) {
+                                                fileName = pendingFiles[0];
+                                                fileContent = remoteFileContent;
+                                            } else {
+                                                fileContent = remoteFileContent[fileName];
+                                            }
+
+                                            metis.file.currentIO[uniqueIOId]["pending"]["files"].pop(fileName);
+                                            metis.file.currentIO[uniqueIOId]["completed"][fileName] = fileContent;
+
+                                            if (fileAction == "r") {
+                                                var newIOObject = {
+                                                    "nodeData": "internal",
+                                                    "files": fileName,
+                                                    "action": "w",
+                                                    "contentOrDestinationNodes": fileContent
+                                                };
+
+                                                metis.file.Handler(newIOObject);
+                                            }
+                                        }
+
+                                        if (potentialCallback !== false) {
+                                            potentialCallback(metis.file.currentIO[uniqueIOId]["completed"], potentialCallbackExtraData);
+                                        }
+                                    }
+                                }
+
+                                xhrManager.onreadystatechange = xhrResponseHandler;
+                                xhrManager.open("POST", metis.core.metisFlags["Callback"], true);
+                                xhrManager.send(JSON.stringify(remoteIOData));
+                            }
+                        } else {
+                            var filesNeededForQueuing = metis.file.currentIO[uniqueIOId]["pending"]["files"];
+
+                            if (metis.file.currentIO[uniqueIOId]["pending"]["action"] !== "r") {
+                                filesNeededForQueuing.push(Object.keys(completedIO));
+                            }
+
+                            if (filesNeededForQueuing.length > 0) {
+                                var newIOId = metis.file.RandomIOIdGenerator();
+
+                                var newIOObject = {
+                                    "pending": {
+                                        "nodeDataDefined": metis.file.currentIO[uniqueIOId]["pending"]["nodeDataDefined"],
+                                        "files": filesNeededForQueuing,
+                                        "action": fileAction,
+                                        "contentOrDestinationNodes": contentOrDestinationNodes
+                                    },
+                                    "completed": {}
+                                };
+
+                                metis.file.currentIO[newIOId] = newIOObject;
+                                metis.queuer.AddItem(newIOId);
+                            }
+
+                            if (potentialCallback !== false) {
+                                potentialCallback(completedIO, potentialCallbackExtraData);
+                            }
+                        }
                     } else {
-                        existingFileContent = {};
+                        if (potentialCallback !== false) {
+                            potentialCallback(completedIO, potentialCallbackExtraData);
+                        }
                     }
-
-                    jsonObject = metis.core.Merge(existingFileContent, fileContentObject);
                 }
 
-                localStorage.setItem(fileName, JSON.stringify(jsonObject));
+                delete metis.file.currentIO[uniqueIOId];
             }
-            cloud.Write = Write;
-
-            function Delete(fileName) {
-                localStorage.removeItem(fileName);
-            }
-            cloud.Delete = Delete;
-
-            function Exists(fileName) {
-                var returnableVar;
-                if (this.Read(fileName) !== null) {
-                    returnableVar = "local";
-                } else {
-                    returnableVar = false;
-                }
-
-                return returnableVar;
-            }
-            cloud.Exists = Exists;
+            cloud.Handle = Handle;
         })(devices.cloud || (devices.cloud = {}));
         var cloud = devices.cloud;
     })(metis.devices || (metis.devices = {}));
@@ -48,14 +117,88 @@ var metis;
 })(metis || (metis = {}));
 var metis;
 (function (metis) {
+    (function (devices) {
+        (function (web) {
+            function Handle(uniqueIOId) {
+                var uniqueIOObject = metis.file.currentIO[uniqueIOId];
+                var fileAction = uniqueIOObject["pending"]["action"];
+                var pendingFiles = uniqueIOObject["pending"]["files"];
+                var contentOrDestinationNodes = uniqueIOObject["pending"]["contentOrDestinationNodes"];
+
+                for (var fileIndex in pendingFiles) {
+                    var fileName = pendingFiles[fileIndex];
+                    var localFileContent;
+                    var ioSuccessful;
+
+                    if (fileAction == ("r" || "a")) {
+                        localFileContent = localStorage.getItem(fileName);
+
+                        if (localFileContent !== null) {
+                            localFileContent = metis.file.Decode(localFileContent);
+
+                            if (fileAction == "a") {
+                                uniqueIOObject["contentOrDestinationNodes"] = metis.core.Merge(localFileContent, contentOrDestinationNodes);
+                            } else {
+                                ioSuccessful = true;
+                            }
+                        }
+                    }
+
+                    if (fileAction == ("w" || "a")) {
+                        localStorage.setItem(fileName, JSON.stringify(contentOrDestinationNodes));
+
+                        ioSuccessful = true;
+                        localFileContent = { "status": "0.00" };
+                    } else if (fileAction == "d") {
+                        localStorage.removeItem(fileName);
+
+                        ioSuccessful = true;
+                        localFileContent = { "status": "0.00" };
+                    } else if (fileAction == "e") {
+                        if (localStorage.getItem(fileName) !== null) {
+                            localFileContent = { "status": true };
+                        } else {
+                            localFileContent = { "status": false };
+                        }
+
+                        ioSuccessful = true;
+                    }
+
+                    if (ioSuccessful == true) {
+                        if ((fileAction == ("r" || "e")) || ((fileAction == ("w" || "a" || "d")) && (metis.core.metisFlags["Headless"] == true))) {
+                            metis.file.currentIO[uniqueIOId]["pending"]["files"].pop(fileName);
+                        }
+
+                        metis.file.currentIO[uniqueIOId]["completed"][fileName] = localFileContent;
+                    }
+                }
+
+                metis.devices.cloud.Handle(uniqueIOId);
+            }
+            web.Handle = Handle;
+        })(devices.web || (devices.web = {}));
+        var web = devices.web;
+    })(metis.devices || (metis.devices = {}));
+    var devices = metis.devices;
+})(metis || (metis = {}));
+var metis;
+(function (metis) {
     (function (queuer) {
         function Init() {
-            if (metis.file.Exists("internal", "ioQueue") !== "local") {
-                metis.file.Create("internal", "ioQueue", {});
+            function existsHandler(completedIO) {
+                if (completedIO["ioQueue"] == false) {
+                    metis.file.Create({ "nodeData": "internal", "fileName": "ioQueue", "contentOrDestinationNodes": {} });
+                }
             }
 
-            document.addEventListener("online", this.Process(), false);
-            document.addEventListener("offline", this.ToggleStatus(), false);
+            metis.file.Exists({
+                "nodeData": "internal",
+                "files": "ioQueue",
+                "callback": existsHandler
+            });
+
+            document.addEventListener("online", metis.queuer.Process, false);
+            document.addEventListener("offline", metis.queuer.ToggleStatus, false);
         }
         queuer.Init = Init;
 
@@ -66,260 +209,76 @@ var metis;
 
         function Process() {
             if (metis.core.metisFlags["Battery OK"] == true) {
-                var ioQueue = metis.file.Decode(metis.file.Read("internal", "ioQueue"));
-                this.userOnline = true;
+                metis.file.Read({
+                    "nodeData": "internal",
+                    "files": "ioQueue",
+                    "callback": function (ioQueue) {
+                        ioQueue = ioQueue["ioQueue"];
 
-                for (var fileName in ioQueue) {
-                    var nodeData = ioQueue[fileName]["nodeData"];
-                    var fileAction = ioQueue[fileName]["action"];
-                    var contentOrDestinationNodes = ioQueue[fileName]["contentOrDestinationNodes"];
+                        metis.core.metisFlags["User Online"] = true;
 
-                    if (this.userOnline == true) {
-                        metis.file.Handler(nodeData, fileName, fileAction, contentOrDestinationNodes);
-                        ioQueue[fileName] = null;
-                    } else {
-                        break;
+                        for (var fileName in ioQueue) {
+                            var nodeData = ioQueue[fileName]["nodeData"];
+                            var fileAction = ioQueue[fileName]["action"];
+                            var contentOrDestinationNodes = ioQueue[fileName]["contentOrDestinationNodes"];
+
+                            if (metis.core.metisFlags["User Online"] == true) {
+                                metis.file.Handler({ "nodeData": nodeData, "files": fileName, "action": fileAction, "contentOrDestinationNodes": contentOrDestinationNodes });
+                                delete ioQueue[fileName];
+                            } else {
+                                break;
+                            }
+                        }
+
+                        metis.file.Update({ "nodeData": "internal", "files": "ioQueue", "contentOrDestinationNodes": ioQueue });
                     }
-                }
-
-                metis.file.Update("internal", "ioQueue", ioQueue, false);
+                });
             }
         }
         queuer.Process = Process;
 
-        function AddItem(nodeData, filesToQueue, fileAction, contentOrDestinationNodes) {
-            var ioQueue = metis.file.Decode(metis.file.Read("internal", "ioQueue"));
+        function AddItem(uniqueIOId) {
+            metis.file.Read({
+                "nodeData": "internal",
+                "files": "ioQueue",
+                "callback": function (ioQueue, callbackData) {
+                    ioQueue = ioQueue["ioQueue"];
+                    var relatedIOObject = metis.file.currentIO[callbackData["relatedIOId"]];
 
-            var nodeDataDefined = "";
+                    var nodeData = relatedIOObject["pending"]["nodeData"];
+                    var fileAction = relatedIOObject["pending"]["action"];
+                    var filesToQueue = relatedIOObject["pending"]["files"];
 
-            if (typeof nodeData == "string") {
-                nodeDataDefined = nodeData;
-            } else if (typeof nodeData == "object") {
-                for (var potentialNodeGroup in nodeData) {
-                    var thisDataSyntax = potentialNodeGroup;
+                    for (var fileIndex in filesToQueue) {
+                        var fileName = filesToQueue[fileIndex];
 
-                    if (nodeData[potentialNodeGroup] !== null) {
-                        thisDataSyntax = thisDataSyntax + "#";
-                        var nodesInGroup = nodeData[potentialNodeGroup];
+                        if (ioQueue.hasOwnProperty(fileName) == true) {
+                            delete ioQueue[fileName];
+                        }
 
-                        nodesInGroup.forEach(function (nodeNum, nodeIndex, nodesInGroup) {
-                            thisDataSyntax = thisDataSyntax + nodeNum;
+                        ioQueue[fileName] = {};
+                        ioQueue[fileName]["nodeData"] = nodeData;
+                        ioQueue[fileName]["action"] = fileAction;
 
-                            if (nodesInGroup.length !== (nodeIndex + 1)) {
-                                thisDataSyntax = thisDataSyntax + ",";
-                            } else {
-                                thisDataSyntax = thisDataSyntax + "|";
-                            }
-                        });
+                        if (fileAction == ("w" || "a")) {
+                            var contentOrDestinationNodes = relatedIOObject["pending"]["contentOrDestinationNodes"];
 
-                        nodeDataDefined = nodeDataDefined + thisDataSyntax;
-                    } else {
-                        nodeDataDefined = nodeDataDefined + potentialNodeGroup + "|";
-                    }
-                }
-
-                nodeDataDefined = nodeDataDefined.slice(0, -1);
-            } else if (typeof nodeData == "number") {
-                nodeDataDefined = nodeData.toString();
-            }
-
-            if (typeof filesToQueue == "string") {
-                filesToQueue = [filesToQueue];
-            }
-
-            for (var fileIndex in filesToQueue) {
-                var fileName = filesToQueue[fileIndex];
-                if (ioQueue.hasOwnProperty(fileName) == false) {
-                    ioQueue[fileName] = {};
-                }
-
-                if ((ioQueue[fileName]["action"] == "w") && (fileAction == "d")) {
-                    ioQueue[fileName] = null;
-                } else {
-                    ioQueue[fileName]["nodeData"] = nodeDataDefined;
-                    ioQueue[fileName]["action"] = fileAction;
-
-                    if (fileAction == ("w" || "a")) {
-                        ioQueue[fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes;
-                    } else {
-                        if (ioQueue[fileName].hasOwnProperty("contentOrDestinationNodes")) {
-                            ioQueue[fileName]["contentOrDestinationNodes"] = null;
+                            ioQueue[fileName]["contentOrDestinationNodes"] = contentOrDestinationNodes;
+                        } else {
+                            delete ioQueue[fileName]["contentOrDestinationNodes"];
                         }
                     }
-                }
-            }
 
-            metis.file.Update("internal", "ioQueue", ioQueue, false);
+                    metis.file.Update({ "nodeData": "internal", "files": "ioQueue", "contentOrDestinationNodes": ioQueue });
+                },
+                "callback-data": {
+                    "relatedIOId": uniqueIOId
+                }
+            });
         }
         queuer.AddItem = AddItem;
     })(metis.queuer || (metis.queuer = {}));
     var queuer = metis.queuer;
-})(metis || (metis = {}));
-var metis;
-(function (metis) {
-    (function (file) {
-        function Handler(nodeDataDefined, files, fileAction, contentOrDestinationNodes) {
-            var fileContent = {};
-            var necessaryFilesForRemoteIO = [];
-
-            if (typeof files == "string") {
-                files = [files];
-            }
-
-            for (var fileIndex in files) {
-                var fileName = files[fileIndex];
-                var localFileContent;
-
-                if (fileAction == "r") {
-                    localFileContent = metis.core.deviceIO.Read(fileName);
-
-                    if (localFileContent !== null) {
-                        localFileContent = this.Decode(localFileContent);
-                    } else {
-                        necessaryFilesForRemoteIO.push(fileName);
-                    }
-                } else if (fileAction !== "e") {
-                    if (fileAction == "w") {
-                        metis.core.deviceIO.Write(fileName, contentOrDestinationNodes, false);
-                    } else if (fileAction == "a") {
-                        metis.core.deviceIO.Write(fileName, contentOrDestinationNodes, true);
-                    } else if (fileAction == "d") {
-                        metis.core.deviceIO.Delete(fileName);
-                    }
-
-                    localFileContent = this.Decode('{"status" : "0.00"}');
-                } else {
-                    if (metis.core.deviceIO.Exists(fileName) !== null) {
-                        localFileContent = "local";
-                    } else {
-                        if (metis.core.metisFlags["Headless"] == true) {
-                            localFileContent = false;
-                        } else if ((metis.core.metisFlags["Headless"] !== true) && (nodeDataDefined !== "internal")) {
-                            necessaryFilesForRemoteIO.push(fileName);
-                        }
-                    }
-                }
-
-                if (files.length == 1) {
-                    fileContent = localFileContent;
-                } else {
-                    fileContent[fileName] = localFileContent;
-                }
-            }
-
-            if (nodeDataDefined !== "internal") {
-                if (metis.core.metisFlags["Headless"] == false) {
-                    if ((metis.core.metisFlags["User Online"] == true) && (metis.core.metisFlags["Battery OK"] == true)) {
-                        if ((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) {
-                            var remoteIOData = {};
-
-                            remoteIOData.nodeData = nodeDataDefined;
-
-                            if (fileAction == ("r" || "e")) {
-                                remoteIOData.files = necessaryFilesForRemoteIO;
-                            } else {
-                                remoteIOData.files = files;
-                            }
-
-                            remoteIOData.fileAction = fileAction;
-
-                            if (contentOrDestinationNodes !== (undefined || null)) {
-                                remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes;
-                            }
-
-                            var xhrManager = new XMLHttpRequest;
-                            var metisXHRResponse = "";
-
-                            function xhrResponseHandler() {
-                                if (xhrManager.readyState == 4) {
-                                    if (xhrManager.status == 200) {
-                                        metisXHRResponse = xhrManager.responseText;
-                                    } else {
-                                        metisXHRResponse = '{"error" : "HTTP ERROR CODE|' + xhrManager.status + '"}';
-                                    }
-                                }
-                            }
-
-                            xhrManager.onreadystatechange = xhrResponseHandler;
-                            xhrManager.open("POST", metis.core.metisFlags["Callback"], false);
-                            xhrManager.send(JSON.stringify(remoteIOData));
-
-                            var remoteFileContent = this.Decode(metisXHRResponse);
-
-                            if (necessaryFilesForRemoteIO.length == 1) {
-                                fileContent = remoteFileContent;
-                            } else {
-                                fileContent = metis.core.Merge(fileContent, remoteFileContent);
-                            }
-
-                            if (fileAction == "r") {
-                                for (var fileIndex in necessaryFilesForRemoteIO) {
-                                    var fileName = necessaryFilesForRemoteIO[fileIndex];
-
-                                    if (necessaryFilesForRemoteIO.length == 1) {
-                                        metis.core.deviceIO.Write(fileName, JSON.stringify(remoteFileContent));
-                                    } else {
-                                        metis.core.deviceIO.Write(fileName, JSON.stringify(remoteFileContent[fileName]));
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        if (fileAction !== "r") {
-                            necessaryFilesForRemoteIO = files;
-                        }
-
-                        if (necessaryFilesForRemoteIO.length > 0) {
-                            metis.queuer.AddItem(nodeDataDefined, necessaryFilesForRemoteIO, fileAction, contentOrDestinationNodes);
-                        }
-                    }
-                }
-            }
-
-            return JSON.stringify(fileContent);
-        }
-        file.Handler = Handler;
-
-        function Decode(jsonString) {
-            return JSON.parse(jsonString);
-        }
-        file.Decode = Decode;
-
-        function Read(nodeData, files) {
-            return this.Handler(nodeData, files, "r");
-        }
-        file.Read = Read;
-
-        function Create(nodeData, files, jsonEncodedContent) {
-            return this.Handler(nodeData, files, "w", jsonEncodedContent);
-        }
-        file.Create = Create;
-
-        function Update(nodeData, files, jsonEncodedContent, appendContent) {
-            if (appendContent == (undefined || false)) {
-                return this.Handler(nodeData, files, "w", jsonEncodedContent);
-            } else {
-                return this.Handler(nodeData, files, "a", jsonEncodedContent);
-            }
-        }
-        file.Update = Update;
-
-        function Delete(nodeData, files) {
-            return this.Handler(nodeData, files, "d");
-        }
-        file.Delete = Delete;
-
-        function Exists(nodeData, files) {
-            return this.Handler(nodeData, files, "e");
-        }
-        file.Exists = Exists;
-
-        function Replicator(nodeData, nodeDestinations, files) {
-            return this.Handler(nodeData, files, "rp", nodeDestinations);
-        }
-        file.Replicator = Replicator;
-    })(metis.file || (metis.file = {}));
-    var file = metis.file;
 })(metis || (metis = {}));
 var metis;
 (function (metis) {
@@ -364,7 +323,11 @@ var metis;
                 }
             }
 
-            this.deviceIO = metis.devices.cloud;
+            if (arguments["Device"].toLowerCase().indexOf("chrome") == -1) {
+                this.deviceIO = metis.devices.web;
+            } else {
+                this.deviceIO = metis.devices.chromeos;
+            }
 
             this.metisFlags = arguments;
         }
@@ -391,23 +354,268 @@ var metis;
 })(metis || (metis = {}));
 var metis;
 (function (metis) {
+    (function (file) {
+        file.currentIO = {};
+
+        function RandomIOIdGenerator() {
+            var id;
+            var idAlreadyExists = true;
+
+            while (idAlreadyExists == true) {
+                id = (Math.random() * (99999 - 10000) + 10000).toString();
+
+                if (metis.file.currentIO[id] == undefined) {
+                    idAlreadyExists = false;
+                    break;
+                }
+            }
+
+            return id;
+        }
+        file.RandomIOIdGenerator = RandomIOIdGenerator;
+
+        function Handler(handlerArguments) {
+            var uniqueIOId = metis.file.RandomIOIdGenerator();
+            var parsedNodeData = "";
+            var unparsedNodeData = handlerArguments["nodeData"];
+
+            if (typeof unparsedNodeData == "string") {
+                parsedNodeData = unparsedNodeData;
+            } else if (typeof unparsedNodeData == "object") {
+                for (var potentialNodeGroup in unparsedNodeData) {
+                    var thisDataSyntax = potentialNodeGroup;
+
+                    if (unparsedNodeData[potentialNodeGroup] !== null) {
+                        thisDataSyntax = thisDataSyntax + "#";
+                        var nodesInGroup = unparsedNodeData[potentialNodeGroup];
+
+                        nodesInGroup.forEach(function (nodeNum, nodeIndex, nodesInGroup) {
+                            thisDataSyntax = thisDataSyntax + nodeNum;
+
+                            if (nodesInGroup.length !== (nodeIndex + 1)) {
+                                thisDataSyntax = thisDataSyntax + ",";
+                            } else {
+                                thisDataSyntax = thisDataSyntax + "|";
+                            }
+                        });
+
+                        parsedNodeData = parsedNodeData + thisDataSyntax;
+                    } else {
+                        unparsedNodeData = unparsedNodeData + potentialNodeGroup + "|";
+                    }
+                }
+
+                unparsedNodeData = unparsedNodeData.slice(0, -1);
+                parsedNodeData = unparsedNodeData;
+            } else if (typeof unparsedNodeData == "number") {
+                parsedNodeData = unparsedNodeData.toString();
+            }
+
+            if (typeof handlerArguments["files"] == "string") {
+                handlerArguments["files"] = [handlerArguments["files"]];
+            }
+
+            if (handlerArguments["contentOrDestinationNodes"] == undefined) {
+                handlerArguments["contentOrDestinationNodes"] = false;
+            }
+
+            if (handlerArguments["callback"] == undefined) {
+                handlerArguments["callback"] = false;
+            }
+
+            if (arguments["callback-data"] == undefined) {
+                arguments["callback-data"] = false;
+            }
+
+            var uniqueIOObject = {
+                "pending": {
+                    "nodeData": parsedNodeData,
+                    "files": handlerArguments["files"],
+                    "action": handlerArguments["action"],
+                    "contentOrDestinationNodes": handlerArguments["contentOrDestinationNodes"]
+                },
+                "completed": {},
+                "callback": handlerArguments["callback"]
+            };
+
+            metis.file.currentIO[uniqueIOId] = uniqueIOObject;
+
+            metis.core.deviceIO.Handle(uniqueIOId);
+        }
+        file.Handler = Handler;
+
+        function Decode(jsonString) {
+            return JSON.parse(jsonString);
+        }
+        file.Decode = Decode;
+
+        function Read(arguments) {
+            arguments["action"] = "r";
+            metis.file.Handler(arguments);
+        }
+        file.Read = Read;
+
+        function Create(arguments) {
+            arguments["action"] = "w";
+            metis.file.Handler(arguments);
+        }
+        file.Create = Create;
+
+        function Update(arguments) {
+            if (arguments["append"] == (undefined || false)) {
+                delete arguments["append"];
+                arguments["action"] = "w";
+
+                metis.file.Handler(arguments);
+            } else {
+                delete arguments["append"];
+                arguments["action"] = "a";
+                metis.file.Handler(arguments);
+            }
+        }
+        file.Update = Update;
+
+        function Delete(arguments) {
+            arguments["action"] = "d";
+            metis.file.Handler(arguments);
+        }
+        file.Delete = Delete;
+
+        function Exists(arguments) {
+            arguments["action"] = "e";
+            metis.file.Handler(arguments);
+        }
+        file.Exists = Exists;
+
+        function Replicator(arguments) {
+            arguments["action"] = "rp";
+            metis.file.Handler(arguments);
+        }
+        file.Replicator = Replicator;
+    })(metis.file || (metis.file = {}));
+    var file = metis.file;
+})(metis || (metis = {}));
+var metis;
+(function (metis) {
+    (function (devices) {
+        (function (chromeos) {
+            function Handle(uniqueIOId) {
+                var uniqueIOObject = metis.file.currentIO[uniqueIOId];
+                var fileAction = uniqueIOObject["pending"]["action"];
+                var pendingFiles = uniqueIOObject["pending"]["files"];
+                var contentOrDestinationNodes = uniqueIOObject["pending"]["contentOrDestinationNodes"];
+
+                var chromeGetHandler = function handle() {
+                    var uniqueIOId = arguments[0];
+                    var fileAction = metis.file.currentIO[uniqueIOId]["pending"]["action"];
+
+                    if (fileAction == ("r" || "a" || "e")) {
+                        var completedIO = arguments[1];
+
+                        for (fileName in completedIO) {
+                            var ioSuccessful;
+                            var localFileContent = completedIO[fileName];
+
+                            if (typeof localFileContent == "Object") {
+                                if (fileAction == "a") {
+                                    var contentOrDestinationNodes = metis.file.currentIO[uniqueIOId]["pending"]["contentOrDestinationNodes"];
+
+                                    localFileContent = metis.core.Merge(localFileContent, contentOrDestinationNodes);
+                                    chrome.storage.local.set({ fileName: localFileContent });
+
+                                    localFileContent = { "status": true };
+                                } else if (fileAction == "e") {
+                                    localFileContent = { "status": true };
+                                }
+
+                                ioSuccessful = true;
+                            } else {
+                                ioSuccessful = false;
+                            }
+                        }
+                    } else {
+                        if (chrome.runtime.lastError == undefined) {
+                            localFileContent = { "status": "0.00" };
+                            ioSuccessful = true;
+                        } else {
+                            localFileContent = { "error": chrome.runtime.lastError };
+
+                            if (fileAction == "w") {
+                                ioSuccessful = false;
+                            } else {
+                                ioSuccessful = true;
+                            }
+                        }
+                    }
+
+                    if (ioSuccessful == true) {
+                        if ((fileAction == ("r" || "e")) || ((fileAction == ("w" || "a" || "d")) && (metis.core.metisFlags["Headless"] == true))) {
+                            metis.file.currentIO[uniqueIOId]["pending"]["files"].pop(fileName);
+                        }
+
+                        metis.file.currentIO[uniqueIOId]["completed"][fileName] = localFileContent;
+                    }
+
+                    metis.devices.cloud.Handle(uniqueIOId);
+                }.bind(this, uniqueIOId);
+
+                if (fileAction == ("r" || "a" || "e")) {
+                    chrome.storage.local.get(pendingFiles, chromeGetHandler);
+                } else if (fileAction == "w") {
+                    var chromeSetObject = {};
+
+                    for (var fileName in pendingFiles) {
+                        chromeSetObject[fileName] = contentOrDestinationNodes;
+                    }
+
+                    chrome.storage.local.set(chromeSetObject, chromeGetHandler);
+                } else if (fileAction == "d") {
+                    chrome.storage.local.remove(pendingFiles, chromeGetHandler);
+                }
+            }
+            chromeos.Handle = Handle;
+        })(devices.chromeos || (devices.chromeos = {}));
+        var chromeos = devices.chromeos;
+    })(metis.devices || (metis.devices = {}));
+    var devices = metis.devices;
+})(metis || (metis = {}));
+var metis;
+(function (metis) {
     function Init(arguments) {
         return metis.core.Init(arguments);
     }
     metis.Init = Init;
 
     function readJsonFile(nodeDataDefined, files) {
-        return metis.file.Read(nodeDataDefined, files);
+        var ioArgs = {
+            "nodeData": nodeDataDefined,
+            "files": files
+        };
+
+        return metis.file.Read(ioArgs);
     }
     metis.readJsonFile = readJsonFile;
 
     function createJsonFile(nodeDataDefined, files, content) {
-        return metis.file.Create(nodeDataDefined, files, content);
+        var ioArgs = {
+            "nodeData": nodeDataDefined,
+            "files": files,
+            "contentOrDestinationNodes": content
+        };
+
+        return metis.file.Create(ioArgs);
     }
     metis.createJsonFile = createJsonFile;
 
-    function updateJsonFile(nodeDataDefined, files, append) {
-        return metis.file.Update(nodeDataDefined, files, append);
+    function updateJsonFile(nodeDataDefined, files, content, append) {
+        var ioArgs = {
+            "nodeData": nodeDataDefined,
+            "files": files,
+            "contentOrDestinationNodes": content,
+            "append": append
+        };
+
+        return metis.file.Update(ioArgs);
     }
     metis.updateJsonFile = updateJsonFile;
 
@@ -417,12 +625,23 @@ var metis;
     metis.decodeJsonFile = decodeJsonFile;
 
     function fileExists(nodeDataDefined, files) {
-        return metis.file.Exists(nodeDataDefined, files);
+        var ioArgs = {
+            "nodeData": nodeDataDefined,
+            "files": files
+        };
+
+        return metis.file.Exists(ioArgs);
     }
     metis.fileExists = fileExists;
 
     function replicator(nodeDataDefined, nodeDataDestinations, files) {
-        return metis.file.Replicator(nodeDataDefined, nodeDataDestinations, files);
+        var ioArgs = {
+            "nodeData": nodeDataDefined,
+            "files": files,
+            "contentOrDestinationNodes": nodeDataDestinations
+        };
+
+        return metis.file.Replicator(ioArgs);
     }
     metis.replicator = replicator;
 })(metis || (metis = {}));

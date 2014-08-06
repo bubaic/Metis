@@ -4,192 +4,199 @@
 
 */
 
-/// <reference path="devices/cloud.ts" />
+/// <reference path="devices/web.ts" />
 /// <reference path="core.ts" />
 /// <reference path="queuer.ts" />
 
-module metis.file {
 
-	export function Handler(nodeDataDefined : any, files : any, fileAction : string, contentOrDestinationNodes ?: any){
-		var fileContent: Object = {}; // Declare fileContent as an object
-		var necessaryFilesForRemoteIO : string[] = []; // Declare necessaryFilesForRemoteIO as a string array.
+module metis.file {
+	export var currentIO : Object = {}; // Declare currentIO to be an an Object for tracking current file IO (for async purposes)
+
+	// #region Random IO Generator
+
+	export function RandomIOIdGenerator() : string{
+		var id : string; // The random ID we generated
+		var idAlreadyExists : Boolean = true; // Declare idAlreadyExists as a boolean that will change when we have created a unique ID
+
+		while (idAlreadyExists == true){ // While idAlreadyExists is true
+			id = (Math.random() * (99999 - 10000) + 10000).toString();
+
+			if (metis.file.currentIO[id] == undefined){ // If the metis.file.currentIO does not have something with this ID
+				idAlreadyExists = false; // Set to false
+				break; // Break out of the while loop.
+			}
+		}
+
+		return id; // Return the random ID we generated
+	}
+
+	// #endregion
+
+	// #region Metis File Handler
+
+	// nodeDataDefined : any, files : any, fileAction : string, contentOrDestinationNodes ?: any, callbackFunction ?: Function, noCloudCall ?: Boolean
+	export function Handler(handlerArguments : Object){
+		var uniqueIOId : string = metis.file.RandomIOIdGenerator(); // Create a random, unique IO Id
+		var parsedNodeData : string = ""; // Defined parsedNodeData as the Node Data we have parsed
+		var unparsedNodeData : any = handlerArguments["nodeData"]; // Define unparsedNodeData as the nodeData defined in the arguments
+
+		// #region Node Data Parsing
+
+		if (typeof unparsedNodeData == "string"){ // If the nodeDataDefined is already a string format
+			parsedNodeData = unparsedNodeData; // Define the parsedNodeData as nodeDataDefined
+		}
+		else if (typeof unparsedNodeData == "object"){ // If the unparsedNodeData that is defined is an object rather than a string, convert to string format
+			for (var potentialNodeGroup in unparsedNodeData){ // For every property in nodeData
+				var thisDataSyntax : string = potentialNodeGroup; // Define thisDataSyntax as the string syntax for this individual Node Group / Nodes.
+
+				if (unparsedNodeData[potentialNodeGroup] !== null){ // If the potentialNodeGroup content is not null, meaning it is a Node Group with Nodes
+					thisDataSyntax = thisDataSyntax + "#"; // Since there are Nodes within this Node Group, add the # to denote Nodes.
+					var nodesInGroup : string[] = unparsedNodeData[potentialNodeGroup]; // Declare nodesInGroup as an array consisting of the array val of unparsedNodeData[potentialNodeGroup]
+
+					nodesInGroup.forEach(
+						function(nodeNum : string, nodeIndex : number, nodesInGroup){
+							thisDataSyntax = thisDataSyntax + nodeNum; // Declare thisDataSyntax = thisDataSyntax + nodeNum (example: "Example#1")
+
+							if (nodesInGroup.length !== (nodeIndex + 1)){ // If we are not at the last Node
+								thisDataSyntax = thisDataSyntax + ","; // Add the comma separator
+							}
+							else{ // If we are at the last Node
+								thisDataSyntax = thisDataSyntax + "|"; // Add the pipe separator
+							}
+						}
+					);
+
+					parsedNodeData = parsedNodeData + thisDataSyntax; // Append thisDataSyntax to the parsedNodeData string
+				}
+				else{ // If potentialNodeGroup is either a Node Group without any defined Nodes or potentialNodeGroup is a Node
+					unparsedNodeData = unparsedNodeData + potentialNodeGroup + "|"; // Append potentialNodeGroup| to unparsedNodeData
+				}
+			}
+
+			unparsedNodeData = unparsedNodeData.slice(0, -1); // Remove the last | from the unparsedNodeData
+			parsedNodeData = unparsedNodeData; // Set the parsedNodeData to the unparsedNodeData string
+		}
+		else if (typeof unparsedNodeData == "number"){ // If the unparsedNodeData is a number
+			parsedNodeData = unparsedNodeData.toString(); // Convert to string
+		}
+
+		// #endregion
 
 		// #region Files Variable Checking
 
-		if (typeof files == "string"){ // If the filesToQueue is a string
-			files = [files]; // Convert filesToQueue to an array
+		if (typeof handlerArguments["files"] == "string"){ // If the filesToQueue is a string
+			handlerArguments["files"] = [handlerArguments["files"]]; // Convert filesToQueue to an array
 		}
 
 		// #endregion
 
-		// #region Device-Based File Checking
+		// #region Content Or Destination Nodes Checking
 
-		for (var fileIndex  in files){
-			var fileName = files[fileIndex]; // Define fileName equal to the value of the index fileIndex in the files array
-			var localFileContent : any; // The content (and potential object) of the local file
-
-			if (fileAction == "r"){ // If we are reading files
-				localFileContent = metis.core.deviceIO.Read(fileName); // Read from metis.devices.cloud
-
-				if (localFileContent !== null){ // If the localFileContent is NOT null, meaning we successfully fetched the file
-					localFileContent = this.Decode(localFileContent); // Convert to a JSON object
-				}
-				else{ // If the file does not exist locally
-					necessaryFilesForRemoteIO.push(fileName); // Add the fileName to the necessaryFilesForRemoteIO string array for fetching remotely
-				}
-			}
-			else if (fileAction !== "e"){ // If we are not checking if the file exists (meaning we can safely add the status JSON rather than the fileExists status)
-				if (fileAction == "w") { // If we are going be either writing to a new file
-					metis.core.deviceIO.Write(fileName, contentOrDestinationNodes, false); // Create a new file on the device
-				}
-				else if (fileAction == "a") { // If we are appending (or changing) content to an existing file
-					metis.core.deviceIO.Write(fileName, contentOrDestinationNodes, true); // Update existing file on the device
-				}
-				else if (fileAction == "d") { // If we are going to be deleting files
-					metis.core.deviceIO.Delete(fileName); // Remove the file from the device
-				}
-
-				localFileContent = this.Decode('{"status" : "0.00"}'); // Add fileName to the localFileContent, with status of the action as successful
-			}
-			else{ // If we are checking if the file exists
-				if (metis.core.deviceIO.Exists(fileName) !== null){ // If the key does exist on the device
-					localFileContent = "local";
-				}
-				else{ // If the key does not exist on the device, check if headless mode is enable and do variable assigning / array pushing accordingly
-					if (metis.core.metisFlags["Headless"] == true){ // If headless Metis is enabled
-						localFileContent = false; // Set it to false, since we are only checking locally (no remote connection due to Headless mode)
-					}
-					else if ((metis.core.metisFlags["Headless"] !== true) && (nodeDataDefined !== "internal")){ // If enableHeadlessMetis is NOT enabled and we are checking if the ioQueue file exists internally
-						necessaryFilesForRemoteIO.push(fileName); // Add the fileName to the necessaryFilesForRemoteIO, since we are able to do XHR calls
-					}
-				}
-			}
-
-			if (files.length == 1) { // If we are only fetching one file, meaning we don't need to declare the fileName along with the content
-				fileContent = localFileContent;
-			}
-			else { // If we are fetching more than one file
-				fileContent[fileName] = localFileContent;  // Do not use the specialized name of the file, since the developer needs a predictable name (the one they are declaring in the first place), returned.
-			}
+		if (handlerArguments["contentOrDestinationNodes"] == undefined){ // If contentOrDestinationNodes is NOT defined (for instance in r, e, or d actions)
+			handlerArguments["contentOrDestinationNodes"] = false; // Define as false for the uniqueIOObject
 		}
 
 		// #endregion
 
-		if (nodeDataDefined !== "internal"){ // If we are not doing an internal Metis call
-			if (metis.core.metisFlags["Headless"] == false){ // If Headless Mode is disabled, then we are allowed to make XHR calls
-				if((metis.core.metisFlags["User Online"] == true) && (metis.core.metisFlags["Battery OK"] == true)) { // If the user is online and Battery OK is true (battery level is not applicable or is above a particular percentage)
-					if((fileAction == "r" && necessaryFilesForRemoteIO.length > 0) || (fileAction !== "r")) { // If either we are reading AND there are still necessary remote files to fetch OR we are not reading files
-						var remoteIOData : any = {}; // Define the custom formdata object (type any)
+		// #region Callback Checking
 
-						remoteIOData.nodeData = nodeDataDefined; // Set the nodeData key / val to the nodeData arg
-
-						if(fileAction == ("r" || "e")) { // If we are reading files or checking if they exist on the server
-							remoteIOData.files = necessaryFilesForRemoteIO;
-						}
-						else { // If we are not just reading files, it's a good idea to send ALL the requested file names to the server (so files can be appropriately added, updated, deleted, etc.)
-							remoteIOData.files = files; // Set the files key / val to the files array
-						}
-
-						remoteIOData.fileAction = fileAction;// Set the fileAction key / val to the fileAction arg
-
-						if (contentOrDestinationNodes !== (undefined || null)) { // If we either have content or in the case of replication, destination nodes
-							remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes; // Set the contentOrDestination Nodes key / val to the contentOrDestinationNodes arg
-						}
-
-						var xhrManager : XMLHttpRequest = new XMLHttpRequest; // Create a new XMLHttpRequest
-						var metisXHRResponse = ""; // Declare metisXHRResponse to hold the response of XHR call
-
-						function xhrResponseHandler() { // Create a function that is used as the handler for when the xhrManager returns some form of context
-							if (xhrManager.readyState == 4) { // If the XHR is considered "done"
-								if (xhrManager.status == 200) { // If the xhrManagerUrl was an HTTP 200
-									metisXHRResponse = xhrManager.responseText; // Assign the responseText to the xhrResponse variable
-								}
-								else{
-									metisXHRResponse = '{"error" : "HTTP ERROR CODE|' + xhrManager.status + '"}';
-								}
-							}
-						}
-
-						xhrManager.onreadystatechange = xhrResponseHandler;
-						xhrManager.open("POST", metis.core.metisFlags["Callback"], false); // xhrManager will open a synchronous connection using the method defined in xhrManagerMethodType to the url defined in xhrManagerUrl
-						xhrManager.send(JSON.stringify(remoteIOData)); // Send the data
-
-						var remoteFileContent : Object = this.Decode(metisXHRResponse); // Decode the JSON, purely for the purposes of merging it with the the locally fetched file content and for saving on the device
-
-						if (necessaryFilesForRemoteIO.length == 1) { // If we only requested one file, therefore the object we generated won't have a sub-object starting with the file name
-							fileContent = remoteFileContent;
-						}
-						else { // If we requested more than one file
-							fileContent = metis.core.Merge(fileContent, remoteFileContent); // Merge the two objects (one being the existing objects with fileName as key, the other being the same but from the server)
-						}
-
-						if (fileAction == "r"){ // If we were reading files
-							for (var fileIndex in necessaryFilesForRemoteIO){ // Recursively cycle through each file we read from the server
-								var fileName : any = necessaryFilesForRemoteIO[fileIndex]; // Define fileName equal to the value of the index fileIndex in the necessaryFilesForRemoteIO array
-
-								if (necessaryFilesForRemoteIO.length == 1) { // Check if we only requested one file, if so then we'll just stringify the entire object
-									metis.core.deviceIO.Write(fileName, JSON.stringify(remoteFileContent)); // Save the file data to the appropriate device
-								}
-								else{ // If we did not request only one file
-									metis.core.deviceIO.Write(fileName, JSON.stringify(remoteFileContent[fileName])); // Save the file data to the appropriate device, where the file data is the particular object specified by key / Object val
-								}
-							}
-						}
-					}
-				}
-				else { // If the user is NOT online or their battery life is NOT sufficient
-					if(fileAction !== "r") { // If we were not reading files, we'll overwrite the necessaryFilesForRemoteIO with the entire files array
-						necessaryFilesForRemoteIO = files;
-					}
-
-					if(necessaryFilesForRemoteIO.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
-						metis.queuer.AddItem(nodeDataDefined, necessaryFilesForRemoteIO, fileAction, contentOrDestinationNodes); // Add items to the IO Queue
-					}
-				}
-			}
+		if (handlerArguments["callback"] == undefined){ // If the callbackFunction is NOT defined
+			handlerArguments["callback"] = false; // Defined as false for the uniqueIOObject
 		}
 
-		return JSON.stringify(fileContent);
+		if (arguments["callback-data"] == undefined){ // If callback-data is NOT defined
+			arguments["callback-data"] = false; // Define as false for the uniqueIOObject
+		}
+
+		// #endregion
+
+		var uniqueIOObject : Object = { // Create an Object to hold information regarding our IO request, which gets eventually stored to metis.file.currentIO and read by the appropriate device
+			"pending" : { // Pending IO
+				"nodeData" : parsedNodeData, // Parsed form of the Node Data defined
+				"files" : handlerArguments["files"], // Files we are doing IO to
+				"action" : handlerArguments["action"], // Action
+				"contentOrDestinationNodes" : handlerArguments["contentOrDestinationNodes"]
+			},
+			"completed" : {}, // Completed IO Object
+			"callback" : handlerArguments["callback"] // The function defined for the IO. This is optional.
+		};
+
+		metis.file.currentIO[uniqueIOId] = uniqueIOObject; // Add the currentIO and uniqueIOObject to the currentIO object
+
+		metis.core.deviceIO.Handle(uniqueIOId);
 	}
 
-	/* This function is similar to the PHP decodeJsonFile in that it parses JSON string */
+	// #endregion
+
+	// #region Decodes (parses) a string into an Object
+
 	export function Decode(jsonString: string) {
 		return JSON.parse(jsonString);
 	}
 
-	/* This function is for reading one or a multitude of files from a Metis node */
-	export function Read(nodeData: string, files: any) {
-		return this.Handler(nodeData, files, "r");
+	// #endregion
+
+	// #region Reading files from local storage (whether that be LocalStorage or chrome.storage)
+
+	export function Read(arguments : Object) {
+		arguments["action"] = "r"; // Set the action to read (r)
+		metis.file.Handler(arguments);
 	}
 
-	/* This function is for creating one or a multitude of files from a Metis node */
-	export function Create(nodeData: string, files : any, jsonEncodedContent: Object) {
-		return this.Handler(nodeData, files, "w", jsonEncodedContent);
+	// #endregion
+
+	// #region Creating one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
+
+	export function Create(arguments : Object) {
+		arguments["action"] = "w"; // Set the action to write (w)
+		metis.file.Handler(arguments);
 	}
 
-	/* This function is for updating one or a multitude of files from a Metis node */
-	export function Update(nodeData: string, files : any, jsonEncodedContent: Object, appendContent ?: Boolean) {
-		if(appendContent == (undefined || false)) {
-			return this.Handler(nodeData, files, "w", jsonEncodedContent);
+	// #endregion
+
+	// #region Update one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
+
+	export function Update(arguments : Object) {
+		if(arguments["append"] == (undefined || false)) {
+			delete arguments["append"]; // Delete the append item
+			arguments["action"] = "w"; // Set the action to writing
+
+			metis.file.Handler(arguments);
 		}
 		else {
-			return this.Handler(nodeData, files, "a", jsonEncodedContent);
+			delete arguments["append"]; // Delete the append item
+			arguments["action"] = "a"; // Set the action to appending
+			metis.file.Handler(arguments);
 		}
 	}
 
-	/* This function is for deleting one or a multitude of files from a Metis node */
-	export function Delete(nodeData: string, files : any) {
-		return this.Handler(nodeData, files, "d");
+	// #endregion
+
+	// #region Delete one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
+
+	export function Delete(arguments : Object) {
+		arguments["action"] = "d"; // Set the action to delete (d)
+		metis.file.Handler(arguments);
 	}
 
-	/* This function is for checking if one or a multitude of files from a Metis Node Group or Nodes exists */
+	// #endregion
 
-	export function Exists(nodeData : any, files : any){
-		return this.Handler(nodeData, files, "e");
+	// #region Checking if one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s) exists
+
+	export function Exists(arguments : Object){
+		arguments["action"] = "e"; // Set the action to exists (e)
+		metis.file.Handler(arguments);
 	}
 
-	/* This function is for replication / duplicating one or a multitude of files from an origin node to one or multiple destination nodes */
-	export function Replicator(nodeData: string, nodeDestinations: string[], files : any) {
-		return this.Handler(nodeData, files, "rp", nodeDestinations);
+	// #endregion
+
+	// #region Replicating one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
+
+	export function Replicator(arguments : Object) {
+		arguments["action"] = "rp"; // Set the action to replicator (rp)
+		metis.file.Handler(arguments);
 	}
+
+	// #endregion
+
 }

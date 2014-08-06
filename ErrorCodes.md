@@ -34,6 +34,7 @@ that the error is the result of failing to read a file (necessary for updating w
 ## Writing A File
 
 - 3.01 - Json Encoding has failed (refer to [PHP documentation](http://php.net/manual/en/function.json-encode.php)).
+- 3.02 - Quota Exceeded
 
 ---
 

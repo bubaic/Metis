@@ -5,7 +5,11 @@
 */
 
 /// <reference path="definitions/cordova.d.ts" />
+
+/// <reference path="devices/chromeos.ts" />
 /// <reference path="devices/cloud.ts" />
+/// <reference path="devices/web.ts" />
+
 /// <reference path="file.ts" />
 /// <reference path="queuer.ts" />
 
@@ -62,7 +66,12 @@ module metis.core{
 			}
 		}
 
-		this.deviceIO = metis.devices.cloud; // Set deviceIO to metis.devices.cloud
+		if (arguments["Device"].toLowerCase().indexOf("chrome") == -1){ // If the device in nature utilizes LocalStorage
+			this.deviceIO = metis.devices.web; // Set the device to the metis.devices.web
+		}
+		else{ // If we are utilizing Chrome, Chrome OS, etc.
+			this.deviceIO = metis.devices.chromeos; // Set the device to metis.devices.chromeos
+		}
 
 		// #endregion
 

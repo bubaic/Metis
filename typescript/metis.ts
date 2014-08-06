@@ -1,10 +1,16 @@
 /*
 
- The following Typescript code is the Core / Internal functionality of Metis
+ The following Typescript code is the aggregate module of Metis
 
  */
 
+/// <reference path="definitions/chrome.d.ts" />
+/// <reference path="definitions/cordova.d.ts" />
+
+/// <reference path="devices/chromeos.ts" />
 /// <reference path="devices/cloud.ts" />
+/// <reference path="devices/web.ts" />
+
 /// <reference path="core.ts" />
 /// <reference path="file.ts" />
 /// <reference path="queuer.ts" />
@@ -17,15 +23,33 @@ module metis{
 	// #region Backwards Compatible Function Calls
 
 	export function readJsonFile(nodeDataDefined : any, files : any){
-		return metis.file.Read(nodeDataDefined, files);
+		var ioArgs = {
+			"nodeData" : nodeDataDefined,
+			"files" : files
+		};
+
+		return metis.file.Read(ioArgs);
 	}
 
 	export function createJsonFile(nodeDataDefined : any, files : any, content: Object){
-		return metis.file.Create(nodeDataDefined, files, content);
+		var ioArgs = {
+			"nodeData" : nodeDataDefined,
+			"files" : files,
+			"contentOrDestinationNodes" : content
+		};
+
+		return metis.file.Create(ioArgs);
 	}
 
-	export function updateJsonFile(nodeDataDefined : any, files : any, append : boolean){
-		return metis.file.Update(nodeDataDefined, files, append);
+	export function updateJsonFile(nodeDataDefined : any, files : any, content : Object, append : boolean){
+		var ioArgs = {
+			"nodeData" : nodeDataDefined,
+			"files" : files,
+			"contentOrDestinationNodes" : content,
+			"append" : append
+		};
+
+		return metis.file.Update(ioArgs);
 	}
 
 	export function decodeJsonFile(content : string){
@@ -33,11 +57,22 @@ module metis{
 	}
 
 	export function fileExists(nodeDataDefined : any, files : any){
-		return metis.file.Exists(nodeDataDefined, files);
+		var ioArgs = {
+			"nodeData" : nodeDataDefined,
+			"files" : files
+		};
+
+		return metis.file.Exists(ioArgs);
 	}
 
 	export function replicator(nodeDataDefined : any, nodeDataDestinations : any, files : any){
-		return metis.file.Replicator(nodeDataDefined, nodeDataDestinations, files);
+		var ioArgs = {
+			"nodeData" : nodeDataDefined,
+			"files" : files,
+			"contentOrDestinationNodes" : nodeDataDestinations
+		};
+
+		return metis.file.Replicator(ioArgs);
 	}
 
 	// #endregion
