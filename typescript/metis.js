@@ -505,7 +505,7 @@ var metis;
                 var pendingFiles = uniqueIOObject["pending"]["files"];
                 var contentOrDestinationNodes = uniqueIOObject["pending"]["contentOrDestinationNodes"];
 
-                var chromeGetHandler = function handle() {
+                var chromeGetHandler = function () {
                     var uniqueIOId = arguments[0];
                     var fileAction = metis.file.currentIO[uniqueIOId]["pending"]["action"];
 

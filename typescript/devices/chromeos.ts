@@ -21,7 +21,7 @@ module metis.devices.chromeos {
 
 		// #region Chrome IO Async Handler
 
-		var chromeGetHandler = function handle(){ // When we have gotten the files necessary
+		var chromeGetHandler = function(){ // When we have gotten the files necessary
 			var uniqueIOId : string = arguments[0]; // Set uniqueIOId to the arguments provided, where zero-index is the uniqueIOId due to binding
 			var fileAction = metis.file.currentIO[uniqueIOId]["pending"]["action"]; // Get the fileAction passed to us through the uniqueIOId binding
 
