@@ -1,0 +1,61 @@
+#!/bin/bash
+
+currentDirectory=$(pwd) # Get the current directory
+currentDirectory=${currentDirectory%build*} #Remove the build folder, if it exists, from the directory path
+
+cd "$currentDirectory"
+source "build/compiler/compilerFunctions"
+
+anyFilesChanged=false # Global anyFilesChanged tracks if any files are changed. If so we recompiling a devel.tar.gz.
+declare -a filesThatHaveChanged # Create an array to hold the names of the files that have changed
+
+recursiveCompiling(){ # Recursive function for code compiling
+	sourceLocation=$1 # Set sourceLocation as the second location
+	filesArray=$(find src/$sourceLocation -type f) # Get all files relating to this type recursively
+
+	codebaseChanged=false # Set codebaseChanged to false by default. If a module has been added or changed, then it will be changed to true
+
+	for file in $filesArray; do
+		if [[ "$file" != *.d.ts ]]; then # If it is not a declaration file (exists after using tsCompile once)
+			fileName="${file##*$sourceLocation/}" # Remove everything before last / to clean up the file pathing
+			fileChanged "$sourceLocation" "$fileName"
+
+			if [ "$FILE_CHANGED" == "CHANGED" ]; then # If the file has been changed
+				codebaseChanged=true # Change to true
+				filesThatHaveChanged+=("$fileName")
+			fi
+		fi
+	done
+
+	if [ "$sourceLocation" == "typescript" ]; then # If we are compiling Typescript
+		if [ $codebaseChanged == true ]; then # If the codebase has been changed
+			anyFilesChanged=true # Set global var to true
+
+			tsc --removeComments --target 'ES5' src/typescript/metis.ts --declaration --out build/metis.js
+			echo "Minifying Metis compiled Javascript."
+			yuicompressor --type=js build/metis.js -o build/metis.min.js &> /dev/null
+			rm build/metis.js &> /dev/null # Remove the uncompressed metis.js file
+			echo "Finished compiling and minification process of Metis."
+		fi
+	else # If we are compiling PHP
+		if [ $codebaseChanged == true ]; then # If the codebase has been changed
+			anyFilesChanged=true # Set global var to true
+		fi
+	fi
+}
+
+echo "Compiling Metis."
+
+recursiveCompiling "typescript" # Compile Typescript
+recursiveCompiling "php" # Compile PHP
+
+if [ $anyFilesChanged == true ]; then # If the codebase has been changed
+	echo "Files that have changed:"
+
+	for file in ${filesThatHaveChanged[@]}
+	do
+		echo "$file"
+	done
+else # If the codebase has changed
+	echo "No files have changed."
+fi
