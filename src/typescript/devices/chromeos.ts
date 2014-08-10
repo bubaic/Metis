@@ -17,21 +17,21 @@ module metis.devices.chromeos {
 		var pendingFiles = uniqueIOObject["pending"]["files"]; // Get the pending files
 		var contentOrDestinationNodes = uniqueIOObject["pending"]["contentOrDestinationNodes"]; // Potential contentOrDestinationNodes
 
-
 		// #region Chrome IO Async Handler
 
 		var chromeGetHandler = function(){ // When we have gotten the files necessary
-			var uniqueIOId : string = arguments[0]; // Set uniqueIOId to the arguments provided, where zero-index is the uniqueIOId due to binding
+			var uniqueIOObject : string = arguments[0]; // Set uniqueIOId to the arguments provided, where zero-index is the uniqueIOId due to binding
 			var fileAction = uniqueIOObject["pending"]["action"]; // Get the fileAction passed to us through the uniqueIOId binding
+			var completedIO : Object = arguments[1]; // Set completedIO to the arguments provided, where one-index is the completedIO provided by chrome.storage.local.get
 
-			if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")){ // If we are doing anything that somehow relates to getting the file content
-				var completedIO : Object = arguments[1]; // Set completedIO to the arguments provided, where one-index is the completedIO provided by chrome.storage.local.get
+			for (var fileIndex in completedIO){ // For each file we received
+				var fileName = completedIO[fileIndex]; // Get the file name
+				var ioSuccessful : boolean; // Define ioSuccessful as a boolean. We will only move an item and the localFileContent to the completed part of the uniqueIOObject IF this is true
 
-				for (fileName in completedIO){ // For each file we received
-					var ioSuccessful : boolean; // Define ioSuccessful as a boolean. We will only move an item and the localFileContent to the completed part of the uniqueIOObject IF this is true
-					var localFileContent = completedIO[fileName]; // Get the potential fileContent (or it'll be an error)
+				if (typeof localFileContent == "Object"){ // If the fileContent is an Object
+					if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")){ // If we are doing anything that somehow relates to getting the file content
+						var localFileContent = completedIO[fileName]; // Get the potential fileContent (or it'll be an error)
 
-					if (typeof localFileContent == "Object"){ // If the fileContent is an Object
 						if (fileAction == "a"){ // If we were appending content
 							var contentOrDestinationNodes = uniqueIOObject["pending"]["contentOrDestinationNodes"]; // Get the contentOrDestinationNodes
 
@@ -43,26 +43,15 @@ module metis.devices.chromeos {
 						else if (fileAction == "e"){ // If we were checking if a file exists
 							localFileContent = {"status" : true }; // Set the status to true
 						}
+					}
+					else{ // If we were doing a write, deletion, etc.
+						localFileContent = { "status" : "0.00"}; // Add the successful code
+					}
 
-						ioSuccessful = true; // Set to successful
-					}
-					else{ // If the fileContent is NOT an Object, most likely an error
-						ioSuccessful = false; // Set to failure
-					}
+					ioSuccessful = true; // Set to successful
 				}
-			}
-			else{ // If we were doing a write, deletion, etc.
-				if (chrome.runtime.lastError == undefined){ // If the lastError in the chrome.runtime is NOT defined
-					localFileContent = { "status" : "0.00"}; // Add the successful code
-					ioSuccessful = true;
-				}
-				else{ // If the lastError in the chrome.runtime IS defined
-					localFileContent = { "error" : chrome.runtime.lastError }; // Set to failure, with the error val being the chrome runtime error
-					ioSuccessful = true; // Default ioSuccessful to TRUE and only overwrite it we need to maintain the integrity of it.
-
-					if (fileAction == "w"){ // If it was a write-related error, best maintain the integrity of ioSuccessful
-						ioSuccessful = false; // Change to false
-					}
+				else{ // If the fileContent is NOT an Object, most likely an error
+					ioSuccessful = false; // Set to failure
 				}
 			}
 
@@ -85,7 +74,7 @@ module metis.devices.chromeos {
 				uniqueIOObject["completed"][fileName] = localFileContent; // Add the file to the completed section with the localFileContent
 			}
 
-			metis.devices.cloud.Handle(uniqueIOId); // Pass along any potential pending files to the final stage of IO, Cloud. This is a skippable step, however that is defined in the function.
+			metis.devices.cloud.Handle(uniqueIOObject); // Pass along any potential pending files to the final stage of IO, Cloud. This is a skippable step, however that is defined in the function.
 		}.bind(this, uniqueIOObject); // Bind to chrome, pass along the uniqueIOId
 
 		// #endregion
@@ -99,7 +88,8 @@ module metis.devices.chromeos {
 		else if (fileAction == "w"){ // If we are writing files to Chrome.StorageArea
 			var chromeSetObject : Object = {};
 
-			for (var fileName in pendingFiles){ // For each fileName in the pendingFiles array
+			for (var fileIndex in pendingFiles){ // For each fileName in the pendingFiles array
+				var fileName : string = pendingFiles[fileIndex]; // Get the file name
 				chromeSetObject[fileName] = contentOrDestinationNodes; // Since we need to have individual key/val for Chrome.StorageArea.set(), add the content to a key, where the key is the fileName
 			}
 

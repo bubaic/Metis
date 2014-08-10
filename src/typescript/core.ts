@@ -42,10 +42,10 @@ module metis.core{
 		}
 
 		if (arguments["User Online"] == undefined){ // If User Online is not defined by default
-			if (arguments["Device"] == "Cloud"){ // If the user's Device is the Cloud (web)
+			if (arguments["Device"] !== "Cordova"){ // If the user's Device is the Cloud or Chrome(OS)
 				arguments["User Online"] = window.navigator.onLine; // Set the User Online to their current navigator state
 			}
-			else{ // If the user's Device is Chrome
+			else{ // If the user's Device is Cordova
 				arguments["User Online"] = true; // Default user to being online
 
 				if (navigator.connection.type == Connection.NONE){ // If the connection is NONE
