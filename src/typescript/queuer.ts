@@ -15,8 +15,8 @@ module metis.queuer{
 				"nodeData" : "internal",
 				"files" : "ioQueue",
 				"callback" : function(completedIO : Object){
-					if (completedIO["ioQueue"] == false){ // If the ioQueue file does not exist
-						metis.file.Create({"nodeData" : "internal", "fileName" : "ioQueue", "contentOrDestinationNodes" : {}}); // Create an empty ioQueue file
+					if (completedIO["ioQueue"]["status"] == false){ // If the ioQueue file does not exist
+						metis.file.Create({"nodeData" : "internal", "files" : "ioQueue", "contentOrDestinationNodes" : {}}); // Create an empty ioQueue file
 					}
 				}
 			}
@@ -69,21 +69,21 @@ module metis.queuer{
 
 	// #region Add Item to ioQueue
 
-	export function AddItem(uniqueIOId : string){
+	export function AddItem(uniqueIOObject : Object){
 		metis.file.Read( // Do a call to Read the ioQueue file
 			{
 				"nodeData" : "internal",
 				"files" : "ioQueue",
 				"callback" : function(ioQueue : Object, callbackData : Object){
 					ioQueue = ioQueue["ioQueue"];
-					var relatedIOObject = metis.file.currentIO[callbackData["relatedIOId"]]; // Get the corresponding Object to the relatedIOId
+					var relatedIOObject = callbackData["uniqueIOObject"]; // Get the object we passed along as callback-data
 
 					var nodeData = relatedIOObject["pending"]["nodeData"]; // Get the action type
 					var fileAction = relatedIOObject["pending"]["action"]; // Get the action type
 					var filesToQueue = relatedIOObject["pending"]["files"]; // Get the pending files
 
 					for (var fileIndex in filesToQueue){
-						var fileName = filesToQueue[fileIndex]; // Define fileName equal to the value of the index fileIndex in the filesToQueue array
+						var fileName : string = filesToQueue[fileIndex];
 
 						if (ioQueue.hasOwnProperty(fileName) == true){ // If the file is already in the ioQueue
 							delete ioQueue[fileName]; // Delete the fileName so it can be garbage collected
@@ -96,15 +96,12 @@ module metis.queuer{
 						if (fileAction == ("w" || "a")) { // If we are writing or appending content, set the contentOrDestinationNodes variable
 							ioQueue[fileName]["contentOrDestinationNodes"] = relatedIOObject["pending"]["contentOrDestinationNodes"]; // Set the pending contentOrDestinationNodes
 						}
-						else{ // If we are not writing or appending content
-							delete ioQueue[fileName]["contentOrDestinationNodes"]; // Delete the contentOrDestinationNodes so we won't unnecessarily send content when processing IO
-						}
 					}
 
 					metis.file.Update({"nodeData" : "internal", "files" : "ioQueue", "contentOrDestinationNodes" : ioQueue}); // Update the ioQueue content
 				},
 				"callback-data" : {
-					"relatedIOId" : uniqueIOId // Add the related IO ID that we got from metis.cloud.Handler
+					"uniqueIOObject" : uniqueIOObject // Add the related IO ID that we got from metis.cloud.Handler
 				}
 			}
 		);

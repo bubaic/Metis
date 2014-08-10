@@ -1,4 +1,5 @@
 <?php
+	header("Access-Control-Allow-Origin: *"); // Allow CORS
 	include("metis.min.php"); // [Reference: https://github.com/StroblIndustries/Metis]
 	$metis = new Metis(); // Define Metis
 

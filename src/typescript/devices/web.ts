@@ -10,8 +10,7 @@ module metis.devices.web{
 
 	// #region Handler for all LocalStorage IO
 
-	export function Handle(uniqueIOId : string){
-		var uniqueIOObject = metis.file.currentIO[uniqueIOId]; // Get the unique IO object associated with the ID
+	export function Handle(uniqueIOObject : Object){
 		var fileAction = uniqueIOObject["pending"]["action"]; // Get the file IO type we'll be doing
 		var pendingFiles = uniqueIOObject["pending"]["files"]; // Get the pending files
 
@@ -20,7 +19,7 @@ module metis.devices.web{
 		for (var fileIndex  in pendingFiles){ // For each file in the IO Object's pending files
 			var fileName = pendingFiles[fileIndex]; // Define fileName equal to the value of the index fileIndex in the files array
 			var localFileContent : any; // The content (and potential object) of the local file
-			var ioSuccessful : boolean; // Define ioSuccessful as a boolean. We will only move an item and the localFileContent to the completed part of the uniqueIOObject IF this is true
+			var ioSuccessful : boolean = false; // Define ioSuccessful as a boolean. We will only move an item and the localFileContent to the completed part of the uniqueIOObject IF this is true
 
 			if ((fileAction == "r") || (fileAction == "a")){ // If we are reading files or appending content to a file
 				localFileContent = localStorage.getItem(fileName); // Return the localStorage content or NULL
@@ -35,15 +34,15 @@ module metis.devices.web{
 			}
 
 			if ((fileAction == "w") || (fileAction == "a")){ // If we are writing or appending file content to LocalStorage
-				if (fileAction == "a"){ // If we are appending content to the current file content
-					uniqueIOObject["pending"]["contentOrDestinationNodes"] = metis.core.Merge(localFileContent, uniqueIOObject["pending"]["contentOrDestinationNodes"]); // Merge the JSON object from this uniqueIOObject and the read content
-					localFileContent = uniqueIOObject["pending"]["contentOrDestinationNodes"]; // Set the localFileContent to the updated content instead of success status
+				if ((fileAction == "a") && (localFileContent !== null)){ // If we are appending content to a file that does exist
+					localFileContent = metis.core.Merge(localFileContent, uniqueIOObject["pending"]["contentOrDestinationNodes"]); // Set the localFileContent to the updated and merged content instead of a success code
+					localStorage.setItem(fileName, JSON.stringify(localFileContent)); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
 				}
-				else{ // If we are writing
-					localFileContent = { "status" : "0.00"}; // Add the successful code
+				else{ // If the file content we were updating doesn't exist in the first place OR we are writing
+					localFileContent = { "status" : "0.00"}; // Set to successful code since we will just act as if we are writing content
+					localStorage.setItem(fileName, JSON.stringify(uniqueIOObject["pending"]["contentOrDestinationNodes"])); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
 				}
 
-				localStorage.setItem(fileName, JSON.stringify(uniqueIOObject["pending"]["contentOrDestinationNodes"])); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
 				ioSuccessful = true; // Set to successful
 			}
 			else if (fileAction == "d") { // If we are going to be deleting files
@@ -76,16 +75,16 @@ module metis.devices.web{
 				}
 
 				if (allowPoppingFile == true){ // If we are allow the popping of the file'
-					metis.file.currentIO[uniqueIOId]["pending"]["files"].pop(fileName); // Remove via array.pop the file name from the files array
+					uniqueIOObject["pending"]["files"].pop(fileName); // Remove via array.pop the file name from the files array
 				}
 
-				metis.file.currentIO[uniqueIOId]["completed"][fileName] = localFileContent; // Add the file to the completed section with the localFileContent
+				uniqueIOObject["completed"][fileName] = localFileContent; // Add the file to the completed section with the localFileContent
 			}
 		}
 
 		// #endregion
 
-		metis.devices.cloud.Handle(uniqueIOId); // Pass along any potential pending files to the final stage of IO, Cloud. This is a skippable step, however that is defined in the function.
+		metis.devices.cloud.Handle(uniqueIOObject); // Pass along any potential pending files to the final stage of IO, Cloud. This is a skippable step, however that is defined in the function.
 	}
 
 	// #endregion

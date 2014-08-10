@@ -22,11 +22,18 @@ module metis.core{
 
 		// #region Arguments Parser / Default(er)
 
-		if (arguments["Headless"] == (undefined || false)){ // If Headless is NOT defined or is defined as FALSE
-			arguments["Headless"] = false; // Ensure undefined is changed to false
+		if (arguments["Headless"] !== true){ // If Headless mode is NOT set to true
+			if (arguments["Callback"] == undefined){ // If a Callback is undefined
+				arguments["Headless"] = true; //Switch to true
+			}
+			else{ // If a callback IS defined
+				if (arguments["Callback"].indexOf("/callback.php") == -1){ // If the callback does NOT have /callback.php
+					if (arguments["Callback"].substr(arguments["Callback"].length - 1) !== "/"){ // If the callback does NOT end in /
+						arguments["Callback"] += "/"; // Add the /
+					}
 
-			if (arguments["Callback"] == undefined){ // If the Callback is NOT defined
-				console.log("You have defined Headless as FALSE but have NOT provided a callback URL. Expect errors."); // Log!
+					arguments["Callback"] += "callback.php"; // Add the callback.php
+				}
 			}
 		}
 
@@ -37,30 +44,35 @@ module metis.core{
 		if (arguments["User Online"] == undefined){ // If User Online is not defined by default
 			if (arguments["Device"] == "Cloud"){ // If the user's Device is the Cloud (web)
 				arguments["User Online"] = window.navigator.onLine; // Set the User Online to their current navigator state
-				metis.core.metisFlags["Battery OK"] = true; // Set "Battery OK" to a fixed true.
 			}
-			else{ // If the user's Device is Cordova
+			else{ // If the user's Device is Chrome
 				arguments["User Online"] = true; // Default user to being online
 
 				if (navigator.connection.type == Connection.NONE){ // If the connection is NONE
 					arguments["User Online"] = false;
 				}
-
-				// #region Leverage Battery Status To Determine Whether To Process ioQueue
-
-				document.addEventListener("batterystatus", // Create an event handler that keeps track of battery status
-					function(batteryStatusInfo : BatteryStatusEvent){
-						metis.core.metisFlags["Battery OK"] = true; // Default "Battery OK" to true
-
-						if (batteryStatusInfo.isPlugged == false || batteryStatusInfo.level < 15){ // If the device is NOT plugged in OR the battery level is below 15%
-							metis.core.metisFlags["Battery OK"] = false; // Set "Battery OK" to false
-						}
-					},
-					false
-				);
-
-				// #endregion
 			}
+		}
+
+		// #region Battery Status Checking
+
+		arguments["Battery OK"] = true; // Default "Battery OK" to true
+
+		if (arguments["Device"] == "Cordova"){ // If the device is Cordova
+			// #region Leverage Battery Status To Determine Whether To Process ioQueue
+
+			document.addEventListener("batterystatus", // Create an event handler that keeps track of battery status
+				function(batteryStatusInfo : BatteryStatusEvent){
+					metis.core.metisFlags["Battery OK"] = true; // Default "Battery OK" to true
+
+					if (batteryStatusInfo.isPlugged == false || batteryStatusInfo.level < 15){ // If the device is NOT plugged in OR the battery level is below 15%
+						metis.core.metisFlags["Battery OK"] = false; // Set "Battery OK" to false
+					}
+				},
+				false
+			);
+
+			// #endregion
 		}
 
 		if (arguments["Device"].toLowerCase().indexOf("chrome") == -1){ // If the device in nature utilizes LocalStorage

@@ -1,6 +1,6 @@
 metis.Init(
     {
-        "Callback" : "https://stroblindustries.com/~metis/simulator/",
+        "Callback" : "https://stroblindustries.com/~metis/simulator",
         "Headless" : false
     }
 );
@@ -127,28 +127,34 @@ describe("Metis", function() {
 
     // #endregion
 
+    // #region Re-create a file so we can test metis.file.ClearAll()
+
+    metis.file.Create(
+        {
+            "nodeData" : "1",
+            "files" : "example",
+            "contentOrDestinationNodes" : {
+                "hello" : "world"
+            },
+            "callback" : function(completedIO){
+                currentObject = completedIO;
+            }
+        }
+    );
+
+    // #endregion
+
     // #region Test Clearing All Files
 
     describe("needs to clear all files", function() {
 
         beforeEach(
             function(){
-                metis.file.Create(
-                    {
-                        "nodeData" : "1",
-                        "files" : "example",
-                        "contentOrDestinationNodes" : {
-                            "hello" : "world"
-                        },
-                        "callback" : function(){
-                            metis.file.ClearAll(); // Clear all files
-                        }
-                    }
-                );
+                metis.file.ClearAll(); // Clear all files
             }
         );
 
-        it("should remove the files from the device.", function() {
+        it("and there should be no files on the device", function() {
             expect(localStorage.length).toEqual(0); // Expect to be zero
         });
 

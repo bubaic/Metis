@@ -10,37 +10,15 @@
 
 
 module metis.file {
-	export var currentIO : Object = {}; // Declare currentIO to be an an Object for tracking current file IO (for async purposes)
-
-	// #region Random IO Generator
-
-	export function RandomIOIdGenerator() : string{
-		var id : string; // The random ID we generated
-		var idAlreadyExists : Boolean = true; // Declare idAlreadyExists as a boolean that will change when we have created a unique ID
-
-		while (idAlreadyExists == true){ // While idAlreadyExists is true
-			id = (Math.random() * (99999 - 10000) + 10000).toFixed(0).toString();
-
-			if (metis.file.currentIO[id] == undefined){ // If the metis.file.currentIO does not have something with this ID
-				idAlreadyExists = false; // Set to false
-				break; // Break out of the while loop.
-			}
-		}
-
-		return id; // Return the random ID we generated
-	}
-
-	// #endregion
-
 	// #region Metis File Handler
 
 	// nodeDataDefined : any, files : any, fileAction : string, contentOrDestinationNodes ?: any, callbackFunction ?: Function, noCloudCall ?: Boolean
 	export function Handler(handlerArguments : Object){
-		var uniqueIOId : string = metis.file.RandomIOIdGenerator(); // Create a random, unique IO Id
-		var parsedNodeData : string = ""; // Defined parsedNodeData as the Node Data we have parsed
-		var unparsedNodeData : any = handlerArguments["nodeData"]; // Define unparsedNodeData as the nodeData defined in the arguments
 
 		// #region Node Data Parsing
+
+		var parsedNodeData : string = ""; // Defined parsedNodeData as the Node Data we have parsed
+		var unparsedNodeData : any = handlerArguments["nodeData"]; // Define unparsedNodeData as the nodeData defined in the arguments
 
 		if (typeof unparsedNodeData == "string"){ // If the nodeDataDefined is already a string format
 			parsedNodeData = unparsedNodeData; // Define the parsedNodeData as nodeDataDefined
@@ -110,7 +88,7 @@ module metis.file {
 
 		// #endregion
 
-		var uniqueIOObject : Object = { // Create an Object to hold information regarding our IO request, which gets eventually stored to metis.file.currentIO and read by the appropriate device
+		var uniqueIOObject = { // Create an Object to hold information regarding our IO request, which gets stored to metis.file.currentIO and read by the appropriate device
 			"pending" : { // Pending IO
 				"nodeData" : parsedNodeData, // Parsed form of the Node Data defined
 				"files" : handlerArguments["files"], // Files we are doing IO to
@@ -118,12 +96,11 @@ module metis.file {
 				"contentOrDestinationNodes" : handlerArguments["contentOrDestinationNodes"]
 			},
 			"completed" : {}, // Completed IO Object
-			"callback" : handlerArguments["callback"] // The function defined for the IO. This is optional.
+			"callback" : handlerArguments["callback"], // The function defined for the IO. This is optional.
+			"callback-data" : handlerArguments["callback-data"] // Any associated data for the callback that we should pass
 		};
 
-		metis.file.currentIO[uniqueIOId] = uniqueIOObject; // Add the currentIO and uniqueIOObject to the currentIO object
-
-		metis.core.deviceIO.Handle(uniqueIOId);
+		metis.core.deviceIO.Handle(uniqueIOObject);
 	}
 
 	// #endregion
