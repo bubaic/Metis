@@ -1,6 +1,0 @@
-#!/bin/sh
-
-# Derived from Wordpress Juju Charm, thanks Marco Ceppi
-# Bypass the loadbalancer for $engine and instead just hit the unit
-
-relation-set port=8080 hostname=`unit-get private-address`
