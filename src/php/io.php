@@ -85,11 +85,13 @@
 
 	#endregion
 
+ 	#region File IO Handler
+
 	function fileActionHandler($nodeDataDefined, $files, $fileAction, array $contentOrDestinationNodes = null){
 		$nodeList = $GLOBALS['nodeList']; //Get the node list as a multi-dimensional array.
 
-		if ($nodeList !== 1.01){ // If the nodeList was successfully fetched, we'll continue our file IO process
-			$returnableFileContent = array(); // fileContent array used to store all file content (or error codes)
+		if (isset($nodeList["error"]) == false){ // If the nodeList was successfully fetched, we'll continue our file IO process
+			$returnableFileContent = array(); // returnableFileContent array used to store all file content (or error codes)
 			$originalDirectory = getcwd(); // Get the current directory prior to moving to other directories.
 
 			#region Node Group / Node Checking
@@ -102,15 +104,6 @@
 
 			if (gettype($files) == "string"){ // If only one file is specified
 				$files = (array) $files; // Convert to an array
-				$multiFile = false; // We are not dealing with multiple files
-			}
-			else{
-				if (count($files) == 1){ // If the amount of files to interact of with is one (a single file)
-					$multiFile = false; // We are not dealing with multiple files
-				}
-				else{ // If we are interacting with a multitude of files
-					$multiFile = true; // We are dealing with multiple files, so multiFile needs to be set to true
-				}
 			}
 
 			#endregion
@@ -144,85 +137,65 @@
 					if (($nodeType == "local") && ($nodePreferentialLocation !== "backup")){ // If the Node is local and the Node's Preferential Location is not the backup folder
 						$successfulNavigation = navigateToLocalMetisData($nodePreferentialLocation); // Go to the necessary directory
 
-						if ($successfulNavigation !== 2.01){ // If we successfully navigated to the folder
-							foreach ($files as $fileName_NotHashed){ // For each file, do something with it in the local Node
-								$fileName = fileHashing($fileName_NotHashed); // Hash the fileName to get the real name of the file
-								$thisFileContent = ""; // Variable to assign the decoded file content to.
+						foreach ($files as $fileName_NotHashed){ // For each file, do something with it in the local Node
+							$fileName = fileHashing($fileName_NotHashed); // Hash the fileName to get the real name of the file
+							$thisFileContent = ""; // Variable to assign the decoded file content to.
 
-								if (($fileAction == "r") || ($fileAction == "a")){ // If we are either reading the file or appending to it (either way, we need the file)
-									$thisFileContent = file_get_contents($fileName . ".json"); // Read the file
+							if (($fileAction == "r") || ($fileAction == "a")){ // If we are either reading the file or appending to it (either way, we need the file)
+								$thisFileContent = file_get_contents($fileName . ".json"); // Read the file
 
-									if ($thisFileContent !== false){ // If we successfully fetched the file
-										$thisFileContent = decodeJsonFile($thisFileContent); // If we successfully read the file, decode the JSON (no matter if we are reading or appending)
-									}
-									else{ // If we failed to fetch the file
-										$thisFileContent = 2.05; // State thisFileContent is error #2.05.
-									}
+								if ($thisFileContent !== false){ // If we successfully fetched the file
+									$thisFileContent = decodeJsonFile($thisFileContent); // If we successfully read the file, decode the JSON (no matter if we are reading or appending)
 								}
-
-								if (($fileAction == "w") || ($fileAction == "a")){ // If we are writing or appending content
-									if (($fileAction == "a") && (is_float($thisFileContent) == false)){ // If we are APPENDING content a file that DOES exist and is valid
-										$jsonData = array_replace_recursive($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
-									}
-									else{ // If we are writing a file (or appending to a file that doesn't exist)
-										$jsonData = $contentOrDestinationNodes; // Assign the jsonData as contentOrDestinationNodes
-									}
-
-									$jsonData = json_encode($jsonData); // Convert back to JSON for writing.
-
-									if ($jsonData == false){ // If we failed to encode the data to JSON
-										$thisFileContent = 3.01; // Return the error code #3.01.
-									}
-									else{ // If we did NOT fail to encode the data to JSON
-										$fileHandler = fopen($fileName . ".json", "w+"); // Create a file handler.
-										fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
-										fclose($fileHandler); // Close the file location.
-										touch($fileName. ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
-										$thisFileContent = "0.00"; // Return success code
-									}
+								else{ // If we failed to fetch the file
+									$thisFileContent = array("error" => 2.05); // State thisFileContent is error #2.05.
 								}
-								else if ($fileAction == "e"){ // If we are checking if the file exists
-									$thisFileContent = array("found" => file_exists($fileName . ".json")); // If the file does exist, $thisFileContent will be found: TRUE, else found: false.
-								}
-								else if ($fileAction == "d"){ // If we are deleting a file
-									if (unlink($fileName . ".json") !== false){ // If deleting the file is a success
-										$thisFileContent = "0.00"; // Return success code
-									}
-									else{
-										$thisFileContent = 4.01; // Return error code for deletion
-									}
-								}
-
-								if ($multiFile == true){ // Check if we are reading multiple files over the lifetime of the function
-									$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, array($fileName_NotHashed => $thisFileContent))); // Properly merge the multiple files array
-								}
-								else{ // If we were only interacting with one file
-									if (($fileAction == "r") && ($thisFileContent !== 1.05)){ // If we were reading files and it was successful
-										unset($files[$fileName_NotHashed]); // Remove the requested file from the $files array so we don't check for it in the future (ex. from other Nodes in a Node Group)
-									}
-									// This doesn't apply for creating, updating, or deleting items as we need to make sure it is done for each Node Group / Node.
-
-									$returnableFileContent = $thisFileContent; // Decode the file contents, store in array.
-
-									if ($fileAction == "r"){ // If we are only reading a file and we managed to get it on the first Node Group Node or independent Node
-										break 3; // Break out of the files foreach, Nodes foreach and Nodes Group foreach
-									}
-								}
-
 							}
 
-							chdir($originalDirectory); // Return to the original directory
+							if (($fileAction == "w") || ($fileAction == "a")){ // If we are writing or appending content
+								if (($fileAction == "a") && (isset($thisFileContent["error"]) == false)){ // If we are APPENDING content a file that DOES exist and is valid
+									$jsonData = array_replace_recursive($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
+									$thisFileContent = $jsonData; // Return the updated file content
+								}
+								else{ // If we are writing a file (or appending to a file that doesn't exist)
+									$jsonData = $contentOrDestinationNodes; // Assign the jsonData as contentOrDestinationNodes
+									$thisFileContent = array("success" => "0.00"); // Return success code
+								}
+
+								$jsonData = json_encode($jsonData); // Convert back to JSON for writing.
+
+								$fileHandler = fopen($fileName . ".json", "w+"); // Create a file handler.
+								fwrite($fileHandler, $jsonData); // Write the JSON data to the file.
+								fclose($fileHandler); // Close the file location.
+								touch($fileName. ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
+							}
+							else if ($fileAction == "e"){ // If we are checking if the file exists
+								$thisFileContent = array("status" => file_exists($fileName . ".json")); // If the file does exist, $thisFileContent will be found: TRUE, else found: false.
+							}
+							else if ($fileAction == "d"){ // If we are deleting a file
+								unlink($fileName . ".json"); // Delete the file
+								$thisFileContent = array("success" => "0.00"); // Return success code
+							}
+
+							$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, array($fileName_NotHashed => $thisFileContent))); // Properly merge the multiple files array
+
+							if (($fileAction == "r") && (isset($thisFileContent["error"]) == false)){ // If we were reading files and it was successful
+								unset($files[$fileName_NotHashed]); // Remove the requested file from the $files array so we don't check for it in the future (ex. from other Nodes in a Node Group)
+
+								if (count($files) == 0){ // If we were only reading one file and the action was successful
+									break 3; // Break out of the files foreach, Nodes foreach and Nodes Group foreach
+								}
+							}
 						}
-						else{ // If we failed to navigate to the Node's data directory
-							$returnableFileContent = 2.01; // Return error code #2.01
-						}
+
+						chdir($originalDirectory); // Return to the original directory
 					}
 					else{ // If the Node Type is remote
 						$nodeAddress = nodeInfo($nodeNum, "Address", $nodeInfo_NodeList);
 
 						$remoteRequestData = array(); // Create an array that'll hold key / vals that will eventually be converted to JSON to send to the callback script.
 						$remoteRequestData["nodeData"] = $nodePreferentialLocation; // Assign the nodeNum from the nodePreferentialLocation, which in the case of remote nodes, is the remote node number to call from.
-						$remoteRequestData["fileAction"] = $fileAction; // Assign the fileAction from the fileAction given to fileActionHandler
+						$remoteRequestData["action"] = $fileAction; // Assign the fileAction from the fileAction given to fileActionHandler
 						$remoteRequestData["files"] = $files; // Assign the files array from the files array given to fileActionHandler
 
 						if ($contentOrDestinationNodes !== null){ // If the contentOrDestinationNodes is NOT null, meaning it exists
@@ -233,29 +206,13 @@
 						$returnedRemoteFilesContent = http_request($nodeAddress, $remoteRequestData_JsonFormat); // Do an HTTP Request (CURL) to the nodeAddress / remote Metis cluster with the JSON formatted data
 						$remoteFileContent_Array = decodeJsonFile($returnedRemoteFilesContent);
 
-						if ($multiFile == true){ // If we were fetching multiple files
-							if (count($files) > 1){ // If we were fetching more than one file via the remote file IO
-								foreach ($remoteFileContent_Array as $fileName => $content){
-									if (gettype($content) == "array"){ // If the content of the fileName is an array (meaning it successfully fetched content)
-										unset($files[$fileName]); //Remove the file from the $files array
-									}
-								}
-
-								$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, $remoteFileContent_Array)); // Properly merge the multiple files array
-							}
-							else{
-								$fileName = $files[0]; // Assign the file's name to fileName so we can do the unsetting first THEN the fileIOArrayMerger
-
-								if (strlen($returnedRemoteFilesContent) !== "3"){ // If the content is longer than 3, meaning it is not an error code
-									unset($files[0]); //Remove the file from the $files array
-								}
-
-								$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, array($fileName => $remoteFileContent_Array))); // Merge the single file returned with the rest
+						foreach ($remoteFileContent_Array as $fileName => $content){
+							if (gettype($content) == "array"){ // If the content of the fileName is an array (meaning it successfully fetched content)
+								unset($files[$fileName]); //Remove the file from the $files array
 							}
 						}
-						else{ // If we were only fetching a single file to begin with
-							$returnableFileContent = $remoteFileContent_Array;
-						}
+
+						$returnableFileContent = fileIOArrayMerger(array($returnableFileContent, $remoteFileContent_Array)); // Properly merge the multiple files array
 					}
 				}
 			}
@@ -265,40 +222,57 @@
 			}
 		}
 		else{ // If the nodeList is not valid / doesn't exist.
-			$returnableFileContent =  1.01; // Return the error code #1.01
+			$returnableFileContent =  array("error" => 1.01); // Return the error code #1.01
 		}
 
 		if (is_float($returnableFileContent)){ // If the returnableFileContent is an error
 			$returnableFileContent = array("error" => $returnableFileContent); // Set returnableFileContent to an error array
 		}
-		elseif ($returnableFileContent == "0.00"){ // If the returnable content is purely a success code
-			$returnableFileContent = array("success" => "0.00"); // Set returnableFileContent as a success array
-		}
 
 		return json_encode($returnableFileContent); // Return the JSON encoded version (string) of the fileContent (which is an array)
 	}
+
+	#endregion
+
+	#region Create File Function
 
 	function createJsonFile($nodeData, $files, array $contentOrDestinationNodes){
 		return fileActionHandler($nodeData, $files, "w", $contentOrDestinationNodes);
 	}
 
+	#endregion
+
+	#region Decode Json File Function
+
 	function decodeJsonFile($jsonEncoded_Content){
 		$jsonDecodedValue = json_decode($jsonEncoded_Content, true); // This decodes the JSON formatted string into a multi-dimensional array.
 
-		if ($jsonDecodedValue == (false || NULL || null)){ // If the decoded has failed.
-			$jsonDecodedValue = 2.06; // Return the error code #2.06.
+		if (is_array($jsonDecodedValue) == false){ // If the decoded has failed.
+			$jsonDecodedValue = array("error" => 2.06); // Return the error code #2.06.
 		}
 
 		return $jsonDecodedValue;
 	}
 
+	#endregion
+
+	#region File Exists Function
+
 	function fileExists($nodeDataDefined, $files){ // This function checks if a file exists within a node
 		return fileActionHandler($nodeDataDefined, $files, "e"); // Call fileActionHandler wth the "e" (exists) fileAction
 	}
 
+	#endregion
+
+	#region Read File Meta-Function
+
 	function readJsonFile($nodeData, $files){ // This function is an abstraction for reading files and offers multi-file reading functionality
 		return fileActionHandler($nodeData, $files, "r"); // Return the JSON file or error code from fileActionHandler
 	}
+
+	#endregion
+
+	#region Update File Meta-Function
 
 	function updateJsonFile($nodeData, $files, array $contentOrDestinationNodes, $fileAppend = true){
 		if ($fileAppend == false){ // If we are updating the file but not appending
@@ -311,9 +285,17 @@
 		return fileActionHandler($nodeData, $files, $fileActionMode, $contentOrDestinationNodes);
 	}
 
+	#endregion
+
+	#region Delete File Meta-Function
+
 	function deleteJsonFile($nodeData, $files){
 		return fileActionHandler($nodeData, $files, "d");
 	}
+
+	#endregion
+
+	#region File Replication Function
 
 	function replicator($nodeDataDefined, $nodeDestinations, $files){
 
@@ -342,5 +324,7 @@
 
 		return "0.00";
 	}
+
+	#endregion
 
 ?>

@@ -28,7 +28,7 @@
 
 		$backupQueue_md5Hash = md5($backupQueue_Json); // Generate md5 hash of the file before it potentially being modified
 
-		if (strlen(trim($backupQueue_Json)) > 2){ // If the JSON is not the default ({})
+		if ((strlen(trim($backupQueue_Json)) > 2) || ($backupQueue_Json !== false)){ // If the JSON is not the default ({}) or false (file_get_contents failure)
 			$backupQueue = decodeJsonFile($backupQueue_Json); // Convert to multi-dimensional array
 		}
 		else{

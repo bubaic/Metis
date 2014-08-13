@@ -13,7 +13,7 @@ that the error is the result of failing to read a file (necessary for updating w
 ### Connections
 
 - 1.01 - Invalid or missing nodeList.
-- 1.02 - Node does not exist.
+- 1.02 - Node Group or Individaul Node does not exist.
 - 1.03 - Failing to get a particular value from a node.
 - 1.04 - "backup" is defined as a preferential location for a Node. This is a system-only folder.
 - 1.05 - CURL error.

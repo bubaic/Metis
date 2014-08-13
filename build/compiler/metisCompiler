@@ -43,6 +43,8 @@ recursiveCompiling(){ # Recursive function for code compiling
 	else # If we are compiling PHP
 		if [ $codebaseChanged == true ]; then # If the codebase has been changed
 			anyFilesChanged=true # Set global var to true
+
+			php -f build/compiler/php/phpCompile.php
 		fi
 	fi
 }

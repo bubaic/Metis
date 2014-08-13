@@ -18,23 +18,17 @@
 		 limitations under the License.
 	*/
 
-	#region Metis Initialization Function
-
-	/*
-		This function is responsible for the initialization of Metis, primarily finding the nodeList.json, decoding it from JSON to an Object / multi-dimensional array
-	*/
+	#region Metis Initialization - Responsible for the initialization of Metis, primarily finding the nodeList.json, decoding it from JSON to an Object / multi-dimensional array
 
 	function metisInit(){
 		$phpRoot = $_SERVER['DOCUMENT_ROOT']; // Variable to hold the root of PHP
 		$originalDirectory = getcwd(); // Get the current working directory so we can change back to it after fetching the node list.
-		$numberOfAttempts = 0; // Set the number of attempts to try to find the Metis directory (every attempt look's at a prior parent directory)
 		$currentWorkingDirectory = null; // Set the current working directory. This is used to track the current directory we are in.
 		$currentSearchDirectory = null; // Set the current search directory. This is used to track our progress as we move up the file system tree.
 
-		$metisExistsInFileSystem = false; // Preemptive setting of metisExistsInDirectory to false. If we find Metis folder in a directory, we set it to true.
-		$directoryHostingMetis = ""; // Exact FS string of where Metis is hosted
+		$metisFound = false; // Declare whether we have found Metis or not yet.
 
-		while ($metisExistsInFileSystem !== true && $numberOfAttempts < 6){ // While we have not found Metis in the file system and we haven't dug too deep! (d
+		while ($metisFound !== true){ // While we have not found Metis in the file system
 			if ($currentSearchDirectory !== null){ // If the current search directory is NOT null (as in it has already searched the originalDirectory)
 				chdir($currentSearchDirectory); // Move to the currentSearchDirectory (as defined at the end of the while loop).
 			}
@@ -42,7 +36,7 @@
 			$currentWorkingDirectory = getcwd(); // Get the current working directory for the purpose of scanning.
 
 			if (is_dir("Metis") == true){ // If Metis exists in the directory and is a directory
-				$metisExistsInFileSystem = true; // Assign the metisExistsInDirectory to true
+				$metisFound = true; // Set to true since we have found Metis
 				break; // Break out of while loop since we found the directory
 			}
 			else{ // If Metis does NOT exist in the directory
@@ -54,32 +48,26 @@
 						$currentSearchDirectory = $currentSearchDirectory . "../"; // Append an additional ../ to the currentSearchDirectory
 					}
 				}
-				else{ // If we are at the root of the FS accessible by PHP
-					$metisExistsInFileSystem = false;
-					break; // Break out of while loop since we haven't found the directory and there is nothing else to search
-				}
 			}
 
 			chdir($originalDirectory); // Reset our location
-			$numberOfAttempts = $numberOfAttempts + 1;
 		}
 
-		if ($metisExistsInFileSystem == true){ // If Metis DOES exist somewhere that we've searched
-			if ($phpRoot !== ""){ // If DOCUMENT_ROOT is not an empty string
-				chdir($phpRoot); // Redirect  to the PHP root
-				$fauxPHPRoot = getcwd(); // Get most likely the faux PHP root (issue on shared hosts usually). Will return DOCUMENT_ROOT under non-stupid hosts, self-hosting, VPS, etc
-				$directoryHostingMetis = str_replace($phpRoot, $fauxPHPRoot, $currentWorkingDirectory); // Remove the PHP root from the Original Directory string and replace with fauxPHPRoot
-			}
-			else{ // If DOCUMENT_ROOT is an empty string (can occur on php-cli installs)
-				$directoryHostingMetis = $currentWorkingDirectory; // Just set directoryHostingMetis to the current working directory
-			}
-
-			chdir($directoryHostingMetis);
-
-			$nodeList = decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Read the nodeList.json from the Metis folder and have it decoded into a multi-dimensional array (assigned to nodeList).
+		if ($phpRoot !== ""){ // If DOCUMENT_ROOT is not an empty string
+			chdir($phpRoot); // Redirect to the PHP root
+			$fauxPHPRoot = getcwd(); // Get most likely the faux PHP root (issue on shared hosts usually). Will return DOCUMENT_ROOT under non-stupid hosts, self-hosting, VPS, etc
+			$directoryHostingMetis = str_replace($phpRoot, $fauxPHPRoot, $currentWorkingDirectory); // Remove the PHP root from the Original Directory string and replace with fauxPHPRoot
 		}
-		else{ // If we did NOT find Metis in the FS
-			$nodeList = 1.01; // Assign nodeList as error code 1.01, which is what'll be returned.
+		else{ // If DOCUMENT_ROOT is an empty string (can occur on php-cli installs)
+			$directoryHostingMetis = $currentWorkingDirectory; // Just set directoryHostingMetis to the current working directory
+		}
+
+		chdir($directoryHostingMetis);
+
+		$nodeList = decodeJsonFile(file_get_contents("Metis/nodeList.json")); // Read the nodeList.json from the Metis folder and have it decoded into a multi-dimensional array (assigned to nodeList).
+
+		if (isset($nodeList["error"])){
+			$nodeList = array("error" => 1.01);
 		}
 
 		chdir($originalDirectory); // Move to the original directory
@@ -104,7 +92,7 @@
 		curl_setopt($httpRequest, CURLOPT_FOLLOWLOCATION, false); // Do not follow PHP location header or redirects.
 		curl_setopt($httpRequest, CURLOPT_MAXREDIRS, 1); // If there is more than 1 redirect from a URL, stop the request.
 		curl_setopt($httpRequest, CURLOPT_RETURNTRANSFER, true); // Make sure to return as a string value rather than output it.
-		curl_setopt($httpRequest, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($httpRequest, CURLOPT_SSL_VERIFYPEER, false); // Some may be used self-signed certs, do not verify peer.
 
 		$httpRequestHeaders = array("Content-length: " . strlen($remoteRequestData_JsonFormat)); // Set the content length of the JSON data
 		curl_setopt($httpRequest, CURLOPT_HTTPHEADER, $httpRequestHeaders); // Set the CURLOPT_HTTPHEADER to our value.
@@ -168,7 +156,7 @@
 			$nodeData = $nodeDataDefined; // Define nodeData as the nodeDataDefined
 		}
 		else{ // If the nodeDataDefined is not a string or an array, most likely a int / number
-			$nodeData[] =(array) $nodeDataDefined; // Change the nodeDataDefined to a string, add to nodeData array
+			$nodeData[] = (array) $nodeDataDefined; // Change the nodeDataDefined to a string, add to nodeData array
 		}
 
 		return $nodeData;
@@ -176,9 +164,8 @@
 
 	#endregion
 
-	#region Node Info
+	#region Node Info - Gets information regarding a particular Node or Node Group
 
-	/* This function gets information regarding a particular Node or Node Group */
 	function nodeInfo($requestedNodeGroupOrNumber, $requestedNodeParameter, $optionalNodeList = null){
 		if ($optionalNodeList == null){ // If the optionalNodeList was NOT defined
 			$nodeList = $GLOBALS['nodeList']; // Get the global node list as a multi-dimensional array
@@ -187,10 +174,10 @@
 			$nodeList = $optionalNodeList;
 		}
 
-		if ($nodeList[$requestedNodeGroupOrNumber] !== null){
+		if ($nodeList[$requestedNodeGroupOrNumber] !== null){ // If the Node Group or Node IS defined in the nodeList
 			if ($requestedNodeParameter !== "group-nodes"){ // If we are not getting a Node Group's list of Nodes
 				$requestedNodeParameter_Value = $nodeList[$requestedNodeGroupOrNumber][$requestedNodeParameter]; // Assign the node parameter, from the requested node number, from a specified node list, to variable.
-				if (isset($requestedNodeParameter_Value)){ // If the variable is set and is not null.
+				if (isset($requestedNodeParameter_Value) && (is_null($requestedNodeParameter_Value) == false)){ // If the variable is set and is not null.
 					return $requestedNodeParameter_Value; // Return the value of the variable
 				}
 				else{
@@ -203,8 +190,8 @@
 				return $nodeGroupNodes;
 			}
 		}
-		else{
-			die($requestedNodeGroupOrNumber . " is not defined in nodeList.");
+		else{ // If the Node Group or Node is NOT defined in the nodeList
+			return 1.02; // Return the error code #1.02
 		}
 	}
 
