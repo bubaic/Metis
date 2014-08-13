@@ -8,7 +8,7 @@ Metis is an open source and highly robust JSON distributed database / storage so
 
 3. Easy migration from existing database solutions such as MySQL to Metis.
 
-4. Typescript / Javascript implementation with zero dependencies (*such as jQuery*).
+4. Javascript /Typescript implementation with zero dependencies (*such as jQuery*) that also brings support for Cordova / PhoneGap applications, Chrome / Chrome OS applications, and modern browsers (with HTML5 LocalStorage).
 
 ### Getting Started
 

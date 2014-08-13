@@ -1,5 +1,0 @@
-#!/bin/bash
-
-currentWorkingDirectory=$(pwd);
-path="$currentWorkingDirectory/phpCompile.php"
-php -f "$path"

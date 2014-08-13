@@ -1,3 +1,0 @@
-#!/bin/bash
-
-hooks/install #Re-run install since it auto-checks version, does backup, etc.

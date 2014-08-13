@@ -1,0 +1,18 @@
+{
+    "name": "Hello Metis!",
+    "description": "This is an example Chrome App that uses Metis.",
+    "version": "0.1",
+    "manifest_version": 2,
+    "app": {
+        "background": {
+            "scripts": ["background.js"]
+        }
+    },
+    "icons": {
+        "16": "metis-16.png",
+        "128": "metis-128.png"
+    },
+    "permissions" : [ // Add a set of permissions
+        "idle", "storage" // Idle to determine when the Chromebook is idle and storage for chrome.storage.local
+    ]
+}

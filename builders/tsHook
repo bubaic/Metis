@@ -1,5 +1,0 @@
-#!/bin/bash
-hook(){
-	#printf "Post-Compiling Hook:\n"
-	return
-}
