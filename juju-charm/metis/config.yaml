@@ -1,0 +1,5 @@
+options:
+    branch:
+        type: string
+        default: "stable"
+        description: "When deploying Metis, you can have the option to deploy the stable or experimental branch."

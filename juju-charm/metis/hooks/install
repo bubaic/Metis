@@ -1,0 +1,86 @@
+#!/bin/bash
+set -ex # If any command fails, stop execution.
+
+USER=$(whoami)
+branch=$(config-get branch) # Get the branch designated for install
+
+gitAlreadyInstalled=$(dpkg --get-selections git | grep -c 'install')
+
+if [ ! $gitAlreadyInstalled -eq 1 ]; then # If git is NOT installed
+	apt-get install -y git # Ensure necessary git dependency exist.
+fi
+
+metisInstaller(){ #Function to pull and install Metis
+	branch=$1 # Get the branch we should be installing
+
+	# Do some branch sanity checking
+
+	if [[ "$branch" == "master" ]]; then # If the branch specified is master
+		branch="stable" # Set to the stable package
+	elif [[ "$branch" == "experimental" ]]; then # If the branch specified is experimental
+		branch="devel" # Set to the devel package
+	fi
+
+	# Clone the git repository
+	juju-log "Making a perfect clone of the Metis git repository."
+	mkdir -p /tmp/metis # Create a temporary directory to work in
+	git clone --branch experimental https://github.com/StroblIndustries/Metis.git /tmp/metis # Clone the repo to /tmp/metis
+
+	cd /tmp/ # Go to the temp directory
+	mkdir -p /var/www/html/ # Make sure the /var/www/html/ directory exists
+
+	tar -xf metis/"$branch".tar.gz -C /var/www/html/ # Extract the specificed branch .tar.gz to /var/www/html/
+
+	cp metis/build/heartbeat.html /var/www/Metis # Copy heartbeat.html to /var/www/Metis so we can test that Apache is set up properly
+	cp metis/build/apache-conf/apache2.conf /etc/apache2/ # Copy over our apache2 configuration that allows the use of htaccess stuff in /var/www
+
+	rm -rf /tmp/metis # Wipe away the temporary Metis folder
+
+	chown -R www-data:www-data /var/www/html/Metis # Set the Metis files to be owned by www-data
+	chmod -R 0755 /var/www # Ensure we have the correct permissions for Metis
+
+	service apache2 restart
+}
+
+# Check for existing installs
+juju-log "Our detectives are on the case. Checking for an existing Metis install."
+
+if [ -f /var/www/Metis/metis.php ]; then #If Metis is already installed
+	juju-log "Our hunch was right. Found an existing Metis install. Updating now."
+
+	cp /var/www/html/Metis/nodeList.json /tmp/ # Copy nodeList.json
+	cp -r /var/www/html/Metis/data /tmp/ # Copy over existing data
+	rm -r /var/www/html/Metis # Uninstall Metis
+
+	metisInstaller  "$branch" # Reinstall Metis
+
+	# Re-install any old data
+	juju-log "Copying over old Metis config and data. We're doing some serious magic over here."
+	mv -f /tmp/nodeList.json /var/www/Metis/ # Copy over old nodeList.json
+	rm -rf /var/www/html/Metis/data # Wipe away the existing data folder from /var/www/html/Metis/data
+	mv -f /tmp/data /var/www/html/Metis # Copy over Metis data folder
+
+	juju-log "Metis is done updating \o/ Mission accomplished."
+else #If Metis is NOT already installed
+	juju-log "Found no Metis install. The construction crew has arrived and we're installing Metis now."
+
+	# SSH Key Checking (Required for Git)
+	juju-log "Checking for an SSH key. Security reasons yo."
+	
+	if [ ! -f "/home/$USER/.ssh/id_rsa.pub" ]; then # If an SSH key does NOT exist
+		mkdir -p /home/$USER/.ssh
+		ssh-keygen -t rsa -N "metis" -C "metis-git-key" -f "/home/$USER/.ssh/id_rsa"
+	fi
+
+	juju-log "Installing the server and enabling necessary modules."
+
+	apt-get install -y php5 apache2 php5-curl #Install apache2
+	a2enmod rewrite # Enable rewrite module
+	a2enmod vhost_alias # Enable virtualhost aliasing
+	a2enmod php5 # Enable the php5 module
+
+	metisInstaller  "$branch" #Install Metis (fresh install)
+	rm -f /var/www/html/index.html # Remove apache's default index.html file
+
+	juju-log "Metis is done installing \o/ We're cheering like schoolgirls over here."
+fi

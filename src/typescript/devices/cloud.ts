@@ -52,7 +52,12 @@ module metis.devices.cloud {
 								}
 
 								for (var fileName in remoteFileContent){
-									var fileContent : Object = remoteFileContent[fileName]; // Set the fileContent Object specific to the file
+									if (remoteFileContent["error"] == undefined){ // If an XHR error did not occur
+										var fileContent : Object = remoteFileContent[fileName]; // Set the fileContent Object specific to the file
+									}
+									else{ // If an XHR error DID occur
+										var fileContent : Object = remoteFileContent; // Set the fileContent Object to be the error Object we defined in the xhrManager.status handler
+									}
 
 									uniqueIOObject["pending"]["files"].pop(fileName); // Remove the file from the pending files array
 									uniqueIOObject["completed"][fileName] = fileContent; // Set the fileName in the completed section to the particular content we've defined

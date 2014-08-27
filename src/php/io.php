@@ -45,6 +45,11 @@
 		}
 
 		chdir("Metis"); // Jump into the Metis folder
+
+		if (is_dir("data") == false){ // If the data folder does NOT already exist
+			mkdir("data"); // Made the data directory
+		}
+
 		chdir("data"); // Jump into the data folder.
 
 		if (isset($nodePreferentialLocation) && $nodePreferentialLocation !== null){ // If the preferential location is set, defined as NOT null

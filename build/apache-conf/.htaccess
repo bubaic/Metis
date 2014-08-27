@@ -1,0 +1,23 @@
+RewriteEngine on
+
+<IfModule mod_rewrite.c>
+   Options +FollowSymLinks
+   Options -Indexes
+   RewriteEngine On
+</IfModule>
+
+# Begin hotlink protection #
+	RewriteEngine on
+	RewriteCond %{HTTP_REFERER} !^http://example.com/.*$ [NC]
+	RewriteRule .(json)$ - [F]
+# End hotlink protection #
+
+<FilesMatch "\.(htaccess|json)$">
+	Order Allow,Deny
+	Deny from all
+</FilesMatch>
+
+DirectoryIndex heartbeat.html
+Options All -Indexes
+
+RewriteRule .*\.(json|.htaccess)$ - [F,L]

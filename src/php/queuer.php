@@ -22,20 +22,23 @@
 
 	function backupQueuer(array $parsedNodeData, array $files, $fileAction){
 		$nodeList = $GLOBALS['nodeList']; // Get the node list as a multi-dimensional array
+		$backupQueueFileName = fileHashing("backup-queue");
 		$directoryPriorToBackupMove = navigateToLocalMetisData("backup"); // Navigate to the backup folder
 
-		$backupQueue_Json = file_get_contents(fileHashing("backup-queue") . ".json"); // Read the contents of the backup-queue file
+		$backupQueue_Json = file_get_contents($backupQueueFileName . ".json"); // Read the contents of the backup-queue file
 
-		$backupQueue_md5Hash = md5($backupQueue_Json); // Generate md5 hash of the file before it potentially being modified
-
-		if ((strlen(trim($backupQueue_Json)) > 2) || ($backupQueue_Json !== false)){ // If the JSON is not the default ({}) or false (file_get_contents failure)
+		if ((strlen(trim($backupQueue_Json)) > 2) || ($backupQueue_Json !== false)){ // If the JSON is NOT the default ({}) or false (file_get_contents failure)
 			$backupQueue = decodeJsonFile($backupQueue_Json); // Convert to multi-dimensional array
+			$backupQueue_md5Hash = md5($backupQueue_Json); // Generate md5 hash of the file before it potentially being modified
 		}
-		else{
+		else{ // If the backupQueue is empty or does not exist
 			$backupQueue = array();
+			$backupQueue_md5Hash = null; // Define the md5Hash as null
 		}
 
 		$nodeGroupNodes_WithBackup = array(); // Array to hold any of the Node Group's Nodes that will be used for backup
+
+		#region Get Node Groups / Nodes that have backup data enabled
 
 		foreach ($parsedNodeData as $nodeOrGroup => $potentialNodesInGroup){ // For each Node Group or Node in the parsed Node Data
 			if (isset($nodeList[$nodeOrGroup]["Backup Data"])){ // If this Node Group or independent Node is meant to handle all backups of file IO
@@ -63,29 +66,31 @@
 				}
 				// Else don't add Node Group or Node to $nodeGroupNodes_WithBackup, therefore the backup queue adding gets skipped
 			}
+		}
 
-			if (count($nodeGroupNodes_WithBackup) > 0){ // If there are Nodes that have Backup Data.
-				foreach ($nodeGroupNodes_WithBackup as $nodeDataString){ // For each node listed in the nodeGroupNodes_WithBackup
+		#endregion
 
-					if (gettype($backupQueue[$nodeDataString]) !== "array"){ // If the nodeDataString array is not already defined in the backupQueue
-						$backupQueue[$nodeDataString] = array();
-					}
+		if (count($nodeGroupNodes_WithBackup) > 0){ // If there are Nodes that have Backup Data.
+			foreach ($nodeGroupNodes_WithBackup as $nodeDataString){ // For each node listed in the nodeGroupNodes_WithBackup
 
-					foreach ($files as $fileName){
-						if (isset($backupQueue[$nodeDataString][$fileName])){ // If the file is already in the backup queue
-							$backupQueueFileInfo = $backupQueue[$nodeDataString][$fileName]; // Declare backup queue file info as the data assigned to the file in queue
-							$backupQueueFileInfo_Action = $backupQueueFileInfo["action"]; // Declare this variable as the action that is queued to take place
+				if (gettype($backupQueue[$nodeDataString]) !== "array"){ // If the nodeDataString array is not already defined in the backupQueue
+					$backupQueue[$nodeDataString] = array();
+				}
 
-							if ($backupQueueFileInfo_Action !== $fileAction){ // If we are doing a different action already queued up
-								if ((($backupQueueFileInfo_Action == "w") || ($backupQueueFileInfo_Action == "a")) && ($fileAction == "d")){ // If the currently queued action is to write or update a file and the action is to delete
-									$backupQueue[$nodeDataString][$fileName]["action"] = $fileAction; // Change the action to delete
-								}
+				foreach ($files as $fileName){
+					if (isset($backupQueue[$nodeDataString][$fileName])){ // If the file is already in the backup queue
+						$backupQueueFileInfo = $backupQueue[$nodeDataString][$fileName]; // Declare backup queue file info as the data assigned to the file in queue
+						$backupQueueFileInfo_Action = $backupQueueFileInfo["action"]; // Declare this variable as the action that is queued to take place
+
+						if ($backupQueueFileInfo_Action !== $fileAction){ // If we are doing a different action already queued up
+							if ((($backupQueueFileInfo_Action == "w") || ($backupQueueFileInfo_Action == "a")) && ($fileAction == "d")){ // If the currently queued action is to write or update a file and the action is to delete
+								$backupQueue[$nodeDataString][$fileName]["action"] = $fileAction; // Change the action to delete
 							}
 						}
-						else{// If the file does not exist in the backup queue
-							$backupQueue[$nodeDataString][$fileName] = array(); // Add fileName as a new item in the $nodeDataString array
-							$backupQueue[$nodeDataString][$fileName]["action"] = $fileAction; // Set the file's action to fileAction
-						}
+					}
+					else{// If the file does not exist in the backup queue
+						$backupQueue[$nodeDataString][$fileName] = array(); // Add fileName as a new item in the $nodeDataString array
+						$backupQueue[$nodeDataString][$fileName]["action"] = $fileAction; // Set the file's action to fileAction
 					}
 				}
 			}
@@ -95,11 +100,10 @@
 		$backupQueue_NewHash = md5($backupQueue_Json); // Get the new md5 hash of the encoded backup queue
 
 		if ($backupQueue_md5Hash !== $backupQueue_NewHash){ // If the hashes have changed (implies modification of the queue), do file IO
-			$fileName = fileHashing("backup-queue");
-			$fileHandler = fopen($fileName . ".json", "w+"); // Create a file handler.
+			$fileHandler = fopen($backupQueueFileName . ".json", "w"); // Create a file handler.
 			fwrite($fileHandler, $backupQueue_Json); // Write the JSON data to the file.
 			fclose($fileHandler); // Close the file location.
-			touch($fileName. ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
+			touch($backupQueueFileName. ".json"); // Touch the file to ensure that it is set that it's been accessed and modified.
 		} // else don't do anything, since no file IO is required
 
 		chdir($directoryPriorToBackupMove);

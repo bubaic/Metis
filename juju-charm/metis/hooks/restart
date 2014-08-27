@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+
+hooks/stop # Stop the server
+hooks/start # Start the server

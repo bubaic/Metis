@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+hooks/stop # Stop the server
+hooks/install # Call the installer script again
+hooks/start # Start the server

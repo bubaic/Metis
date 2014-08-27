@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+service apache2 stop # Stop apache2
+
+close-port 80 # Make sure port 80 is closed.
+close-port 443 # Close port 443.
+
+juju-log "Oh, ok. Server needs a rest or something? Server is no longer running."

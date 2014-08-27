@@ -1,0 +1,5 @@
+#!/bin/bash
+
+hooks/stop # Stop the server
+hooks/install #Re-run install since it auto-checks version, does backup, etc.
+hooks/start # Start the server
