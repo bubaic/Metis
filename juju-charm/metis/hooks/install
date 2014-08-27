@@ -31,7 +31,7 @@ metisInstaller(){ #Function to pull and install Metis
 
 	tar -xf metis/"$branch".tar.gz -C /var/www/html/ # Extract the specificed branch .tar.gz to /var/www/html/
 
-	cp metis/build/heartbeat.html /var/www/Metis # Copy heartbeat.html to /var/www/Metis so we can test that Apache is set up properly
+	cp metis/build/heartbeat.html /var/www/html/Metis # Copy heartbeat.html to /var/www/Metis so we can test that Apache is set up properly
 	cp metis/build/apache-conf/apache2.conf /etc/apache2/ # Copy over our apache2 configuration that allows the use of htaccess stuff in /var/www
 
 	rm -rf /tmp/metis # Wipe away the temporary Metis folder
