@@ -41,8 +41,8 @@ createSnapshot(){ # Create a snapshot of the branch and package it
 	mkdir -p "build/active-snapshot/Metis" # Create a temporary snapshot directory
 	echo "$metisVersion" > VERSION.txt # Update the VERSION.txt file
 
-	cp -r build/backupSystem.php build/callback.php build/nodeList.json build/metis.php build/metis.min.js ./build/active-snapshot/Metis # Copy over particular build content to the snapshot
-	cp -r data/ workers/ License.txt VERSION.txt ./build/active-snapshot/Metis # Copy over particular non-build data to the snapshot
+	cp -r build/apache-conf/.htaccess build/backupSystem.php build/callback.php build/nodeList.json build/metis.php build/metis.min.js ./build/active-snapshot/Metis # Copy over particular build content to the snapshot
+	cp -r workers/ License.txt VERSION.txt ./build/active-snapshot/Metis # Copy over particular non-build data to the snapshot
 
 	tar --create --gzip --recursion --directory=build/active-snapshot -f "$snapshotType".tar.gz Metis
 	rm -rf build/active-snapshot

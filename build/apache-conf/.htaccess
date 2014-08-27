@@ -1,0 +1,17 @@
+RewriteEngine on
+
+<IfModule mod_rewrite.c>
+   Options +FollowSymLinks
+   Options -Indexes
+   RewriteEngine On
+</IfModule>
+
+<FilesMatch "\.(htaccess|json)$">
+        Order Allow,Deny
+        Deny from all
+</FilesMatch>
+
+DirectoryIndex heartbeat.html
+Options All -Indexes
+
+RewriteRule .*\.(json|.htaccess)$ - [F,L]

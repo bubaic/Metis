@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+open-port 80 # Open port 80
+open-port 443 # Open port 443, used in SSL situations
+service apache2 start # Start apache2
+
+juju-log "Starting the server that powers the Metis backend."

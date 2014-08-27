@@ -1,0 +1,12 @@
+name: metis
+summary: "Metis is an open source JSON distributed storage solution. "
+description: "This will install and setup the Metis backend system."
+maintainer: "Joshua Strobl <joshua@stroblindustries.com>"
+categories: 
+    - databases
+    - file-servers
+
+provides:
+    website:
+        interface: http
+        scope: container

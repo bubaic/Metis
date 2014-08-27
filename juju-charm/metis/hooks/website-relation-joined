@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Derived from Wordpress Juju Charm, thanks Marco Ceppi
+
+relation-set port=80 hostname=`unit-get public-address`
