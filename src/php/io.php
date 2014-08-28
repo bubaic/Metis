@@ -147,8 +147,13 @@
 							$thisFileContent = ""; // Variable to assign the decoded file content to.
 
 							if (($fileAction == "r") || ($fileAction == "a")){ // If we are either reading the file or appending to it (either way, we need the file)
-								$thisFileContent = file_get_contents($fileName . ".json"); // Read the file
-
+								if (is_file($fileName . ".json")){ // If the file exists
+									$thisFileContent = file_get_contents($fileName . ".json"); // Read the file
+								}
+								else{ // If the file does not exist
+									$thisFileContent = false; // Set the content to false
+								}
+								
 								if ($thisFileContent !== false){ // If we successfully fetched the file
 									$thisFileContent = decodeJsonFile($thisFileContent); // If we successfully read the file, decode the JSON (no matter if we are reading or appending)
 								}
@@ -158,7 +163,7 @@
 							}
 
 							if (($fileAction == "w") || ($fileAction == "a")){ // If we are writing or appending content
-								if (($fileAction == "a") && (isset($thisFileContent["error"]) == false)){ // If we are APPENDING content a file that DOES exist and is valid
+								if (($fileAction == "a") && ($thisFileContent["error"] !== 2.05)){ // If we are APPENDING content a file that DOES exist and is valid
 									$jsonData = array_replace_recursive($thisFileContent, $contentOrDestinationNodes); // Merge the two arrays (prior to that, decode the contents of the fetched file)
 									$thisFileContent = $jsonData; // Return the updated file content
 								}
