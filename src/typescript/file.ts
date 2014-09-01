@@ -89,12 +89,10 @@ module metis.file {
 		// #endregion
 
 		var uniqueIOObject = { // Create an Object to hold information regarding our IO request, which gets stored to metis.file.currentIO and read by the appropriate device
-			"pending" : { // Pending IO
-				"nodeData" : parsedNodeData, // Parsed form of the Node Data defined
-				"files" : handlerArguments["files"], // Files we are doing IO to
-				"action" : handlerArguments["action"], // Action
-				"contentOrDestinationNodes" : handlerArguments["contentOrDestinationNodes"]
-			},
+			"nodeData" : parsedNodeData, // Parsed form of the Node Data defined
+			"pending" : handlerArguments["files"], // Files we are doing IO to
+			"action" : handlerArguments["action"], // Action
+			"contentOrDestinationNodes" : handlerArguments["contentOrDestinationNodes"],
 			"completed" : {}, // Completed IO Object
 			"callback" : handlerArguments["callback"], // The function defined for the IO. This is optional.
 			"callback-data" : handlerArguments["callback-data"] // Any associated data for the callback that we should pass

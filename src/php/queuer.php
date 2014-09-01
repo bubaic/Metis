@@ -25,7 +25,12 @@
 		$backupQueueFileName = fileHashing("backup-queue");
 		$directoryPriorToBackupMove = navigateToLocalMetisData("backup"); // Navigate to the backup folder
 
-		$backupQueue_Json = file_get_contents($backupQueueFileName . ".json"); // Read the contents of the backup-queue file
+		if (is_file($backupQueueFileName . ".json")){ // If the backupQueueFile exists
+			$backupQueue_Json = file_get_contents($backupQueueFileName . ".json"); // Read the contents of the backup-queue file
+		}
+		else{ // If the file does NOT exist
+			$backupQueue_Json = false; // Set the JSON var to false
+		}
 
 		if ((strlen(trim($backupQueue_Json)) > 2) || ($backupQueue_Json !== false)){ // If the JSON is NOT the default ({}) or false (file_get_contents failure)
 			$backupQueue = decodeJsonFile($backupQueue_Json); // Convert to multi-dimensional array

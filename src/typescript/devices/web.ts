@@ -11,8 +11,8 @@ module metis.devices.web{
 	// #region Handler for all LocalStorage IO
 
 	export function Handle(uniqueIOObject : Object){
-		var fileAction = uniqueIOObject["pending"]["action"]; // Get the file IO type we'll be doing
-		var pendingFiles = uniqueIOObject["pending"]["files"]; // Get the pending files
+		var fileAction = uniqueIOObject["action"]; // Get the file IO type we'll be doing
+		var pendingFiles = uniqueIOObject["pending"]; // Get the pending files
 
 		// #region LocalStorage File Checking
 
@@ -35,12 +35,12 @@ module metis.devices.web{
 
 			if ((fileAction == "w") || (fileAction == "a")){ // If we are writing or appending file content to LocalStorage
 				if ((fileAction == "a") && (localFileContent !== null)){ // If we are appending content to a file that does exist
-					localFileContent = metis.core.Merge(localFileContent, uniqueIOObject["pending"]["contentOrDestinationNodes"]); // Set the localFileContent to the updated and merged content instead of a success code
+					localFileContent = metis.core.Merge(localFileContent, uniqueIOObject["contentOrDestinationNodes"]); // Set the localFileContent to the updated and merged content instead of a success code
 					localStorage.setItem(fileName, JSON.stringify(localFileContent)); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
 				}
 				else{ // If the file content we were updating doesn't exist in the first place OR we are writing
 					localFileContent = { "status" : "0.00"}; // Set to successful code since we will just act as if we are writing content
-					localStorage.setItem(fileName, JSON.stringify(uniqueIOObject["pending"]["contentOrDestinationNodes"])); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
+					localStorage.setItem(fileName, JSON.stringify(uniqueIOObject["contentOrDestinationNodes"])); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
 				}
 
 				ioSuccessful = true; // Set to successful
@@ -74,8 +74,8 @@ module metis.devices.web{
 					}
 				}
 
-				if (allowPoppingFile == true){ // If we are allow the popping of the file'
-					uniqueIOObject["pending"]["files"].pop(fileName); // Remove via array.pop the file name from the files array
+				if (allowPoppingFile == true){ // If we allow the popping of the file
+					uniqueIOObject["pending"].pop(fileName); // Remove via array.pop the file name from the files array
 				}
 
 				uniqueIOObject["completed"][fileName] = localFileContent; // Add the file to the completed section with the localFileContent

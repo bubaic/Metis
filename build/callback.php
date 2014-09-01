@@ -1,5 +1,5 @@
 <?php
-
+	header("Access-Control-Allow-Origin: *"); // Allow Cross-Origin Resource Sharing
 	include("metis.php"); // [Reference: https://github.com/StroblIndustries/Metis]
 	$metis = new Metis(); // Define Metis
 
@@ -56,6 +56,12 @@
 					if ($sanitizedHttpOrigin == $sanitizedLocalDomain){ // If the origin and domain defined are the same
 						$allowIO = true; // Allow File IO
 					}
+					else{
+						$fileIOReply = "CORS Disabled";
+					}
+				}
+				else{
+					$fileIOReply = "CORS Disabled";
 				}
 			}
 
@@ -70,8 +76,6 @@
 	}
 
 	if ($allowIO == true){ // If we are going to allow IO
-		header("Access-Control-Allow-Origin: *"); // Allow Cross-Origin Resource Sharing
-
 		#region Do File IO
 
 		$callbackNodeData = $metisCallbackData["nodeData"]; // Get the nodeNum we'll be working with (whether it is a replicator source or simply the node we'll be doing fileIO with)
@@ -90,18 +94,18 @@
 		}
 
 		#endregion
-
-		echo $fileIOReply; // Reply with the JSON content
 	}
 	else{ // If we are NOT going to allow IO
-		if (is_float($fileIOReply) == true){ // If the fileIOReply is an integer (error code
-			header("Access-Control-Allow-Origin: *"); // Allow Cross-Origin Resource Sharing
-			$fileIOReply = '{ "error" : ' . $fileIOReply . ' }'; // Set the fileIOReply to a JSON stringified version of the error and code
+		$fileIOError = $fileIOReply; // Assign the fileIOError as the fileIOReply since we will be using fileIOReply as an array initially, so we need to set it's value elsewhere
 
-			echo $fileIOReply; // Reply with the JSON content
+		$fileIOReply = array(); // Set as an array
+
+		foreach ($metisCallbackData["files"] as $fileName){ // For each file that we were initially fetching
+			$fileIOReply[$fileName] = array("error" => $fileIOError); // Set the file's error to the fileIOError
 		}
-		else{ // If the fileIOReply is NOT an integer (meaning it is a CORS_DISABLED string)
-			header("Access-Control-Allow-Origin: " . $_SERVER['SERVER_NAME']); // Only allow CORS from the server name defined in the SERVER_NAME
-		}
+
+		$fileIOReply = json_encode($fileIOReply); // Encode the array as a JSON string
 	}
+
+	echo $fileIOReply; // Reply with the JSON content
 ?>
