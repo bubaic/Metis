@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded",
 
         metis.file.Create(
             {
-                "nodeData" : "1",
+                "nodeData" : "Example#1",
                 "files" : "example",
                 "contentOrDestinationNodes" : {
                     "hello" : "world"
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded",
 
         metis.file.Read(
             {
-                "nodeData" : "1",
+                "nodeData" : "Example#1",
                 "files" : "example",
                 "callback" : function(completedIO){
                     addResponse("Read", completedIO);
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded",
 
         metis.file.Update(
             {
-                "nodeData" : "1",
+                "nodeData" : "Example#1",
                 "files" : "example",
                 "append" : true,
                 "contentOrDestinationNodes" : {
@@ -51,10 +51,20 @@ document.addEventListener("DOMContentLoaded",
 
         metis.file.Delete(
             {
-                "nodeData" : "1",
+                "nodeData" : "Example#1",
                 "files" : "example",
                 "callback" : function(completedIO){
                     addResponse("Delete", completedIO);
+                }
+            }
+        );
+
+        metis.file.Read(
+            {
+                "nodeData" : "corsDisableTest",
+                "files" : "example",
+                "callback" : function(completedIO){
+                    addResponse("CORS Disable Test", completedIO);
                 }
             }
         );

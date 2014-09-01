@@ -1,14 +1,14 @@
 <?php
+	header("Access-Control-Allow-Origin: *"); // Allow CORS
 	$callbackInput = file_get_contents("php://input"); // Read the JSON data sent to the callback script
 	$callbackJSONArray = json_decode($callbackInput, true); // Decode into a multi-dimensional array
 
-	if ($callbackJSONArray["nodeData"] !== "corsDisableTest"){ // If we are not testing the CORS disabled handler in Typescript
-		header("Access-Control-Allow-Origin: *"); // Allow CORS
+	$returnableFileContent = array(); // Create an array to hold the returnable file content
 
+	if ($callbackJSONArray["nodeData"] !== "corsDisableTest"){ // If we are not testing the CORS disabled handler in Typescript
 		$fileAction = $callbackJSONArray["action"]; // Get the action we are doing for the files
 		$updatableFileContent = $callbackJSONArray["contentOrDestinationNodes"]; // Content we are getting only for updates
 
-		$returnableFileContent = array(); // Create an array to hold the returnable file content
 
 		$staticFile = array("hello" => "world"); // Static file to emulate a read
 		$successCode = array("status" => "0.00"); // Success code
@@ -28,10 +28,13 @@
 			}
 		}
 
-		echo json_encode($returnableFileContent); // Return a JSON encoded string with the stuff
+
 	}
 	else{ // If we ARE testing the CORS disabled handler in Typescript
-		header("Access-Control-Allow-Origin: " . $_SERVER["SERVER_NAME"]); // Only allow simulation directly from stroblindustries.com, meaning Typescript's handling of failed calls will be triggered
+		foreach ($callbackJSONArray["files"] as $fileName){ // For each file that we were initially fetching
+			$returnableFileContent[$fileName] = array("error" => "CORS Disabled"); // Set the file's error to CORS Disabled
+		}
 	}
 
+	echo json_encode($returnableFileContent); // Return a JSON encoded string with the stuff
 ?>

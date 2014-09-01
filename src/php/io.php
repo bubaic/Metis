@@ -153,7 +153,7 @@
 								else{ // If the file does not exist
 									$thisFileContent = false; // Set the content to false
 								}
-								
+
 								if ($thisFileContent !== false){ // If we successfully fetched the file
 									$thisFileContent = decodeJsonFile($thisFileContent); // If we successfully read the file, decode the JSON (no matter if we are reading or appending)
 								}
