@@ -27,8 +27,8 @@ recursiveCompiling(){ # Recursive function for code compiling
 		fi
 	done
 
-	if [ "$sourceLocation" == "typescript" ]; then # If we are compiling Typescript
-		if [ $codebaseChanged == true ]; then # If the codebase has been changed
+	if [ $codebaseChanged == true ]; then # If the codebase has been changed
+		if [ "$sourceLocation" == "typescript" ]; then # If we are compiling Typescript
 			anyFilesChanged=true # Set global var to true
 
 			tsc --removeComments --target 'ES5' src/typescript/metis.ts --declaration --out build/metis.js
@@ -39,11 +39,8 @@ recursiveCompiling(){ # Recursive function for code compiling
 			rm build/metis.js &> /dev/null # Remove the uncompressed metis.js file
 
 			echo "Finished compiling and minification process of Metis."
-		fi
-	else # If we are compiling PHP
-		if [ $codebaseChanged == true ]; then # If the codebase has been changed
+		else # If we are compiling PHP
 			anyFilesChanged=true # Set global var to true
-
 			php -f build/compiler/php/phpCompile.php
 		fi
 	fi
