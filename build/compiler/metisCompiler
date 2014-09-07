@@ -11,7 +11,14 @@ declare -a filesThatHaveChanged # Create an array to hold the names of the files
 
 recursiveCompiling(){ # Recursive function for code compiling
 	sourceLocation=$1 # Set sourceLocation as the second location
-	filesArray=$(find src/$sourceLocation -type f) # Get all files relating to this type recursively
+
+	if [ "$sourceLocation" == "typescript" ]; then # If the sourceLocation is typescript code
+		fileType="ts" # Set the fileType to ts
+	else
+		fileType="php" # Set the fileType to php
+	fi
+
+	filesArray=$(find src/"$sourceLocation"/*."$fileType" -type f) # Get all files relating to this type recursively
 
 	codebaseChanged=false # Set codebaseChanged to false by default. If a module has been added or changed, then it will be changed to true
 
@@ -31,8 +38,6 @@ recursiveCompiling(){ # Recursive function for code compiling
 		anyFilesChanged=true # Set anyFilesChanged to true since the codebase has changed
 
 		if [ "$sourceLocation" == "typescript" ]; then # If we are compiling Typescript
-			anyFilesChanged=true # Set global var to true
-
 			tsc --removeComments --target 'ES5' src/typescript/metis.ts --declaration --out build/metis.js
 			echo "Minifying Metis compiled Javascript."
 			yuicompressor --type=js build/metis.js -o build/metis.min.js &> /dev/null
@@ -42,7 +47,6 @@ recursiveCompiling(){ # Recursive function for code compiling
 
 			echo "Finished compiling and minification process of Metis."
 		else # If we are compiling PHP
-			anyFilesChanged=true # Set global var to true
 			php -f build/compiler/php/phpCompile.php
 		fi
 	fi

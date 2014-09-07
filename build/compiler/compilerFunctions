@@ -4,8 +4,10 @@ fileChanged(){ # Function that checks if a file is new or has been changed
 	sourceLocation=$1
 	fileFullPath=$2
 
+	mkdir -p build/sha1sums/"$sourceLocation" # Make the type specific sha1sums folder if it doesn't exist already
+
 	file=${fileFullPath#*/} # Set file to be the name of the file without the path
-	fileShaSumPath="build/sha1sums/$file.sha1sum" # Set the full patch of the potential sha1sum of the file
+	fileShaSumPath="build/sha1sums/$sourceLocation/$file" # Set the full patch of the potential sha1sum of the file
 
 	latestFileSum=$(cat "src/$sourceLocation/$fileFullPath" | sha1sum) # Get the sha1sum of the file
 	latestFileSum=${latestFileSum% -} # Remove everything after  -, which is sha1sum's reference to the file that was hashed
