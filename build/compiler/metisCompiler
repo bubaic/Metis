@@ -28,6 +28,8 @@ recursiveCompiling(){ # Recursive function for code compiling
 	done
 
 	if [ $codebaseChanged == true ]; then # If the codebase has been changed
+		anyFilesChanged=true # Set anyFilesChanged to true since the codebase has changed
+
 		if [ "$sourceLocation" == "typescript" ]; then # If we are compiling Typescript
 			anyFilesChanged=true # Set global var to true
 
