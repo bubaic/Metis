@@ -80,6 +80,9 @@ module metis.devices.cloud {
 						xhrManager.open("POST", metis.core.metisFlags["Callback"], true); // xhrManager will open an async connection using POST to the url defined in xhrManagerUrl
 						xhrManager.send(JSON.stringify(remoteIOData)); // Send the data
 					}
+					else{ // If there are no pending files
+						metis.devices.cloud.fireCallback(potentialCallback, completedIO, potentialCallbackExtraData); // Fire callback with the completed content and any extra data.
+					}
 				}
 				else{ // If the user is NOT online or their battery life is NOT sufficient
 					if(uniqueIOObject["action"] !== "r") { // If we were not reading files

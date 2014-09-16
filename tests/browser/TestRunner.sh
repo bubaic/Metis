@@ -1,3 +1,3 @@
 #!/bin/bash
 
-firefox -jsconsole -no-remote file:///"$PWD"/test.html
+firefox -jsconsole -no-remote file:///"$PWD"/tests/browser/test.html

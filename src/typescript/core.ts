@@ -17,48 +17,48 @@ module metis.core{
 	export var deviceIO : any;
 	export var metisFlags : Object;
 
-	export function Init(arguments : Object){
-		this.metisFlags = {};
+	export function Init(initArgs : Object){
+		metis.core.metisFlags = {};
 
 		// #region Arguments Parser / Default(er)
 
-		if (arguments["Headless"] !== true){ // If Headless mode is NOT set to true
-			if (arguments["Callback"] == undefined){ // If a Callback is undefined
-				arguments["Headless"] = true; //Switch to true
+		if (initArgs["Headless"] !== true){ // If Headless mode is NOT set to true
+			if (initArgs["Callback"] == undefined){ // If a Callback is undefined
+				initArgs["Headless"] = true; //Switch to true
 			}
 			else{ // If a callback IS defined
-				if (arguments["Callback"].indexOf("/callback.php") == -1){ // If the callback does NOT have /callback.php
-					if (arguments["Callback"].substr(arguments["Callback"].length - 1) !== "/"){ // If the callback does NOT end in /
-						arguments["Callback"] += "/"; // Add the /
+				if (initArgs["Callback"].indexOf("/callback.php") == -1){ // If the callback does NOT have /callback.php
+					if (initArgs["Callback"].substr(initArgs["Callback"].length - 1) !== "/"){ // If the callback does NOT end in /
+						initArgs["Callback"] += "/"; // Add the /
 					}
 
-					arguments["Callback"] += "callback.php"; // Add the callback.php
+					initArgs["Callback"] += "callback.php"; // Add the callback.php
 				}
 			}
 		}
 
-		if (arguments["Device"] == undefined){ // If Device is NOT defined
-			arguments["Device"] = "Cloud"; // Set the Device to Cloud (so we'll use LocalStorage)
+		if (initArgs["Device"] == undefined){ // If Device is NOT defined
+			initArgs["Device"] = "Cloud"; // Set the Device to Cloud (so we'll use LocalStorage)
 		}
 
-		if (arguments["User Online"] == undefined){ // If User Online is not defined by default
-			if (arguments["Device"] !== "Cordova"){ // If the user's Device is the Cloud or Chrome(OS)
-				arguments["User Online"] = window.navigator.onLine; // Set the User Online to their current navigator state
+		if (initArgs["User Online"] == undefined){ // If User Online is not defined by default
+			if (initArgs["Device"] !== "Cordova"){ // If the user's Device is the Cloud or Chrome(OS)
+				initArgs["User Online"] = window.navigator.onLine; // Set the User Online to their current navigator state
 			}
 			else{ // If the user's Device is Cordova
-				arguments["User Online"] = true; // Default user to being online
+				initArgs["User Online"] = true; // Default user to being online
 
 				if (navigator.connection.type == Connection.NONE){ // If the connection is NONE
-					arguments["User Online"] = false;
+					initArgs["User Online"] = false;
 				}
 			}
 		}
 
 		// #region Battery Status Checking
 
-		arguments["Battery OK"] = true; // Default "Battery OK" to true
+		initArgs["Battery OK"] = true; // Default "Battery OK" to true
 
-		if (arguments["Device"] == "Cordova"){ // If the device is Cordova
+		if (initArgs["Device"] == "Cordova"){ // If the device is Cordova
 			// #region Leverage Battery Status To Determine Whether To Process ioQueue
 
 			document.addEventListener("batterystatus", // Create an event handler that keeps track of battery status
@@ -75,18 +75,18 @@ module metis.core{
 			// #endregion
 		}
 
-		if (arguments["Device"].toLowerCase().indexOf("chrome") == -1){ // If the device in nature utilizes LocalStorage
-			this.deviceIO = metis.devices.web; // Set the device to the metis.devices.web
+		if (initArgs["Device"].toLowerCase().indexOf("chrome") == -1){ // If the device in nature utilizes LocalStorage
+			metis.core.deviceIO = metis.devices.web; // Set the device to the metis.devices.web
 		}
 		else{ // If we are utilizing Chrome, Chrome OS, etc.
-			this.deviceIO = metis.devices.chromeos; // Set the device to metis.devices.chromeos
+			metis.core.deviceIO = metis.devices.chromeos; // Set the device to metis.devices.chromeos
 		}
 
 		// #endregion
 
-		this.metisFlags = arguments; // Set the metisFlags to the arguments we've parsed
+		metis.core.metisFlags = initArgs; // Set the metisFlags to the arguments we've parsed
 
-		if (this.metisFlags["Headless"] == false){ // If Headless mode is not enabled
+		if (metis.core.metisFlags["Headless"] == false){ // If Headless mode is not enabled
 			metis.queuer.Init(); // Initialize the IO Queue System
 		}
 	}
