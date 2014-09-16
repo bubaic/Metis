@@ -17,17 +17,17 @@ declare module metis.queuer {
 declare module metis.core {
     var deviceIO: any;
     var metisFlags: Object;
-    function Init(arguments: Object): void;
+    function Init(initArgs: Object): void;
     function Merge(primaryObject: Object, secondaryObject: Object): Object;
 }
 declare module metis.file {
     function Handler(handlerArguments: Object): void;
     function Decode(jsonString: string): any;
-    function Read(arguments: Object): void;
-    function Create(arguments: Object): void;
-    function Update(arguments: Object): void;
-    function Delete(arguments: Object): void;
-    function Exists(arguments: Object): void;
+    function Read(ioArgs: Object): void;
+    function Create(ioArgs: Object): void;
+    function Update(ioArgs: Object): void;
+    function Delete(ioArgs: Object): void;
+    function Exists(ioArgs: Object): void;
     function ClearAll(): void;
 }
 declare module metis.devices.chromeos {
@@ -35,5 +35,5 @@ declare module metis.devices.chromeos {
     function ClearAll(): void;
 }
 declare module metis {
-    function Init(arguments: Object): void;
+    function Init(initArgs: Object): void;
 }

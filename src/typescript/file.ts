@@ -113,35 +113,35 @@ module metis.file {
 
 	// #region Reading files from local storage (whether that be LocalStorage or chrome.storage)
 
-	export function Read(arguments : Object) {
-		arguments["action"] = "r"; // Set the action to read (r)
-		metis.file.Handler(arguments);
+	export function Read(ioArgs : Object) {
+		ioArgs["action"] = "r"; // Set the action to read (r)
+		metis.file.Handler(ioArgs);
 	}
 
 	// #endregion
 
 	// #region Creating one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
 
-	export function Create(arguments : Object) {
-		arguments["action"] = "w"; // Set the action to write (w)
-		metis.file.Handler(arguments);
+	export function Create(ioArgs : Object) {
+		ioArgs["action"] = "w"; // Set the action to write (w)
+		metis.file.Handler(ioArgs);
 	}
 
 	// #endregion
 
 	// #region Update one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
 
-	export function Update(arguments : Object) {
-		if(arguments["append"] !== true){ // If we are NOT appending content to the file
-			delete arguments["append"]; // Delete the append item
-			arguments["action"] = "w"; // Set the action to writing
+	export function Update(ioArgs : Object) {
+		if(ioArgs["append"] !== true){ // If we are NOT appending content to the file
+			delete ioArgs["append"]; // Delete the append item
+			ioArgs["action"] = "w"; // Set the action to writing
 
-			metis.file.Handler(arguments);
+			metis.file.Handler(ioArgs);
 		}
 		else{ // If we ARE appending content to the file
-			delete arguments["append"]; // Delete the append item
-			arguments["action"] = "a"; // Set the action to appending
-			metis.file.Handler(arguments);
+			delete ioArgs["append"]; // Delete the append item
+			ioArgs["action"] = "a"; // Set the action to appending
+			metis.file.Handler(ioArgs);
 		}
 	}
 
@@ -149,18 +149,18 @@ module metis.file {
 
 	// #region Delete one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
 
-	export function Delete(arguments : Object) {
-		arguments["action"] = "d"; // Set the action to delete (d)
-		metis.file.Handler(arguments);
+	export function Delete(ioArgs : Object) {
+		ioArgs["action"] = "d"; // Set the action to delete (d)
+		metis.file.Handler(ioArgs);
 	}
 
 	// #endregion
 
 	// #region Checking if one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s) exists
 
-	export function Exists(arguments : Object){
-		arguments["action"] = "e"; // Set the action to exists (e)
-		metis.file.Handler(arguments);
+	export function Exists(ioArgs : Object){
+		ioArgs["action"] = "e"; // Set the action to exists (e)
+		metis.file.Handler(ioArgs);
 	}
 
 	// #endregion

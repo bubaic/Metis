@@ -11,7 +11,14 @@ declare -a filesThatHaveChanged # Create an array to hold the names of the files
 
 recursiveCompiling(){ # Recursive function for code compiling
 	sourceLocation=$1 # Set sourceLocation as the second location
-	filesArray=$(find src/$sourceLocation -type f) # Get all files relating to this type recursively
+
+	if [ "$sourceLocation" == "typescript" ]; then # If the sourceLocation is typescript code
+		fileType="ts" # Set the fileType to ts
+	else
+		fileType="php" # Set the fileType to php
+	fi
+
+	filesArray=$(find src/"$sourceLocation"/ -type f -name "*.$fileType") # Get all files relating to this type recursively
 
 	codebaseChanged=false # Set codebaseChanged to false by default. If a module has been added or changed, then it will be changed to true
 
@@ -27,23 +34,19 @@ recursiveCompiling(){ # Recursive function for code compiling
 		fi
 	done
 
-	if [ "$sourceLocation" == "typescript" ]; then # If we are compiling Typescript
-		if [ $codebaseChanged == true ]; then # If the codebase has been changed
-			anyFilesChanged=true # Set global var to true
+	if [ $codebaseChanged == true ]; then # If the codebase has been changed
+		anyFilesChanged=true # Set anyFilesChanged to true since the codebase has changed
 
+		if [ "$sourceLocation" == "typescript" ]; then # If we are compiling Typescript
 			tsc --removeComments --target 'ES5' src/typescript/metis.ts --declaration --out build/metis.js
 			echo "Minifying Metis compiled Javascript."
-			yuicompressor --type=js build/metis.js -o build/metis.min.js &> /dev/null
+			java -jar build/compiler/jscompressor.jar --compilation_level SIMPLE --language_in ECMASCRIPT5 --language_out ECMASCRIPT5 --warning_level QUIET --js build/metis.js --js_output_file build/metis.min.js
 
 			cp build/metis.min.js tests/chrome/ # Copy to Chrome Example App automatically
 			rm build/metis.js &> /dev/null # Remove the uncompressed metis.js file
 
 			echo "Finished compiling and minification process of Metis."
-		fi
-	else # If we are compiling PHP
-		if [ $codebaseChanged == true ]; then # If the codebase has been changed
-			anyFilesChanged=true # Set global var to true
-
+		else # If we are compiling PHP
 			php -f build/compiler/php/phpCompile.php
 		fi
 	fi

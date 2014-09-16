@@ -19,8 +19,8 @@ module metis{
 
 	// #region Metis Initialization
 
-	export function Init(arguments : Object){
-		return metis.core.Init(arguments);
+	export function Init(initArgs : Object){
+		return metis.core.Init(initArgs);
 	}
 
 	// #endregion

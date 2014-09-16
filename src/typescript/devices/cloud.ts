@@ -80,18 +80,19 @@ module metis.devices.cloud {
 						xhrManager.open("POST", metis.core.metisFlags["Callback"], true); // xhrManager will open an async connection using POST to the url defined in xhrManagerUrl
 						xhrManager.send(JSON.stringify(remoteIOData)); // Send the data
 					}
+					else{ // If there are no pending files
+						metis.devices.cloud.fireCallback(potentialCallback, completedIO, potentialCallbackExtraData); // Fire callback with the completed content and any extra data.
+					}
 				}
-				else { // If the user is NOT online or their battery life is NOT sufficient
-					var filesNeededForQueuing = pendingFiles; // Add the currently pending files to the filesNeededForQueing
-
+				else{ // If the user is NOT online or their battery life is NOT sufficient
 					if(uniqueIOObject["action"] !== "r") { // If we were not reading files
-						filesNeededForQueuing.push(Object.keys(completedIO)); // Push even the completed IO file list to the filesNeededForQueuing, since we need to do the same action on the server.
+						pendingFiles.push(Object.keys(completedIO)); // Push even the completed IO file list to the filesNeededForQueuing, since we need to do the same action on the server.
 					}
 
-					if(filesNeededForQueuing.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
+					if(pendingFiles.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
 						var newIOObject = { // Create an Object to hold information regarding our IO request and add the corresponding Object to the metis.file.currentIO
 							"nodeData" : uniqueIOObject["nodeData"], // Node Data we defined
-							"pending" : filesNeededForQueuing, // Files we are doing IO to
+							"pending" : pendingFiles, // Files we are doing IO to
 							"action" : fileAction, // Action
 							"contentOrDestinationNodes" : contentOrDestinationNodes,
 							"completed" : {} // Completed IO Object
