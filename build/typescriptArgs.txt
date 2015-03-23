@@ -1,0 +1,1 @@
+--declaration --removeComments --target ES5 src/typescript/metis.ts --out build/metis.js
