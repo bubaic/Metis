@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/StroblIndustries/metis-pkg" // Import the core Metis code
 	"io/ioutil"
 	"log/syslog"
@@ -97,8 +98,8 @@ func main() {
 	var configLocation string
 	var nodeListLocation string
 
-	flag.StringVar(&configLocation, "config", "config/metis.json", "Location of Metis config file")          // Define the config flag
-	flag.StringVar(&nodeListLocation, "nodeList", "config/nodeList.json", "Location of Metis nodeList file") // Define the nodeList flag
+	flag.StringVar(&configLocation, "c", "config/metis.json", "Location of Metis config file")          // Define the config flag
+	flag.StringVar(&nodeListLocation, "n", "config/nodeList.json", "Location of Metis nodeList file") // Define the nodeList flag
 
 	flag.Parse() // Parse the flags
 
@@ -111,11 +112,15 @@ func main() {
 
 	if (configReadError != nil) || (nodeListError != nil) { // If we couldn't find the config file or nodeList ffile
 		if configReadError != nil { // If we couldn't find the config file
-			metis.ErrorLogger(syslog.LOG_ERR, "Could not find config at: "+configLocation) // Log the error
+			configErrorMessage := "Could not find config at: "+ configLocation
+			metis.ErrorLogger(syslog.LOG_ERR, configErrorMessage) // Log the error
+			fmt.Println(configErrorMessage) // Print in stdout as well
 		}
 
 		if nodeListError != nil { // If we couldn't find the nodeList file
-			metis.ErrorLogger(syslog.LOG_ERR, "Could not find nodeList at: "+nodeListLocation) // Log the error
+			nodelistErrorMessage := "Could not find nodeList at: "+ nodeListLocation
+			metis.ErrorLogger(syslog.LOG_ERR, nodelistErrorMessage) // Log the error
+			fmt.Println(nodelistErrorMessage) // Print in stdout as well
 		}
 
 		os.Exit(1) // Exit as error
@@ -128,7 +133,9 @@ func main() {
 	configDecodeError := json.Unmarshal(configBytes, &config)    // Decode the configBytes into config, with error being configDecodeError
 
 	if configDecodeError != nil { // If we couldn't decode the config
-		metis.ErrorLogger(syslog.LOG_ERR, "Failed to decode config. Please ensure the config is valid JSON.") // Log the decode error
+		configDecodeErrorMessage := "Failed to decode config. Please ensure the config is valid JSON."
+		metis.ErrorLogger(syslog.LOG_ERR, configDecodeErrorMessage) // Log the decode error
+		fmt.Println(configDecodeErrorMessage) // Print in stdout as well
 		os.Exit(1) // Exit as error
 	}
 
