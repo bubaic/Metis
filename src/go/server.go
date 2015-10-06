@@ -151,9 +151,12 @@ func main() {
 
 	// #region Metis Initialization
 
-	initializationSucceeded := metis.Initialize(nodeListBytes) // Initialize Metis with the nodeList, assigning bool initializationSucceeded
+	initializationSucceeded := metis.Initialize(nodeListBytes) // Initialize Metis with the nodeList, assigning bool initializationSucceeded. If it succeeds, it will change initializationSucceeded to true
 
 	if initializationSucceeded == false { // If initialization failed
+		initializationErrorMessage := "Failed to initialize Metis."
+		metis.ErrorLogger(syslog.LOG_ERR, initializationErrorMessage) // Log the decode error
+		fmt.Println(initializationErrorMessage) // Print in stdout as well
 		os.Exit(1)
 	}
 
