@@ -113,13 +113,13 @@ func main() {
 	if (configReadError != nil) || (nodeListError != nil) { // If we couldn't find the config file or nodeList ffile
 		if configReadError != nil { // If we couldn't find the config file
 			configErrorMessage := "Could not find config at: "+ configLocation
-			metis.ErrorLogger(syslog.LOG_ERR, configErrorMessage) // Log the error
+			metis.MessageLogger(syslog.LOG_ERR, configErrorMessage) // Log the error
 			fmt.Println(configErrorMessage) // Print in stdout as well
 		}
 
 		if nodeListError != nil { // If we couldn't find the nodeList file
 			nodelistErrorMessage := "Could not find nodeList at: "+ nodeListLocation
-			metis.ErrorLogger(syslog.LOG_ERR, nodelistErrorMessage) // Log the error
+			metis.MessageLogger(syslog.LOG_ERR, nodelistErrorMessage) // Log the error
 			fmt.Println(nodelistErrorMessage) // Print in stdout as well
 		}
 
@@ -134,7 +134,7 @@ func main() {
 
 	if configDecodeError != nil { // If we couldn't decode the config
 		configDecodeErrorMessage := "Failed to decode config. Please ensure the config is valid JSON."
-		metis.ErrorLogger(syslog.LOG_ERR, configDecodeErrorMessage) // Log the decode error
+		metis.MessageLogger(syslog.LOG_ERR, configDecodeErrorMessage) // Log the decode error
 		fmt.Println(configDecodeErrorMessage) // Print in stdout as well
 		os.Exit(1) // Exit as error
 	}
@@ -155,7 +155,7 @@ func main() {
 
 	if initializationSucceeded == false { // If initialization failed
 		initializationErrorMessage := "Failed to initialize Metis."
-		metis.ErrorLogger(syslog.LOG_ERR, initializationErrorMessage) // Log the decode error
+		metis.MessageLogger(syslog.LOG_ERR, initializationErrorMessage) // Log the decode error
 		fmt.Println(initializationErrorMessage) // Print in stdout as well
 		os.Exit(1)
 	}
@@ -165,7 +165,23 @@ func main() {
 	// #region Metis HTTP and Puppeteering Servers
 
 	http.HandleFunc("/", metisHTTPServe) // Handle anything to / to metisHTTPServe func
-	http.ListenAndServe(":" + strconv.Itoa(config.Port), nil) // Listen on designated port
+	serveFail := http.ListenAndServe(":" + strconv.Itoa(config.Port), nil) // Listen on designated port
+
+	logMessage := "Starting Metis HTTP Server: " // Our log message we provide syslog and stdout, appending logStatusString
+	logStatus := syslog.LOG_INFO // Set logStatus to LOG_INFO by Defaults
+	logStatusString := "OK" // Set status string to OK by default
+
+	if serveFail != nil { // If there was an error starting the server
+		logStatus = syslog.LOG_ERR // Log as ERR instead
+		logStatusString = "FAIL" // Indicate failure
+	}
+
+	metis.MessageLogger(logStatus, logMessage + logStatusString) // Log the message to the appropriate syslog status
+
+	if serveFail != nil {
+		fmt.Println(logMessage + logStatusString) // Print to stdout as well
+		os.Exit(1) // Immediately exit
+	}
 
 	if config.EnablePuppeteering { // If EnablePuppeteering is enabled
 		http.HandleFunc("/", metisPuppetServe) // Handle anything to / to metisPuppetServe func
