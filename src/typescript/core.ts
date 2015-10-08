@@ -22,26 +22,19 @@ module metis.core{
 
 		// #region Arguments Parser / Default(er)
 
-		if (initArgs["Headless"] !== true){ // If Headless mode is NOT set to true
-			if (initArgs["Callback"] == undefined){ // If a Callback is undefined
-				initArgs["Headless"] = true; //Switch to true
-			}
-			else{ // If a callback IS defined
-				if (initArgs["Callback"].indexOf("/callback.php") == -1){ // If the callback does NOT have /callback.php
-					if (initArgs["Callback"].substr(initArgs["Callback"].length - 1) !== "/"){ // If the callback does NOT end in /
-						initArgs["Callback"] += "/"; // Add the /
-					}
-
-					initArgs["Callback"] += "callback.php"; // Add the callback.php
-				}
+		if (((typeof initArgs["Headless"] == "boolean")  && (initArgs["Headless"] !== true)) || (typeof initArgs["Headless"] !== "boolean")) { // If Headless mode is NOT set to true
+			if (typeof initArgs["Callback"] == "undefined"){ // If a Callback is undefined
+				initArgs["Headless"] = true; // Set to true
+			} else { // If a callback is defined
+				initArgs["Headless"] = false; // Set to false
 			}
 		}
 
-		if (initArgs["Device"] == undefined){ // If Device is NOT defined
+		if (typeof initArgs["Device"] == "undefined"){ // If Device is NOT defined
 			initArgs["Device"] = "Cloud"; // Set the Device to Cloud (so we'll use LocalStorage)
 		}
 
-		if (initArgs["User Online"] == undefined){ // If User Online is not defined by default
+		if (typeof initArgs["User Online"] == "undefined"){ // If User Online is not defined by default
 			if (initArgs["Device"] !== "Cordova"){ // If the user's Device is the Cloud or Chrome(OS)
 				initArgs["User Online"] = window.navigator.onLine; // Set the User Online to their current navigator state
 			}
@@ -75,7 +68,7 @@ module metis.core{
 			// #endregion
 		}
 
-		if (initArgs["Device"].toLowerCase().indexOf("chrome") == -1){ // If the device in nature utilizes LocalStorage
+		if (initArgs["Device"] == "Cloud"){ // If the device in nature utilizes LocalStorage
 			metis.core.deviceIO = metis.devices.web; // Set the device to the metis.devices.web
 		}
 		else{ // If we are utilizing Chrome, Chrome OS, etc.

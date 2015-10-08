@@ -13,15 +13,15 @@ module metis.devices.chromeos {
 // #region Handler for all Chrome(OS) IO
 
 	export function Handle(uniqueIOObject : Object){
-		var fileAction = uniqueIOObject["action"]; // Get the file IO type we'll be doing
+		var fileAction = uniqueIOObject["Action"]; // Get the file IO type we'll be doing
 		var pendingFiles = uniqueIOObject["pending"]; // Get the pending files
-		var contentOrDestinationNodes = uniqueIOObject["contentOrDestinationNodes"]; // Potential contentOrDestinationNodes
+		var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"]; // Potential contentOrDestinationNodes
 
 		// #region Chrome IO Async Handler
 
 		var chromeGetHandler = function(){ // When we have gotten the files necessary
 			var uniqueIOObject : string = arguments[0]; // Set uniqueIOId to the arguments provided, where zero-index is the uniqueIOId due to binding
-			var fileAction = uniqueIOObject["action"]; // Get the fileAction passed to us through the uniqueIOObject
+			var fileAction = uniqueIOObject["Action"]; // Get the fileAction passed to us through the uniqueIOObject
 			var completedIO : Object = arguments[1]; // Set completedIO to the arguments provided, where one-index is the completedIO provided by chrome.storage.local.get
 
 			for (var fileIndex in completedIO){ // For each file we received
@@ -32,7 +32,7 @@ module metis.devices.chromeos {
 				if (typeof localFileContent == "Object"){ // If the fileContent is an Object
 					if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")){ // If we are doing anything that somehow relates to getting the file content
 						if (fileAction == "a"){ // If we were appending content
-							var contentOrDestinationNodes = uniqueIOObject["contentOrDestinationNodes"]; // Get the contentOrDestinationNodes
+							var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"]; // Get the contentOrDestinationNodes
 
 							localFileContent = metis.core.Merge(localFileContent, contentOrDestinationNodes); // Merge the JSON object from this uniqueIOObject and the read content
 							chrome.storage.local.set({fileName : localFileContent}); // Store the updated file content in Chrome.StorageArea

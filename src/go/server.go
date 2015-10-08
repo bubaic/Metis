@@ -77,6 +77,7 @@ func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
 		response, _ = json.Marshal(errorResponseObject) // Encode the errorResponseObject instead
 	}
 
+    writer.Header().Set("Access-Control-Allow-Origin", "*") // Enable Access-Control-Allow-Origin
 	writer.Write(response) // Write the response
 }
 

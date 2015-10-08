@@ -13,9 +13,9 @@ module metis.devices.cloud {
 	export function Handle(uniqueIOObject : Object){
 		// #region Pending-Related Variables
 
-		var fileAction = uniqueIOObject["action"]; // Get the file IO type we'll be doing
+		var fileAction = uniqueIOObject["Action"]; // Get the file IO type we'll be doing
 		var pendingFiles = uniqueIOObject["pending"]; // Get the pending files
-		var contentOrDestinationNodes = uniqueIOObject["contentOrDestinationNodes"]; // Potential contentOrDestinationNodes
+		var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"]; // Potential contentOrDestinationNodes
 
 		// #endregion
 
@@ -23,18 +23,18 @@ module metis.devices.cloud {
 		var potentialCallback = uniqueIOObject["callback"]; // Get the potential function associated with this IO
 		var potentialCallbackExtraData = uniqueIOObject["callback-data"]; // Get the potential extra data we should pass to the callback
 
-		if (uniqueIOObject["nodeData"] !== "internal"){ // If we are not doing an internal Metis call
+		if (uniqueIOObject["NodeData"] !== "internal"){ // If we are not doing an internal Metis call
 			if (metis.core.metisFlags["Headless"] == false){ // If Headless Mode is disabled, then we are allowed to make XHR calls
 				if((metis.core.metisFlags["User Online"] == true) && (metis.core.metisFlags["Battery OK"] == true)) { // If the user is online and Battery OK is true (battery level is not applicable or is above a particular percentage)
 					if(pendingFiles.length > 0){ // If  there are still necessary remote files to do IO with
 						var remoteIOData : any = {}; // Define the custom formdata object (type any)
 
-						remoteIOData.nodeData = uniqueIOObject["nodeData"]; // Set the nodeData key / val to the nodeData arg
-						remoteIOData.files = pendingFiles; // Set the files key / val to the pendingFiles array
-						remoteIOData.action = fileAction;// Set the fileAction key / val to the fileAction arg
+						remoteIOData.NodeData = uniqueIOObject["NodeData"]; // Set the nodeData key / val to the nodeData arg
+						remoteIOData.Files = pendingFiles; // Set the files key / val to the pendingFiles array
+						remoteIOData.Action = fileAction;// Set the fileAction key / val to the fileAction arg
 
 						if (contentOrDestinationNodes !== false) { // If we either have content or in the case of replication, destination nodes
-							remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes; // Set the contentOrDestination Nodes key / val to the contentOrDestinationNodes arg
+							remoteIOData.ContentOrDestinationNodes = contentOrDestinationNodes; // Set the contentOrDestination Nodes key / val to the contentOrDestinationNodes arg
 						}
 
 						var xhrManager : XMLHttpRequest = new XMLHttpRequest; // Create a new XMLHttpRequest
@@ -59,12 +59,12 @@ module metis.devices.cloud {
 									uniqueIOObject["completed"][fileName] = fileContent; // Set the fileName in the completed section to the particular content we've defined
 
 									if ((fileAction == "r") || (fileAction == "a")){ // If we are reading or appending to files, get the content we have and store it locally. For appending, this makes sense if the server has content we didn't have before.
-										if (fileContent["error"] == undefined){ // If the response we got back was NOT an error
+										if (typeof fileContent["error"] == "undefined"){ // If the response we got back was NOT an error
 											var newIOObject : Object = { // Create a new Object to pass to metis.file.Handler
-												"nodeData" : "internal", // Set to internal so it'll skip XHR
-												"files" : fileName, // Set the files to the fileName
-												"action" : "w", // Set to write
-												"contentOrDestinationNodes" : fileContent // Set to the fileContent
+												"NodeData" : "internal", // Set to internal so it'll skip XHR
+												"Files" : fileName, // Set the files to the fileName
+												"Action" : "w", // Set to write
+												"ContentOrDestinationNodes" : fileContent // Set to the fileContent
 											};
 
 											metis.file.Handler(newIOObject); // Call the metis.file.Handler with a request to save the content locally and not do another cloud call.
@@ -85,16 +85,16 @@ module metis.devices.cloud {
 					}
 				}
 				else{ // If the user is NOT online or their battery life is NOT sufficient
-					if(uniqueIOObject["action"] !== "r") { // If we were not reading files
+					if(uniqueIOObject["Action"] !== "r") { // If we were not reading files
 						pendingFiles.push(Object.keys(completedIO)); // Push even the completed IO file list to the filesNeededForQueuing, since we need to do the same action on the server.
 					}
 
 					if(pendingFiles.length > 0) { // If it turns out that we either a) need to fetch / read files remotely or b) write, update, etc. to the remote Metis cluster
 						var newIOObject = { // Create an Object to hold information regarding our IO request and add the corresponding Object to the metis.file.currentIO
-							"nodeData" : uniqueIOObject["nodeData"], // Node Data we defined
+							"NodeData" : uniqueIOObject["NodeData"], // Node Data we defined
 							"pending" : pendingFiles, // Files we are doing IO to
-							"action" : fileAction, // Action
-							"contentOrDestinationNodes" : contentOrDestinationNodes,
+							"Action" : fileAction, // Action
+							"ContentOrDestinationNodes" : contentOrDestinationNodes,
 							"completed" : {} // Completed IO Object
 						};
 

@@ -1,3 +1,9 @@
+/*
+
+ The following Typescript code is the Metis implementation of "Cloud" / server-based File IO.
+
+ */
+/// <reference path="../file.ts" />
 var metis;
 (function (metis) {
     var devices;
@@ -5,22 +11,23 @@ var metis;
         var cloud;
         (function (cloud) {
             function Handle(uniqueIOObject) {
-                var fileAction = uniqueIOObject["action"];
+                // #region Pending-Related Variables
+                var fileAction = uniqueIOObject["Action"];
                 var pendingFiles = uniqueIOObject["pending"];
-                var contentOrDestinationNodes = uniqueIOObject["contentOrDestinationNodes"];
+                var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"];
                 var completedIO = uniqueIOObject["completed"];
                 var potentialCallback = uniqueIOObject["callback"];
                 var potentialCallbackExtraData = uniqueIOObject["callback-data"];
-                if (uniqueIOObject["nodeData"] !== "internal") {
+                if (uniqueIOObject["NodeData"] !== "internal") {
                     if (metis.core.metisFlags["Headless"] == false) {
                         if ((metis.core.metisFlags["User Online"] == true) && (metis.core.metisFlags["Battery OK"] == true)) {
                             if (pendingFiles.length > 0) {
                                 var remoteIOData = {};
-                                remoteIOData.nodeData = uniqueIOObject["nodeData"];
-                                remoteIOData.files = pendingFiles;
-                                remoteIOData.action = fileAction;
+                                remoteIOData.NodeData = uniqueIOObject["NodeData"];
+                                remoteIOData.Files = pendingFiles;
+                                remoteIOData.Action = fileAction;
                                 if (contentOrDestinationNodes !== false) {
-                                    remoteIOData.contentOrDestinationNodes = contentOrDestinationNodes;
+                                    remoteIOData.ContentOrDestinationNodes = contentOrDestinationNodes;
                                 }
                                 var xhrManager = new XMLHttpRequest;
                                 function xhrHandler() {
@@ -38,12 +45,12 @@ var metis;
                                             var fileContent = remoteFileContent[fileName];
                                             uniqueIOObject["completed"][fileName] = fileContent;
                                             if ((fileAction == "r") || (fileAction == "a")) {
-                                                if (fileContent["error"] == undefined) {
+                                                if (typeof fileContent["error"] == "undefined") {
                                                     var newIOObject = {
-                                                        "nodeData": "internal",
-                                                        "files": fileName,
-                                                        "action": "w",
-                                                        "contentOrDestinationNodes": fileContent
+                                                        "NodeData": "internal",
+                                                        "Files": fileName,
+                                                        "Action": "w",
+                                                        "ContentOrDestinationNodes": fileContent
                                                     };
                                                     metis.file.Handler(newIOObject);
                                                 }
@@ -61,15 +68,15 @@ var metis;
                             }
                         }
                         else {
-                            if (uniqueIOObject["action"] !== "r") {
+                            if (uniqueIOObject["Action"] !== "r") {
                                 pendingFiles.push(Object.keys(completedIO));
                             }
                             if (pendingFiles.length > 0) {
                                 var newIOObject = {
-                                    "nodeData": uniqueIOObject["nodeData"],
+                                    "NodeData": uniqueIOObject["NodeData"],
                                     "pending": pendingFiles,
-                                    "action": fileAction,
-                                    "contentOrDestinationNodes": contentOrDestinationNodes,
+                                    "Action": fileAction,
+                                    "ContentOrDestinationNodes": contentOrDestinationNodes,
                                     "completed": {}
                                 };
                                 metis.queuer.AddItem(newIOObject);
@@ -95,6 +102,12 @@ var metis;
         })(cloud = devices.cloud || (devices.cloud = {}));
     })(devices = metis.devices || (metis.devices = {}));
 })(metis || (metis = {}));
+/*
+
+ The following Typescript code is the Metis implementation of LocalStorage / browser-based File IO.
+
+*/
+/// <reference path="cloud.ts" />
 var metis;
 (function (metis) {
     var devices;
@@ -102,87 +115,77 @@ var metis;
         var web;
         (function (web) {
             function Handle(uniqueIOObject) {
-                var fileAction = uniqueIOObject["action"];
+                var fileAction = uniqueIOObject["Action"];
                 var pendingFiles = uniqueIOObject["pending"];
-                for (var fileIndex in pendingFiles) {
-                    var fileName = pendingFiles[fileIndex];
-                    var localFileContent;
-                    var ioSuccessful = false;
+                for (var _i = 0; _i < pendingFiles.length; _i++) {
+                    var fileName = pendingFiles[_i];
+                    var localFileContent = { "success": true };
                     if ((fileAction == "r") || (fileAction == "a")) {
                         localFileContent = localStorage.getItem(fileName);
                         if (localFileContent !== null) {
                             localFileContent = metis.file.Decode(localFileContent);
-                            if (fileAction == "r") {
-                                ioSuccessful = true;
-                            }
                         }
                     }
                     if ((fileAction == "w") || (fileAction == "a")) {
                         if ((fileAction == "a") && (localFileContent !== null)) {
-                            localFileContent = metis.core.Merge(localFileContent, uniqueIOObject["contentOrDestinationNodes"]);
+                            localFileContent = metis.core.Merge(localFileContent, uniqueIOObject["ContentOrDestinationNodes"]);
                             localStorage.setItem(fileName, JSON.stringify(localFileContent));
                         }
                         else {
-                            localFileContent = { "status": "0.00" };
-                            localStorage.setItem(fileName, JSON.stringify(uniqueIOObject["contentOrDestinationNodes"]));
+                            localStorage.setItem(fileName, JSON.stringify(uniqueIOObject["ContentOrDestinationNodes"]));
                         }
-                        ioSuccessful = true;
                     }
                     else if (fileAction == "d") {
                         localStorage.removeItem(fileName);
-                        ioSuccessful = true;
-                        localFileContent = { "status": "0.00" };
                     }
                     else if (fileAction == "e") {
-                        if (localStorage.getItem(fileName) !== null) {
-                            localFileContent = { "status": true };
+                        localFileContent = { "exists": true };
+                        if (localStorage.getItem(fileName) == null) {
+                            localFileContent = { "exists": false };
                         }
-                        else {
-                            localFileContent = { "status": false };
-                        }
-                        ioSuccessful = true;
                     }
-                    if (ioSuccessful == true) {
-                        var allowPoppingFile = false;
-                        if ((fileAction == "r") || (fileAction == "e")) {
+                    var allowPoppingFile = false;
+                    if ((fileAction == "r") || (fileAction == "e")) {
+                        allowPoppingFile = true;
+                    }
+                    else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")) {
+                        if (metis.core.metisFlags["Headless"] == true) {
                             allowPoppingFile = true;
                         }
-                        else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")) {
-                            if (metis.core.metisFlags["Headless"] == true) {
-                                allowPoppingFile = true;
-                            }
-                        }
-                        if (allowPoppingFile == true) {
-                            uniqueIOObject["pending"].pop(fileName);
-                        }
-                        uniqueIOObject["completed"][fileName] = localFileContent;
                     }
+                    if (allowPoppingFile == true) {
+                        uniqueIOObject["pending"].pop(fileName);
+                    }
+                    uniqueIOObject["completed"][fileName] = localFileContent;
                 }
                 metis.devices.cloud.Handle(uniqueIOObject);
             }
             web.Handle = Handle;
             function ClearAll() {
-                var numberOfKeys = localStorage.length;
-                for (var i = 0; i < numberOfKeys; i++) {
-                    var fileName = localStorage.key(i);
-                    localStorage.removeItem(fileName);
-                }
+                localStorage.clear();
             }
             web.ClearAll = ClearAll;
         })(web = devices.web || (devices.web = {}));
     })(devices = metis.devices || (metis.devices = {}));
 })(metis || (metis = {}));
+/*
+
+ The following Typescript code is the IO Queue System of Metis
+
+ */
+/// <reference path="core.ts" />
+/// <reference path="file.ts" />
 var metis;
 (function (metis) {
     var queuer;
     (function (queuer) {
         function Init() {
             metis.file.Exists({
-                "nodeData": "internal",
-                "files": "ioQueue",
+                "NodeData": "internal",
+                "Files": "ioQueue",
                 "callback": function (completedIO) {
                     if (completedIO["ioQueue"]["status"] == false) {
-                        metis.file.Create({ "nodeData": "internal", "files": "ioQueue", "contentOrDestinationNodes": {} });
+                        metis.file.Create({ "NodeData": "internal", "Files": "ioQueue", "ContentOrDestinationNodes": {} });
                     }
                 }
             });
@@ -197,24 +200,24 @@ var metis;
         function Process() {
             if (metis.core.metisFlags["Battery OK"] == true) {
                 metis.file.Read({
-                    "nodeData": "internal",
-                    "files": "ioQueue",
+                    "NodeData": "internal",
+                    "Files": "ioQueue",
                     "callback": function (ioQueue) {
                         ioQueue = ioQueue["ioQueue"];
                         metis.core.metisFlags["User Online"] = true;
                         for (var fileName in ioQueue) {
-                            var nodeData = ioQueue[fileName]["nodeData"];
-                            var fileAction = ioQueue[fileName]["action"];
-                            var contentOrDestinationNodes = ioQueue[fileName]["contentOrDestinationNodes"];
+                            var nodeData = ioQueue[fileName]["NodeData"];
+                            var fileAction = ioQueue[fileName]["Action"];
+                            var contentOrDestinationNodes = ioQueue[fileName]["ContentOrDestinationNodes"];
                             if (metis.core.metisFlags["User Online"] == true) {
-                                metis.file.Handler({ "nodeData": nodeData, "files": fileName, "action": fileAction, "contentOrDestinationNodes": contentOrDestinationNodes });
+                                metis.file.Handler({ "NodeData": nodeData, "Files": fileName, "Action": fileAction, "ContentOrDestinationNodes": contentOrDestinationNodes });
                                 delete ioQueue[fileName];
                             }
                             else {
                                 break;
                             }
                         }
-                        metis.file.Update({ "nodeData": "internal", "files": "ioQueue", "contentOrDestinationNodes": ioQueue });
+                        metis.file.Update({ "NodeData": "internal", "Files": "ioQueue", "ContentOrDestinationNodes": ioQueue });
                     }
                 });
             }
@@ -222,27 +225,27 @@ var metis;
         queuer.Process = Process;
         function AddItem(uniqueIOObject) {
             metis.file.Read({
-                "nodeData": "internal",
-                "files": "ioQueue",
+                "NodeData": "internal",
+                "Files": "ioQueue",
                 "callback": function (ioQueue, callbackData) {
                     ioQueue = ioQueue["ioQueue"];
                     var relatedIOObject = callbackData["uniqueIOObject"];
-                    var nodeData = relatedIOObject["pending"]["nodeData"];
-                    var fileAction = relatedIOObject["pending"]["action"];
-                    var filesToQueue = relatedIOObject["pending"]["files"];
+                    var nodeData = relatedIOObject["pending"]["NodeData"];
+                    var fileAction = relatedIOObject["pending"]["Action"];
+                    var filesToQueue = relatedIOObject["pending"]["Files"];
                     for (var fileIndex in filesToQueue) {
                         var fileName = filesToQueue[fileIndex];
                         if (ioQueue.hasOwnProperty(fileName) == true) {
                             delete ioQueue[fileName];
                         }
                         ioQueue[fileName] = {};
-                        ioQueue[fileName]["nodeData"] = nodeData;
-                        ioQueue[fileName]["action"] = fileAction;
+                        ioQueue[fileName]["NodeData"] = nodeData;
+                        ioQueue[fileName]["Action"] = fileAction;
                         if (fileAction == ("w" || "a")) {
-                            ioQueue[fileName]["contentOrDestinationNodes"] = relatedIOObject["pending"]["contentOrDestinationNodes"];
+                            ioQueue[fileName]["ContentOrDestinationNodes"] = relatedIOObject["pending"]["ContentOrDestinationNodes"];
                         }
                     }
-                    metis.file.Update({ "nodeData": "internal", "files": "ioQueue", "contentOrDestinationNodes": ioQueue });
+                    metis.file.Update({ "NodeData": "internal", "Files": "ioQueue", "ContentOrDestinationNodes": ioQueue });
                 },
                 "callback-data": {
                     "uniqueIOObject": uniqueIOObject
@@ -252,31 +255,35 @@ var metis;
         queuer.AddItem = AddItem;
     })(queuer = metis.queuer || (metis.queuer = {}));
 })(metis || (metis = {}));
+/*
+
+    The following Typescript code is the Core / Internal functionality of Metis
+
+*/
+/// <reference path="definitions/cordova.d.ts" />
+/// <reference path="devices/chromeos.ts" />
+/// <reference path="devices/cloud.ts" />
+/// <reference path="devices/web.ts" />
+/// <reference path="file.ts" />
+/// <reference path="queuer.ts" />
 var metis;
 (function (metis) {
     var core;
     (function (core) {
-        core.deviceIO;
-        core.metisFlags;
         function Init(initArgs) {
             metis.core.metisFlags = {};
-            if (initArgs["Headless"] !== true) {
-                if (initArgs["Callback"] == undefined) {
+            if (((typeof initArgs["Headless"] == "boolean") && (initArgs["Headless"] !== true)) || (typeof initArgs["Headless"] !== "boolean")) {
+                if (typeof initArgs["Callback"] == "undefined") {
                     initArgs["Headless"] = true;
                 }
                 else {
-                    if (initArgs["Callback"].indexOf("/callback.php") == -1) {
-                        if (initArgs["Callback"].substr(initArgs["Callback"].length - 1) !== "/") {
-                            initArgs["Callback"] += "/";
-                        }
-                        initArgs["Callback"] += "callback.php";
-                    }
+                    initArgs["Headless"] = false;
                 }
             }
-            if (initArgs["Device"] == undefined) {
+            if (typeof initArgs["Device"] == "undefined") {
                 initArgs["Device"] = "Cloud";
             }
-            if (initArgs["User Online"] == undefined) {
+            if (typeof initArgs["User Online"] == "undefined") {
                 if (initArgs["Device"] !== "Cordova") {
                     initArgs["User Online"] = window.navigator.onLine;
                 }
@@ -296,7 +303,7 @@ var metis;
                     }
                 }, false);
             }
-            if (initArgs["Device"].toLowerCase().indexOf("chrome") == -1) {
+            if (initArgs["Device"] == "Cloud") {
                 metis.core.deviceIO = metis.devices.web;
             }
             else {
@@ -327,60 +334,33 @@ var metis;
         core.Merge = Merge;
     })(core = metis.core || (metis.core = {}));
 })(metis || (metis = {}));
+/*
+
+    The following Typescript code is the File IO functionality of Metis
+
+*/
+/// <reference path="devices/web.ts" />
+/// <reference path="core.ts" />
+/// <reference path="queuer.ts" />
 var metis;
 (function (metis) {
     var file;
     (function (file) {
         function Handler(handlerArguments) {
-            var parsedNodeData = "";
-            var unparsedNodeData = handlerArguments["nodeData"];
-            if (typeof unparsedNodeData == "string") {
-                parsedNodeData = unparsedNodeData;
-            }
-            else if (typeof unparsedNodeData == "object") {
-                for (var potentialNodeGroup in unparsedNodeData) {
-                    var thisDataSyntax = potentialNodeGroup;
-                    if (unparsedNodeData[potentialNodeGroup] !== null) {
-                        thisDataSyntax = thisDataSyntax + "#";
-                        var nodesInGroup = unparsedNodeData[potentialNodeGroup];
-                        nodesInGroup.forEach(function (nodeNum, nodeIndex, nodesInGroup) {
-                            thisDataSyntax = thisDataSyntax + nodeNum;
-                            if (nodesInGroup.length !== (nodeIndex + 1)) {
-                                thisDataSyntax = thisDataSyntax + ",";
-                            }
-                            else {
-                                thisDataSyntax = thisDataSyntax + "|";
-                            }
-                        });
-                        parsedNodeData = parsedNodeData + thisDataSyntax;
-                    }
-                    else {
-                        unparsedNodeData = unparsedNodeData + potentialNodeGroup + "|";
-                    }
-                }
-                unparsedNodeData = unparsedNodeData.slice(0, -1);
-                parsedNodeData = unparsedNodeData;
-            }
-            else if (typeof unparsedNodeData == "number") {
+            // #region Node Data Parsing
+            var unparsedNodeData = handlerArguments["NodeData"];
+            var parsedNodeData = unparsedNodeData;
+            if (typeof unparsedNodeData == "number") {
                 parsedNodeData = unparsedNodeData.toString();
             }
-            if (typeof handlerArguments["files"] == "string") {
-                handlerArguments["files"] = [handlerArguments["files"]];
-            }
-            if (handlerArguments["contentOrDestinationNodes"] == undefined) {
-                handlerArguments["contentOrDestinationNodes"] = false;
-            }
-            if (handlerArguments["callback"] == undefined) {
-                handlerArguments["callback"] = false;
-            }
-            if (handlerArguments["callback-data"] == undefined) {
-                handlerArguments["callback-data"] = false;
+            if (typeof handlerArguments["Files"] == "string") {
+                handlerArguments["Files"] = [handlerArguments["Files"]];
             }
             var uniqueIOObject = {
-                "nodeData": parsedNodeData,
-                "pending": handlerArguments["files"],
-                "action": handlerArguments["action"],
-                "contentOrDestinationNodes": handlerArguments["contentOrDestinationNodes"],
+                "NodeData": parsedNodeData,
+                "pending": handlerArguments["Files"],
+                "Action": handlerArguments["Action"],
+                "ContentOrDestinationNodes": handlerArguments["ContentOrDestinationNodes"],
                 "completed": {},
                 "callback": handlerArguments["callback"],
                 "callback-data": handlerArguments["callback-data"]
@@ -393,35 +373,35 @@ var metis;
         }
         file.Decode = Decode;
         function Read(ioArgs) {
-            ioArgs["action"] = "r";
+            ioArgs["Action"] = "r";
             metis.file.Handler(ioArgs);
         }
         file.Read = Read;
         function Create(ioArgs) {
-            ioArgs["action"] = "w";
+            ioArgs["Action"] = "w";
             metis.file.Handler(ioArgs);
         }
         file.Create = Create;
         function Update(ioArgs) {
             if (ioArgs["append"] !== true) {
                 delete ioArgs["append"];
-                ioArgs["action"] = "w";
+                ioArgs["Action"] = "w";
                 metis.file.Handler(ioArgs);
             }
             else {
                 delete ioArgs["append"];
-                ioArgs["action"] = "a";
+                ioArgs["Action"] = "a";
                 metis.file.Handler(ioArgs);
             }
         }
         file.Update = Update;
         function Delete(ioArgs) {
-            ioArgs["action"] = "d";
+            ioArgs["Action"] = "d";
             metis.file.Handler(ioArgs);
         }
         file.Delete = Delete;
         function Exists(ioArgs) {
-            ioArgs["action"] = "e";
+            ioArgs["Action"] = "e";
             metis.file.Handler(ioArgs);
         }
         file.Exists = Exists;
@@ -431,6 +411,14 @@ var metis;
         file.ClearAll = ClearAll;
     })(file = metis.file || (metis.file = {}));
 })(metis || (metis = {}));
+/*
+
+ The following Typescript code is the Metis implementation of Chrome / ChromeOS's storage API.
+ Since we do not utilize user interaction, chrome.filesystem would be the incorrect API.
+
+ */
+/// <reference path="../file.ts" />
+/// <reference path="../definitions/chrome.d.ts" />
 var metis;
 (function (metis) {
     var devices;
@@ -438,12 +426,12 @@ var metis;
         var chromeos;
         (function (chromeos) {
             function Handle(uniqueIOObject) {
-                var fileAction = uniqueIOObject["action"];
+                var fileAction = uniqueIOObject["Action"];
                 var pendingFiles = uniqueIOObject["pending"];
-                var contentOrDestinationNodes = uniqueIOObject["contentOrDestinationNodes"];
+                var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"];
                 var chromeGetHandler = function () {
                     var uniqueIOObject = arguments[0];
-                    var fileAction = uniqueIOObject["action"];
+                    var fileAction = uniqueIOObject["Action"];
                     var completedIO = arguments[1];
                     for (var fileIndex in completedIO) {
                         var fileName = completedIO[fileIndex];
@@ -452,7 +440,7 @@ var metis;
                         if (typeof localFileContent == "Object") {
                             if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")) {
                                 if (fileAction == "a") {
-                                    var contentOrDestinationNodes = uniqueIOObject["contentOrDestinationNodes"];
+                                    var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"];
                                     localFileContent = metis.core.Merge(localFileContent, contentOrDestinationNodes);
                                     chrome.storage.local.set({ fileName: localFileContent });
                                     localFileContent = { "status": true };
@@ -510,6 +498,19 @@ var metis;
         })(chromeos = devices.chromeos || (devices.chromeos = {}));
     })(devices = metis.devices || (metis.devices = {}));
 })(metis || (metis = {}));
+/*
+
+ The following Typescript code is the aggregate module of Metis
+
+ */
+/// <reference path="definitions/chrome.d.ts" />
+/// <reference path="definitions/cordova.d.ts" />
+/// <reference path="devices/chromeos.ts" />
+/// <reference path="devices/cloud.ts" />
+/// <reference path="devices/web.ts" />
+/// <reference path="core.ts" />
+/// <reference path="file.ts" />
+/// <reference path="queuer.ts" />
 var metis;
 (function (metis) {
     function Init(initArgs) {
