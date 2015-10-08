@@ -16,7 +16,7 @@ var metis;
                         var apiRequestObject = {
                             "NodeData": uniqueIOObject.NodeData,
                             "Action": uniqueIOObject.Action,
-                            "Files": uniqueIOObject.Files,
+                            "Files": uniqueIOObject.Files
                         };
                         if (typeof uniqueIOObject.ContentOrDestinationNodes == "object") {
                             apiRequestObject.ContentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes;

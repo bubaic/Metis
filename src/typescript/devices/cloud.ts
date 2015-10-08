@@ -16,7 +16,7 @@ module metis.devices.cloud {
 				var apiRequestObject : APIRequest = { // Create an APIRequest Object
 					"NodeData" : uniqueIOObject.NodeData, // Set the NodeData key/val to the NodeData in uniqueIOObject
 					"Action" : uniqueIOObject.Action, // Set the Action key/val to the Action in uniqueIOObject
-					"Files" : uniqueIOObject.Files, // Set the Files key/val to the Files in uniqueIOObject
+					"Files" : uniqueIOObject.Files // Set the Files key/val to the Files in uniqueIOObject
 				};
 
 				if (typeof uniqueIOObject.ContentOrDestinationNodes == "object") { // If we either have content or in the case of replication, destination nodes
