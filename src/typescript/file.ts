@@ -5,108 +5,51 @@
 */
 
 /// <reference path="devices/web.ts" />
-/// <reference path="core.ts" />
+/// <reference path="metis.ts" />
+/// <reference path="interfaces.ts" />
 /// <reference path="queuer.ts" />
 
-
 module metis.file {
-	// #region Metis File Handler
+	// #region Metis File IO Func
 
 	// nodeDataDefined : any, files : any, fileAction : string, contentOrDestinationNodes ?: any, callbackFunction ?: Function, noCloudCall ?: Boolean
-	export function Handler(handlerArguments : Object){
+	export function IO(apiRequestObject : APIRequest){
 
 		// #region Node Data Parsing
 
-		var unparsedNodeData : any = handlerArguments["NodeData"]; // Define unparsedNodeData as the nodeData defined in the arguments
-		var parsedNodeData : string = unparsedNodeData; // Defined parsedNodeData as the Node Data we have parsed, by default being the unparsedNodeData (where we assuming it is a string)
-
-		if (typeof unparsedNodeData == "number"){ // If the unparsedNodeData is a number
-			parsedNodeData = unparsedNodeData.toString(); // Convert to string
+		if (typeof apiRequestObject.NodeData === "number"){ // If the unparsedNodeData is a number
+			apiRequestObject.NodeData = apiRequestObject.NodeData.toString(); // Convert to string
 		}
 
 		// #endregion
 
 		// #region Files Variable Checking
 
-		if (typeof handlerArguments["Files"] == "string"){ // If the filesToQueue is a string
-			handlerArguments["Files"] = [handlerArguments["Files"]]; // Convert filesToQueue to an array
+		if (typeof apiRequestObject.Files == "string"){ // If the Files in apiRequestObject is a string
+			apiRequestObject.Files = Array(apiRequestObject.Files); // Convert apiRequestObject.Files to an array
 		}
 
 		// #endregion
 
-		var uniqueIOObject = { // Create an Object to hold information regarding our IO request, which gets stored to metis.file.currentIO and read by the appropriate device
-			"NodeData" : parsedNodeData, // Parsed form of the Node Data defined
-			"pending" : handlerArguments["Files"], // Files we are doing IO to
-			"Action" : handlerArguments["Action"], // Action
-			"ContentOrDestinationNodes" : handlerArguments["ContentOrDestinationNodes"],
-			"completed" : {}, // Completed IO Object
-			"callback" : handlerArguments["callback"], // The function defined for the IO. This is optional.
-			"callback-data" : handlerArguments["callback-data"] // Any associated data for the callback that we should pass
+		var uniqueIOObject : UniqueIOObject = { // Create an Object to hold information regarding our IO request, which gets stored to metis.file.currentIO and read by the appropriate device
+			"NodeData" : apiRequestObject.NodeData, // Parsed form of the Node Data defined
+			"Action" : apiRequestObject.Action, // Action
+			"ContentOrDestinationNodes" : apiRequestObject.ContentOrDestinationNodes,
+			"PendingFiles" : apiRequestObject.Files, // Files we are doing IO to
+			"CompletedFiles" : {}, // Completed IO Object
+			"Callback" : apiRequestObject.Callback, // The function defined for the IO. This is optional.
+			"CallbackData" : apiRequestObject.CallbackData // Any associated data for the callback that we should pass
 		};
 
-		metis.core.deviceIO.Handle(uniqueIOObject);
+		metis.DeviceIO.Handle(uniqueIOObject);
 	}
 
 	// #endregion
 
 	// #region Decodes (parses) a string into an Object
 
-	export function Decode(jsonString: string) {
+	export function Decode(jsonString: string) : Object {
 		return JSON.parse(jsonString);
-	}
-
-	// #endregion
-
-	// #region Reading files from local storage (whether that be LocalStorage or chrome.storage)
-
-	export function Read(ioArgs : Object) {
-		ioArgs["Action"] = "r"; // Set the action to read (r)
-		metis.file.Handler(ioArgs);
-	}
-
-	// #endregion
-
-	// #region Creating one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
-
-	export function Create(ioArgs : Object) {
-		ioArgs["Action"] = "w"; // Set the action to write (w)
-		metis.file.Handler(ioArgs);
-	}
-
-	// #endregion
-
-	// #region Update one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
-
-	export function Update(ioArgs : Object) {
-		if(ioArgs["append"] !== true){ // If we are NOT appending content to the file
-			delete ioArgs["append"]; // Delete the append item
-			ioArgs["Action"] = "w"; // Set the action to writing
-
-			metis.file.Handler(ioArgs);
-		}
-		else{ // If we ARE appending content to the file
-			delete ioArgs["append"]; // Delete the append item
-			ioArgs["Action"] = "a"; // Set the action to appending
-			metis.file.Handler(ioArgs);
-		}
-	}
-
-	// #endregion
-
-	// #region Delete one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s)
-
-	export function Delete(ioArgs : Object) {
-		ioArgs["Action"] = "d"; // Set the action to delete (d)
-		metis.file.Handler(ioArgs);
-	}
-
-	// #endregion
-
-	// #region Checking if one or a multitude of files in LocalStorage, Chrome's Storage, and/or on the Metis Node(s) exists
-
-	export function Exists(ioArgs : Object){
-		ioArgs["Action"] = "e"; // Set the action to exists (e)
-		metis.file.Handler(ioArgs);
 	}
 
 	// #endregion
@@ -114,9 +57,45 @@ module metis.file {
 	// #region Clear all files from that device
 
 	export function ClearAll() : void {
-		metis.core.deviceIO.ClearAll(); // Call the deviceIO and clear all files from that particular storage (only affects our domain, app, etc)
+		metis.DeviceIO.ClearAll(); // Call the deviceIO and clear all files from that particular storage (only affects our domain, app, etc)
 	}
 
 	// #endregion
 
+	// #region Array Item Removal
+
+	export function ArrayRemove(ourArray : Array<any>, remove : any) : Array<any> {
+		var itemIndex : number = ourArray.indexOf(remove); // Define itemIndex as the index of the remove in ourArray
+
+		if (itemIndex !== -1){ // If the item exists
+			return Array.prototype.concat(ourArray.slice(0, itemIndex), ourArray.slice(itemIndex +1)); // Return an Array that is the concat of the beginning of the array until the index of the item and the items after the remove item
+		}
+		else { // If the item does not exist
+			return ourArray;
+		}
+	}
+
+	// #endregion
+
+	// #region Object Handling
+
+	export function Merge(primaryObject: Object, secondaryObject: Object) { // This function merges objects and object properties into a single returned Object. This is a solution to not being able to use .concat()
+		for (var objectProperty in secondaryObject) { // For each objectProperty in the newFileContent
+			if (typeof secondaryObject[objectProperty] == "object") { // If this particular property of the newFileContent object is an object itself
+				if (primaryObject[objectProperty] !== undefined) { // If the existingFileContent property IS set already
+					primaryObject[objectProperty] = this.Merge(primaryObject[objectProperty], secondaryObject[objectProperty]); // Do a recursive object merge
+				}
+				else { // If the existingFileContent property is NOT set
+					primaryObject[objectProperty] = secondaryObject[objectProperty];
+				}
+			}
+			else { // If newFileContent property is not an object
+				primaryObject[objectProperty] = secondaryObject[objectProperty]; // Do not do a merge, merely overwrite
+			}
+		}
+
+		return primaryObject; // Return the existingFileContent Object, which is now considered to be updated.
+	}
+
+	// #endregion
 }

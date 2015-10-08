@@ -6,22 +6,23 @@
  */
 
 /// <reference path="../file.ts" />
+/// <reference path="../interfaces.ts" />
 /// <reference path="../definitions/chrome.d.ts" />
 
 module metis.devices.chromeos {
 
 // #region Handler for all Chrome(OS) IO
 
-	export function Handle(uniqueIOObject : Object){
-		var fileAction = uniqueIOObject["Action"]; // Get the file IO type we'll be doing
-		var pendingFiles = uniqueIOObject["pending"]; // Get the pending files
-		var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"]; // Potential contentOrDestinationNodes
+	export function Handle(uniqueIOObject : UniqueIOObject){
+		var fileAction = uniqueIOObject.Action; // Get the file IO type we'll be doing
+		var pendingFiles = uniqueIOObject.PendingFiles; // Get the pending files
+		var contentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes; // Potential contentOrDestinationNodes
 
 		// #region Chrome IO Async Handler
 
 		var chromeGetHandler = function(){ // When we have gotten the files necessary
-			var uniqueIOObject : string = arguments[0]; // Set uniqueIOId to the arguments provided, where zero-index is the uniqueIOId due to binding
-			var fileAction = uniqueIOObject["Action"]; // Get the fileAction passed to us through the uniqueIOObject
+			var uniqueIOObject : UniqueIOObject = arguments[0]; // Set uniqueIOId to the arguments provided, where zero-index is the uniqueIOId due to binding
+			var fileAction = uniqueIOObject.Action; // Get the fileAction passed to us through the uniqueIOObject
 			var completedIO : Object = arguments[1]; // Set completedIO to the arguments provided, where one-index is the completedIO provided by chrome.storage.local.get
 
 			for (var fileIndex in completedIO){ // For each file we received
@@ -32,9 +33,9 @@ module metis.devices.chromeos {
 				if (typeof localFileContent == "Object"){ // If the fileContent is an Object
 					if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")){ // If we are doing anything that somehow relates to getting the file content
 						if (fileAction == "a"){ // If we were appending content
-							var contentOrDestinationNodes = uniqueIOObject["ContentOrDestinationNodes"]; // Get the contentOrDestinationNodes
+							var contentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes; // Get the contentOrDestinationNodes
 
-							localFileContent = metis.core.Merge(localFileContent, contentOrDestinationNodes); // Merge the JSON object from this uniqueIOObject and the read content
+							localFileContent = metis.file.Merge(localFileContent, contentOrDestinationNodes); // Merge the JSON object from this uniqueIOObject and the read content
 							chrome.storage.local.set({fileName : localFileContent}); // Store the updated file content in Chrome.StorageArea
 
 							localFileContent = {"status" : true }; // Set the status to true
@@ -60,16 +61,16 @@ module metis.devices.chromeos {
 						allowPoppingFile = true; // Allow popping the file from the pending files
 					}
 					else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")){ // If we are writing, appending or deleting files
-						if (metis.core.metisFlags["Headless"] == true){ // IF Headless mode is enabled
+						if (metis.Headless){ // IF Headless mode is enabled
 							allowPoppingFile = true; // Allow popping the file from the pending files since we don't need to replicate the same actions to the server
 						}
 					}
 
 					if (allowPoppingFile == true){ // If we are allow the popping of the file'
-						uniqueIOObject["pending"].pop(fileName); // Remove via array.pop the file name from the files array
+						uniqueIOObject.PendingFiles = metis.file.ArrayRemove(uniqueIOObject.PendingFiles, fileName); // Remove from PendingFiles the fileName
 					}
 
-					uniqueIOObject["completed"][fileName] = localFileContent; // Add the file to the completed section with the localFileContent
+					uniqueIOObject.CompletedFiles[fileName] = localFileContent; // Add the file to the completed section with the localFileContent
 				}
 			}
 

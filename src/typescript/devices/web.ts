@@ -4,37 +4,38 @@
 
 */
 
+/// <reference path="../metis.ts" />
 /// <reference path="cloud.ts" />
 
 module metis.devices.web{
 
 	// #region Handler for all LocalStorage IO
 
-	export function Handle(uniqueIOObject : Object){
-		var fileAction = uniqueIOObject["Action"]; // Get the file IO type we'll be doing
-		var pendingFiles = uniqueIOObject["pending"]; // Get the pending files
+	export function Handle(uniqueIOObject : UniqueIOObject){
+		var fileAction = uniqueIOObject.Action; // Get the file IO type we'll be doing
 
 		// #region LocalStorage File Checking
 
-		for (var fileName of pendingFiles){ // For each file in the IO Object's pending files
-			var localFileContent : any = { "success" : true}; // The content (and potential object) of the local file. Default to a 0.00 "status" Object
+		for (var fileName of uniqueIOObject.PendingFiles){ // For each file in the IO Object's pending files
+			var localFileContent : Object = { "success" : true}; // The content (and potential object) of the local file. Default to a 0.00 "status" Object
 
 			if ((fileAction == "r") || (fileAction == "a")){ // If we are reading files or appending content to a file
-				localFileContent = localStorage.getItem(fileName); // Return the localStorage content or NULL
+				var fetchedContent = localStorage.getItem(fileName); // Return the localStorage content or NULL
 
-				if (localFileContent !== null){ // If the localFileContent is NOT null, meaning we successfully fetched the file
-					localFileContent = metis.file.Decode(localFileContent); // Convert to a JSON object
+				if (fetchedContent !== null){ // If the fetchedContent is NOT null, meaning we successfully fetched the file
+					localFileContent = metis.file.Decode(fetchedContent); // Convert to a JSON object
+				}
+				else { // If the file content is null
+					localFileContent = { "error" : "file_doesnt_exist" }; // Define localFileContent as an error where we declare that the file does not exist
 				}
 			}
 
 			if ((fileAction == "w") || (fileAction == "a")){ // If we are writing or appending file content to LocalStorage
-				if ((fileAction == "a") && (localFileContent !== null)){ // If we are appending content to a file that does exist
-					localFileContent = metis.core.Merge(localFileContent, uniqueIOObject["ContentOrDestinationNodes"]); // Set the localFileContent to the updated and merged content instead of a success code
-					localStorage.setItem(fileName, JSON.stringify(localFileContent)); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
+				if ((fileAction == "a") && (typeof localFileContent["error"] !== "string")){ // If we are appending content to a file that does exist
+					uniqueIOObject.ContentOrDestinationNodes = metis.file.Merge(localFileContent, uniqueIOObject.ContentOrDestinationNodes); // Update ContentOrDestinationNodes to the updated and merged content
 				}
-				else{ // If the file content we were updating doesn't exist in the first place OR we are writing
-					localStorage.setItem(fileName, JSON.stringify(uniqueIOObject["ContentOrDestinationNodes"])); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
-				}
+
+				localStorage.setItem(fileName, JSON.stringify(uniqueIOObject.ContentOrDestinationNodes)); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
 			}
 			else if (fileAction == "d") { // If we are going to be deleting files
 				localStorage.removeItem(fileName); // Remove the file from LocalStorage
@@ -49,20 +50,20 @@ module metis.devices.web{
 
 			var allowPoppingFile = false; // Default popFile to false
 
-			if ((fileAction == "r") || (fileAction == "e")){ // If we were checking if the file was read or exists
-				allowPoppingFile = true; // Allow popping the file from the pending files
+			if (((fileAction == "r") && (typeof localFileContent["error"] == "undefined")) || (fileAction == "e")){ // If the file was successfully read or we were checking if the file exists
+				allowPoppingFile = true; // Allow popping file from pending
 			}
 			else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")){ // If we are writing, appending or deleting files
-				if (metis.core.metisFlags["Headless"] == true){ // IF Headless mode is enabled
+				if (metis.Headless){ // If Headless mode is enabled
 					allowPoppingFile = true; // Allow popping the file from the pending files since we don't need to replicate the same actions to the server
 				}
 			}
 
-			if (allowPoppingFile == true){ // If we allow the popping of the file
-				uniqueIOObject["pending"].pop(fileName); // Remove via array.pop the file name from the files array
+			if (allowPoppingFile){ // If we allow the popping of the file
+				uniqueIOObject.PendingFiles = metis.file.ArrayRemove(uniqueIOObject.PendingFiles, fileName); // Remove the file name from PendingFiles
 			}
 
-			uniqueIOObject["completed"][fileName] = localFileContent; // Add the file to the completed section with the localFileContent
+			uniqueIOObject.CompletedFiles[fileName] = localFileContent; // Add the file to the completed section with the localFileContent
 		}
 
 		// #endregion
