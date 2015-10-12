@@ -62,6 +62,35 @@ module metis.file {
 
 	// #endregion
 
+	// #region Meta Functions
+
+	export function Read(apiRequest : APIRequest){
+		apiRequest["Action"] = "r"; // Set Action to r (read)
+		metis.file.IO(apiRequest);
+	}
+
+	export function Write(apiRequest : APIRequest){
+		apiRequest["Action"] = "w"; // Set Action to w (write)
+		metis.file.IO(apiRequest);
+	}
+
+	export function Update(apiRequest : APIRequest){
+		if((typeof apiRequest["Append"] == "undefined") || (apiRequest["Append"] == false)){ // If we are not appending data
+			apiRequest["Action"] = "w"; // Set Action to w (write) instead.
+		} else{ // If Append is defined as true
+			apiRequest["Action"] = "u"; // Set Action to u (update)
+		}
+
+		metis.file.IO(apiRequest);
+	}
+
+	export function Delete(apiRequest : APIRequest){
+		apiRequest["Action"] = "d"; // Set Actio to d (delete)
+		metis.file.IO(apiRequest);
+	}
+
+	// #endregion
+
 	// #region Array Item Removal
 
 	export function ArrayRemove(ourArray : Array<any>, remove : any) : Array<any> {

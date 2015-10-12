@@ -30,6 +30,10 @@ declare module metis.file {
     function IO(apiRequestObject: APIRequest): void;
     function Decode(jsonString: string): Object;
     function ClearAll(): void;
+    function Read(apiRequest: APIRequest): void;
+    function Write(apiRequest: APIRequest): void;
+    function Update(apiRequest: APIRequest): void;
+    function Delete(apiRequest: APIRequest): void;
     function ArrayRemove(ourArray: Array<any>, remove: any): Array<any>;
     function Merge(primaryObject: Object, secondaryObject: Object): Object;
 }

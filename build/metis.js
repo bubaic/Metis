@@ -154,7 +154,7 @@ var metis;
 // These are interfaces used by Metis
 /*
 
- The following Typescript code is the IO Queue System of Metis
+ The following Typescript code is the IO Scheduler System of Metis
 
  */
 /// <reference path="metis.ts" />
@@ -163,63 +163,63 @@ var metis;
 var metis;
 (function (metis) {
     var scheduler;
-    (function (scheduler) {
+    (function (scheduler_1) {
         function Init() {
             metis.file.IO({
                 "NodeData": "internal",
                 "Action": "e",
-                "Files": "ioQueue",
+                "Files": "scheduler",
                 "Callback": function (completedIO) {
-                    if (completedIO["ioQueue"]["status"] == false) {
-                        metis.file.IO({ "NodeData": "internal", "Action": "w", "Files": "ioQueue", "ContentOrDestinationNodes": {} });
+                    if (completedIO["scheduler"]["status"] == false) {
+                        metis.file.IO({ "NodeData": "internal", "Action": "w", "Files": "scheduler", "ContentOrDestinationNodes": {} });
                     }
                 }
             });
             document.addEventListener("online", metis.scheduler.Process, false);
             document.addEventListener("offline", metis.scheduler.ToggleStatus, false);
         }
-        scheduler.Init = Init;
+        scheduler_1.Init = Init;
         function ToggleStatus() {
             metis.Online = false;
         }
-        scheduler.ToggleStatus = ToggleStatus;
+        scheduler_1.ToggleStatus = ToggleStatus;
         function Process() {
             metis.file.IO({
                 "NodeData": "internal",
                 "Action": "r",
-                "Files": "ioQueue",
-                "Callback": function (ioQueue) {
-                    ioQueue = ioQueue["ioQueue"];
+                "Files": "scheduler",
+                "Callback": function (scheduler) {
+                    scheduler = scheduler["scheduler"];
                     metis.Online = true;
-                    for (var fileName in ioQueue) {
-                        var nodeData = ioQueue[fileName]["NodeData"];
-                        var fileAction = ioQueue[fileName]["Action"];
-                        var contentOrDestinationNodes = ioQueue[fileName]["ContentOrDestinationNodes"];
+                    for (var fileName in scheduler) {
+                        var nodeData = scheduler[fileName]["NodeData"];
+                        var fileAction = scheduler[fileName]["Action"];
+                        var contentOrDestinationNodes = scheduler[fileName]["ContentOrDestinationNodes"];
                         if (metis.Online) {
                             metis.file.IO({ "NodeData": nodeData, "Action": fileAction, "Files": fileName, "ContentOrDestinationNodes": contentOrDestinationNodes });
-                            delete ioQueue[fileName];
+                            delete scheduler[fileName];
                         }
                         else {
                             break;
                         }
                     }
-                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "ioQueue", "ContentOrDestinationNodes": ioQueue });
+                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "scheduler", "ContentOrDestinationNodes": scheduler });
                 }
             });
         }
-        scheduler.Process = Process;
+        scheduler_1.Process = Process;
         function AddItem(uniqueIOObject) {
             metis.file.IO({
                 "NodeData": "internal",
                 "Action": "r",
-                "Files": "ioQueue",
-                "Callback": function (ioQueue, callbackData) {
-                    ioQueue = ioQueue["ioQueue"];
+                "Files": "scheduler",
+                "Callback": function (scheduler, callbackData) {
+                    scheduler = scheduler["scheduler"];
                     var relatedIOObject = callbackData["uniqueIOObject"];
                     for (var _i = 0, _a = relatedIOObject.Files; _i < _a.length; _i++) {
                         var fileName = _a[_i];
-                        if (ioQueue.hasOwnProperty(fileName) == true) {
-                            delete ioQueue[fileName];
+                        if (scheduler.hasOwnProperty(fileName) == true) {
+                            delete scheduler[fileName];
                         }
                         var fileIOObject = {
                             "NodeData": relatedIOObject.NodeData,
@@ -229,16 +229,16 @@ var metis;
                         if (relatedIOObject.Action == ("w" || "a")) {
                             fileIOObject.ContentOrDestinationNodes = relatedIOObject.ContentOrDestinationNodes;
                         }
-                        ioQueue[fileName] = fileIOObject;
+                        scheduler[fileName] = fileIOObject;
                     }
-                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "ioQueue", "ContentOrDestinationNodes": ioQueue });
+                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "scheduler", "ContentOrDestinationNodes": scheduler });
                 },
                 "CallbackData": {
                     "uniqueIOObject": uniqueIOObject
                 }
             });
         }
-        scheduler.AddItem = AddItem;
+        scheduler_1.AddItem = AddItem;
     })(scheduler = metis.scheduler || (metis.scheduler = {}));
 })(metis || (metis = {}));
 /*
@@ -282,6 +282,31 @@ var metis;
             metis.DeviceIO.ClearAll();
         }
         file.ClearAll = ClearAll;
+        function Read(apiRequest) {
+            apiRequest["Action"] = "r";
+            metis.file.IO(apiRequest);
+        }
+        file.Read = Read;
+        function Write(apiRequest) {
+            apiRequest["Action"] = "w";
+            metis.file.IO(apiRequest);
+        }
+        file.Write = Write;
+        function Update(apiRequest) {
+            if ((typeof apiRequest["Append"] == "undefined") || (apiRequest["Append"] == false)) {
+                apiRequest["Action"] = "w";
+            }
+            else {
+                apiRequest["Action"] = "u";
+            }
+            metis.file.IO(apiRequest);
+        }
+        file.Update = Update;
+        function Delete(apiRequest) {
+            apiRequest["Action"] = "d";
+            metis.file.IO(apiRequest);
+        }
+        file.Delete = Delete;
         function ArrayRemove(ourArray, remove) {
             var itemIndex = ourArray.indexOf(remove);
             if (itemIndex !== -1) {

@@ -1,5 +1,6 @@
 // These are interfaces used by Metis
 
+
 interface APIRequest extends Object { // Declare APIRequest as an extension of Object
 	NodeData : string|number; // NodeData
 	Action : string; // Action: r,e,w,u,d
