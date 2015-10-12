@@ -1,6 +1,6 @@
 /*
 
- The following Typescript code is the IO Queue System of Metis
+ The following Typescript code is the IO Scheduler System of Metis
 
  */
 
@@ -8,7 +8,7 @@
 /// <reference path="file.ts" />
 /// <reference path="interfaces.ts" />
 
-module metis.queuer{
+module metis.scheduler{
 
 	export function Init(){
 		metis.file.IO( // Check if the ioQueue file exists
@@ -24,8 +24,8 @@ module metis.queuer{
 			}
 		);
 
-		document.addEventListener("online", metis.queuer.Process, false); // Add an event listener that listens to the "online" event, which means the user went from offline to online and we need to process our IO queue, if there is one
-		document.addEventListener("offline", metis.queuer.ToggleStatus, false); // Add an event listener that listens to the "offline" event. When the user goes offline, we'll change this.userOffline to true so fileActionHandler can send data to ioQueue.
+		document.addEventListener("online", metis.scheduler.Process, false); // Add an event listener that listens to the "online" event, which means the user went from offline to online and we need to process our IO queue, if there is one
+		document.addEventListener("offline", metis.scheduler.ToggleStatus, false); // Add an event listener that listens to the "offline" event. When the user goes offline, we'll change this.userOffline to true so fileActionHandler can send data to ioQueue.
 	}
 
 	export function ToggleStatus() {

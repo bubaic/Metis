@@ -20,7 +20,7 @@ interface UniqueIOObject extends APIRequest {
     PendingFiles: Array<string>;
     CompletedFiles: Object;
 }
-declare module metis.queuer {
+declare module metis.scheduler {
     function Init(): void;
     function ToggleStatus(): void;
     function Process(): void;

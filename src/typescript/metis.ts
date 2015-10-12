@@ -12,7 +12,7 @@
 /// <reference path="devices/web.ts" />
 
 /// <reference path="file.ts" />
-/// <reference path="queuer.ts" />
+/// <reference path="scheduler.ts" />
 
 module metis{
 	export var Callback : string
@@ -54,7 +54,7 @@ module metis{
 
 		if (typeof initArgs["Callback"] == "string"){ // If a Callback is defined as a string
 			metis.Headless = false; // Set Headless to false
-			metis.queuer.Init(); // Initialize the IO Queue System
+			metis.scheduler.Init(); // Initialize the IO Queue System
 		}
 	}
 

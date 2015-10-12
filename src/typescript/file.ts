@@ -7,7 +7,7 @@
 /// <reference path="devices/web.ts" />
 /// <reference path="metis.ts" />
 /// <reference path="interfaces.ts" />
-/// <reference path="queuer.ts" />
+/// <reference path="scheduler.ts" />
 
 module metis.file {
 	// #region Metis File IO Func

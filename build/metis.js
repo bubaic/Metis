@@ -67,7 +67,7 @@ var metis;
                             "CompletedFiles": {},
                             "ContentOrDestinationNodes": uniqueIOObject.ContentOrDestinationNodes
                         };
-                        metis.queuer.AddItem(newIOObject);
+                        metis.scheduler.AddItem(newIOObject);
                         metis.devices.cloud.fireCallback(uniqueIOObject.Callback, uniqueIOObject.CompletedFiles, uniqueIOObject.CallbackData);
                     }
                 }
@@ -162,8 +162,8 @@ var metis;
 /// <reference path="interfaces.ts" />
 var metis;
 (function (metis) {
-    var queuer;
-    (function (queuer) {
+    var scheduler;
+    (function (scheduler) {
         function Init() {
             metis.file.IO({
                 "NodeData": "internal",
@@ -175,14 +175,14 @@ var metis;
                     }
                 }
             });
-            document.addEventListener("online", metis.queuer.Process, false);
-            document.addEventListener("offline", metis.queuer.ToggleStatus, false);
+            document.addEventListener("online", metis.scheduler.Process, false);
+            document.addEventListener("offline", metis.scheduler.ToggleStatus, false);
         }
-        queuer.Init = Init;
+        scheduler.Init = Init;
         function ToggleStatus() {
             metis.Online = false;
         }
-        queuer.ToggleStatus = ToggleStatus;
+        scheduler.ToggleStatus = ToggleStatus;
         function Process() {
             metis.file.IO({
                 "NodeData": "internal",
@@ -207,7 +207,7 @@ var metis;
                 }
             });
         }
-        queuer.Process = Process;
+        scheduler.Process = Process;
         function AddItem(uniqueIOObject) {
             metis.file.IO({
                 "NodeData": "internal",
@@ -238,8 +238,8 @@ var metis;
                 }
             });
         }
-        queuer.AddItem = AddItem;
-    })(queuer = metis.queuer || (metis.queuer = {}));
+        scheduler.AddItem = AddItem;
+    })(scheduler = metis.scheduler || (metis.scheduler = {}));
 })(metis || (metis = {}));
 /*
 
@@ -249,7 +249,7 @@ var metis;
 /// <reference path="devices/web.ts" />
 /// <reference path="metis.ts" />
 /// <reference path="interfaces.ts" />
-/// <reference path="queuer.ts" />
+/// <reference path="scheduler.ts" />
 var metis;
 (function (metis) {
     var file;
@@ -410,7 +410,7 @@ var metis;
 /// <reference path="devices/cloud.ts" />
 /// <reference path="devices/web.ts" />
 /// <reference path="file.ts" />
-/// <reference path="queuer.ts" />
+/// <reference path="scheduler.ts" />
 var metis;
 (function (metis) {
     function Init(initArgs) {
@@ -437,7 +437,7 @@ var metis;
         metis.Headless = true;
         if (typeof initArgs["Callback"] == "string") {
             metis.Headless = false;
-            metis.queuer.Init();
+            metis.scheduler.Init();
         }
     }
     metis.Init = Init;

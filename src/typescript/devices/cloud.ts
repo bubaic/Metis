@@ -80,7 +80,7 @@ module metis.devices.cloud {
 					"ContentOrDestinationNodes" : uniqueIOObject.ContentOrDestinationNodes
 				};
 
-				metis.queuer.AddItem(newIOObject); // Add the new IO Object
+				metis.scheduler.AddItem(newIOObject); // Add the new IO Object
 				metis.devices.cloud.fireCallback(uniqueIOObject.Callback, uniqueIOObject.CompletedFiles, uniqueIOObject.CallbackData); // Fire callback with the completed content and any extra data.
 			}
 		}
