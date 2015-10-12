@@ -11,20 +11,23 @@ import (
 	"os" // Still needed for exit
 	"strconv"
 	"strings"
+	"time"
 )
 
 var config Config // Define config as type Config
 
 // #region Metis HTTP Server Handler
 
-func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
-	var response []byte // Define response as an array of bytes
+type metisHTTPHandler struct{}
+
+func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, requester *http.Request) {
+	var response []byte                   // Define response as an array of bytes
 	var errorResponseObject ErrorResponse // Define eerrorResponseObject as an ErrorResponse
 
 	if requester.Body != nil { // If the response has body content
 		var apiRequestObject APIRequest // Define apiRequestObject as an APIRequest struct
 
-		jsonDecoder := json.NewDecoder(requester.Body) // Define jsonDecoder as a new JSON Decoder that uses the requester.Body io.ReadCloser
+		jsonDecoder := json.NewDecoder(requester.Body)     // Define jsonDecoder as a new JSON Decoder that uses the requester.Body io.ReadCloser
 		decodeErr := jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
 		if decodeErr == nil { // If there was no decode error
@@ -48,15 +51,15 @@ func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
 
 						if strings.Contains(nodeGroupString, "#") { // If specific Nodes within this Node Group are being specified
 							nodeGroupAndNodeSplit := strings.Split(nodeGroupString, "#") // Split the Node Group and Nodes in NodeData syntax
-							nodesToGet = strings.Split(nodeGroupAndNodeSplit[1], ",") // Set nodesToGet as the second series of strings after splitting on # and then splitting that string by ,
+							nodesToGet = strings.Split(nodeGroupAndNodeSplit[1], ",")    // Set nodesToGet as the second series of strings after splitting on # and then splitting that string by ,
 						} else {
-							switch  nodeValue := metis.NodeList[nodeGroupString].(type) {
-								case []interface{}: // If a Node Group
-									for _, nodeString := range nodeValue { // For each nodeString in the []string (though claiming to be []interface{})
-										nodesToGet = append(nodesToGet, nodeString.(string)) // Add a type asserted string of nodeString to nodesToGet
-									}
-								case map[string]interface{}: // If a Node
-									nodesToGet = append(nodesToGet, nodeGroupString) // Add the Nodes' name
+							switch nodeValue := metis.NodeList[nodeGroupString].(type) {
+							case []interface{}: // If a Node Group
+								for _, nodeString := range nodeValue { // For each nodeString in the []string (though claiming to be []interface{})
+									nodesToGet = append(nodesToGet, nodeString.(string)) // Add a type asserted string of nodeString to nodesToGet
+								}
+							case map[string]interface{}: // If a Node
+								nodesToGet = append(nodesToGet, nodeGroupString) // Add the Nodes' name
 							}
 						}
 
@@ -65,8 +68,8 @@ func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
 								individualNodeInfo := metis.NodeList[node].(map[string]interface{})
 								newNode := metis.Node{}
 
-								nodeFolder := individualNodeInfo["Folder"] // Get any Folder key/val of this Node
-								nodeAddress := individualNodeInfo["Address"] // Get any Address key/val of this Node
+								nodeFolder := individualNodeInfo["Folder"]               // Get any Folder key/val of this Node
+								nodeAddress := individualNodeInfo["Address"]             // Get any Address key/val of this Node
 								nodeExternalNodes := individualNodeInfo["ExternalNodes"] // Get any ExternalNodes key/val of this Node
 
 								if nodeFolder != nil { // If a Folder key/val exists
@@ -89,7 +92,7 @@ func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
 					// #endregion
 
 					jsonResponseObject := metis.Manage(apiRequestObject.Action, nodes, apiRequestObject.Files, apiRequestObject.Content) // Call metis.Manage with the action, nodes, files, and any content. Returns map[string]interface{}
-					response, _ = json.Marshal(jsonResponseObject) // Encode into JSON, assigning to response
+					response, _ = json.Marshal(jsonResponseObject)                                                                       // Encode into JSON, assigning to response
 				}
 			} else { // If it does not contain nodedata, action, or files
 				errorResponseObject.Error = "invalid_api_request"
@@ -98,22 +101,22 @@ func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
 			errorResponseObject.Error = "invalid_json_content"
 		}
 	} else { // If the response does not have body content
-		errorResponseObject.Error ="no_json_provided"
+		errorResponseObject.Error = "no_json_provided"
 	}
 
 	if errorResponseObject.Error != "" { // If there was an error
 		response, _ = json.Marshal(errorResponseObject) // Encode the errorResponseObject instead
 	}
 
-    writer.Header().Set("Access-Control-Allow-Origin", "*") // Enable Access-Control-Allow-Origin
-	writer.Write(response) // Write the response
+	writer.Header().Set("Access-Control-Allow-Origin", "*") // Enable Access-Control-Allow-Origin
+	writer.Write(response)                                  // Write the response
 }
 
 // #endregion
 
 // #region Metis Puppeteering Server Handler
 
-func metisPuppetServe(writer http.ResponseWriter, requester *http.Request){
+func metisPuppetServe(writer http.ResponseWriter, requester *http.Request) {
 	writer.Write([]byte("Puppeteering not yet implemented."))
 }
 
@@ -127,7 +130,7 @@ func main() {
 	var configLocation string
 	var nodeListLocation string
 
-	flag.StringVar(&configLocation, "c", "config/metis.json", "Location of Metis config file")          // Define the config flag
+	flag.StringVar(&configLocation, "c", "config/metis.json", "Location of Metis config file")        // Define the config flag
 	flag.StringVar(&nodeListLocation, "n", "config/nodeList.json", "Location of Metis nodeList file") // Define the nodeList flag
 
 	flag.Parse() // Parse the flags
@@ -141,15 +144,15 @@ func main() {
 
 	if (configReadError != nil) || (nodeListError != nil) { // If we couldn't find the config file or nodeList ffile
 		if configReadError != nil { // If we couldn't find the config file
-			configErrorMessage := "Could not find config at: "+ configLocation
+			configErrorMessage := "Could not find config at: " + configLocation
 			metis.MessageLogger(syslog.LOG_ERR, configErrorMessage) // Log the error
-			fmt.Println(configErrorMessage) // Print in stdout as well
+			fmt.Println(configErrorMessage)                         // Print in stdout as well
 		}
 
 		if nodeListError != nil { // If we couldn't find the nodeList file
-			nodelistErrorMessage := "Could not find nodeList at: "+ nodeListLocation
+			nodelistErrorMessage := "Could not find nodeList at: " + nodeListLocation
 			metis.MessageLogger(syslog.LOG_ERR, nodelistErrorMessage) // Log the error
-			fmt.Println(nodelistErrorMessage) // Print in stdout as well
+			fmt.Println(nodelistErrorMessage)                         // Print in stdout as well
 		}
 
 		os.Exit(1) // Exit as error
@@ -159,13 +162,13 @@ func main() {
 
 	// #region Configuration Decoding and Defaults
 
-	configDecodeError := json.Unmarshal(configBytes, &config)    // Decode the configBytes into config, with error being configDecodeError
+	configDecodeError := json.Unmarshal(configBytes, &config) // Decode the configBytes into config, with error being configDecodeError
 
 	if configDecodeError != nil { // If we couldn't decode the config
 		configDecodeErrorMessage := "Failed to decode config. Please ensure the config is valid JSON."
 		metis.MessageLogger(syslog.LOG_ERR, configDecodeErrorMessage) // Log the decode error
-		fmt.Println(configDecodeErrorMessage) // Print in stdout as well
-		os.Exit(1) // Exit as error
+		fmt.Println(configDecodeErrorMessage)                         // Print in stdout as well
+		os.Exit(1)                                                    // Exit as error
 	}
 
 	if config.Port == 0 { // If no port is defined in config
@@ -185,7 +188,7 @@ func main() {
 	if initializationSucceeded == false { // If initialization failed
 		initializationErrorMessage := "Failed to initialize Metis."
 		metis.MessageLogger(syslog.LOG_ERR, initializationErrorMessage) // Log the decode error
-		fmt.Println(initializationErrorMessage) // Print in stdout as well
+		fmt.Println(initializationErrorMessage)                         // Print in stdout as well
 		os.Exit(1)
 	}
 
@@ -193,28 +196,34 @@ func main() {
 
 	// #region Metis HTTP and Puppeteering Servers
 
-	http.HandleFunc("/", metisHTTPServe) // Handle anything to / to metisHTTPServe func
-	serveFail := http.ListenAndServe(":" + strconv.Itoa(config.Port), nil) // Listen on designated port
+	metisServer := http.Server{
+		Addr:         ":" + strconv.Itoa(config.Port),
+		Handler:      &metisHTTPHandler{},
+		ReadTimeout:  time.Second * 3,
+		WriteTimeout: time.Second * 10,
+	}
+
+	serveFail := metisServer.ListenAndServe() // Listen on designated port
 
 	logMessage := "Starting Metis HTTP Server: " // Our log message we provide syslog and stdout, appending logStatusString
-	logStatus := syslog.LOG_INFO // Set logStatus to LOG_INFO by Defaults
-	logStatusString := "OK" // Set status string to OK by default
+	logStatus := syslog.LOG_INFO                 // Set logStatus to LOG_INFO by Defaults
+	logStatusString := "OK"                      // Set status string to OK by default
 
 	if serveFail != nil { // If there was an error starting the server
 		logStatus = syslog.LOG_ERR // Log as ERR instead
-		logStatusString = "FAIL" // Indicate failure
+		logStatusString = "FAIL"   // Indicate failure
 	}
 
-	metis.MessageLogger(logStatus, logMessage + logStatusString) // Log the message to the appropriate syslog status
+	metis.MessageLogger(logStatus, logMessage+logStatusString) // Log the message to the appropriate syslog status
 
 	if serveFail != nil {
 		fmt.Println(logMessage + logStatusString) // Print to stdout as well
-		os.Exit(1) // Immediately exit
+		os.Exit(1)                                // Immediately exit
 	}
 
 	if config.EnablePuppeteering { // If EnablePuppeteering is enabled
-		http.HandleFunc("/", metisPuppetServe) // Handle anything to / to metisPuppetServe func
-		http.ListenAndServe(":" + strconv.Itoa(config.PuppeteeringPort), nil) // Listen on puppeteering port
+		http.HandleFunc("/", metisPuppetServe)                              // Handle anything to / to metisPuppetServe func
+		http.ListenAndServe(":"+strconv.Itoa(config.PuppeteeringPort), nil) // Listen on puppeteering port
 	}
 
 	// #endregion

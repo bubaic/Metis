@@ -14,8 +14,8 @@ type Config struct {
 
 type APIRequest struct {
 	NodeData, Action string
-	Content interface{}
-	Files []string
+	Content          interface{}
+	Files            []string
 }
 
 // #endregion
