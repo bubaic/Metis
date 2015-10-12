@@ -16,10 +16,10 @@ var metis;
                         var apiRequestObject = {
                             "NodeData": uniqueIOObject.NodeData,
                             "Action": uniqueIOObject.Action,
-                            "Files": uniqueIOObject.Files
+                            "Files": uniqueIOObject.PendingFiles
                         };
-                        if (typeof uniqueIOObject.ContentOrDestinationNodes == "object") {
-                            apiRequestObject.ContentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes;
+                        if (typeof uniqueIOObject.Content == "object") {
+                            apiRequestObject.Content = uniqueIOObject.Content;
                         }
                         var xhrManager = new XMLHttpRequest;
                         function xhrHandler() {
@@ -42,7 +42,7 @@ var metis;
                                                 "NodeData": "internal",
                                                 "Files": fileName,
                                                 "Action": "w",
-                                                "ContentOrDestinationNodes": fileContent
+                                                "Content": fileContent
                                             };
                                             metis.file.IO(newIOObject);
                                         }
@@ -65,7 +65,7 @@ var metis;
                             "Action": uniqueIOObject.Action,
                             "PendingFiles": uniqueIOObject.PendingFiles,
                             "CompletedFiles": {},
-                            "ContentOrDestinationNodes": uniqueIOObject.ContentOrDestinationNodes
+                            "Content": uniqueIOObject.Content
                         };
                         metis.scheduler.AddItem(newIOObject);
                         metis.devices.cloud.fireCallback(uniqueIOObject.Callback, uniqueIOObject.CompletedFiles, uniqueIOObject.CallbackData);
@@ -77,7 +77,7 @@ var metis;
             }
             cloud.Handle = Handle;
             function fireCallback(potentialCallback, completedIO, potentialCallbackExtraData) {
-                if (potentialCallback !== false) {
+                if (typeof potentialCallback == "function") {
                     potentialCallback(completedIO, potentialCallbackExtraData);
                 }
             }
@@ -114,9 +114,9 @@ var metis;
                     }
                     if ((fileAction == "w") || (fileAction == "a")) {
                         if ((fileAction == "a") && (typeof localFileContent["error"] !== "string")) {
-                            uniqueIOObject.ContentOrDestinationNodes = metis.file.Merge(localFileContent, uniqueIOObject.ContentOrDestinationNodes);
+                            uniqueIOObject.Content = metis.file.Merge(localFileContent, uniqueIOObject.Content);
                         }
-                        localStorage.setItem(fileName, JSON.stringify(uniqueIOObject.ContentOrDestinationNodes));
+                        localStorage.setItem(fileName, JSON.stringify(uniqueIOObject.Content));
                     }
                     else if (fileAction == "d") {
                         localStorage.removeItem(fileName);
@@ -171,7 +171,7 @@ var metis;
                 "Files": "scheduler",
                 "Callback": function (completedIO) {
                     if (completedIO["scheduler"]["status"] == false) {
-                        metis.file.IO({ "NodeData": "internal", "Action": "w", "Files": "scheduler", "ContentOrDestinationNodes": {} });
+                        metis.file.IO({ "NodeData": "internal", "Action": "w", "Files": "scheduler", "Content": {} });
                     }
                 }
             });
@@ -194,16 +194,16 @@ var metis;
                     for (var fileName in scheduler) {
                         var nodeData = scheduler[fileName]["NodeData"];
                         var fileAction = scheduler[fileName]["Action"];
-                        var contentOrDestinationNodes = scheduler[fileName]["ContentOrDestinationNodes"];
+                        var content = scheduler[fileName]["Content"];
                         if (metis.Online) {
-                            metis.file.IO({ "NodeData": nodeData, "Action": fileAction, "Files": fileName, "ContentOrDestinationNodes": contentOrDestinationNodes });
+                            metis.file.IO({ "NodeData": nodeData, "Action": fileAction, "Files": fileName, "Content": content });
                             delete scheduler[fileName];
                         }
                         else {
                             break;
                         }
                     }
-                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "scheduler", "ContentOrDestinationNodes": scheduler });
+                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "scheduler", "Content": scheduler });
                 }
             });
         }
@@ -227,11 +227,11 @@ var metis;
                             "Files": relatedIOObject.Files
                         };
                         if (relatedIOObject.Action == ("w" || "a")) {
-                            fileIOObject.ContentOrDestinationNodes = relatedIOObject.ContentOrDestinationNodes;
+                            fileIOObject.Content = relatedIOObject.Content;
                         }
                         scheduler[fileName] = fileIOObject;
                     }
-                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "scheduler", "ContentOrDestinationNodes": scheduler });
+                    metis.file.IO({ "NodeData": "internal", "Action": "u", "Files": "scheduler", "Content": scheduler });
                 },
                 "CallbackData": {
                     "uniqueIOObject": uniqueIOObject
@@ -265,7 +265,7 @@ var metis;
             var uniqueIOObject = {
                 "NodeData": apiRequestObject.NodeData,
                 "Action": apiRequestObject.Action,
-                "ContentOrDestinationNodes": apiRequestObject.ContentOrDestinationNodes,
+                "Content": apiRequestObject.Content,
                 "PendingFiles": apiRequestObject.Files,
                 "CompletedFiles": {},
                 "Callback": apiRequestObject.Callback,
@@ -354,7 +354,7 @@ var metis;
             function Handle(uniqueIOObject) {
                 var fileAction = uniqueIOObject.Action;
                 var pendingFiles = uniqueIOObject.PendingFiles;
-                var contentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes;
+                var contentOrDestinationNodes = uniqueIOObject.Content;
                 var chromeGetHandler = function () {
                     var uniqueIOObject = arguments[0];
                     var fileAction = uniqueIOObject.Action;
@@ -366,7 +366,7 @@ var metis;
                         if (typeof localFileContent == "Object") {
                             if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")) {
                                 if (fileAction == "a") {
-                                    var contentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes;
+                                    var contentOrDestinationNodes = uniqueIOObject.Content;
                                     localFileContent = metis.file.Merge(localFileContent, contentOrDestinationNodes);
                                     chrome.storage.local.set({ fileName: localFileContent });
                                     localFileContent = { "status": true };
@@ -453,7 +453,7 @@ var metis;
                 metis.Online = false;
             }
         }
-        if (initArgs["Device"].toLowerCase().indexOf("chrome") == -1) {
+        if (metis.Device.toLowerCase().indexOf("chrome") == -1) {
             metis.DeviceIO = metis.devices.web;
         }
         else {
@@ -462,6 +462,7 @@ var metis;
         metis.Headless = true;
         if (typeof initArgs["Callback"] == "string") {
             metis.Headless = false;
+            metis.Callback = initArgs["Callback"];
             metis.scheduler.Init();
         }
     }

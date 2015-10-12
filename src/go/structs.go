@@ -13,7 +13,8 @@ type Config struct {
 // #region APIRequest Structure
 
 type APIRequest struct {
-	NodeData, Action, Content string
+	NodeData, Action string
+	Content interface{}
 	Files []string
 }
 

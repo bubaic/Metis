@@ -16,7 +16,7 @@ module metis.devices.chromeos {
 	export function Handle(uniqueIOObject : UniqueIOObject){
 		var fileAction = uniqueIOObject.Action; // Get the file IO type we'll be doing
 		var pendingFiles = uniqueIOObject.PendingFiles; // Get the pending files
-		var contentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes; // Potential contentOrDestinationNodes
+		var contentOrDestinationNodes = uniqueIOObject.Content; // Potential contentOrDestinationNodes
 
 		// #region Chrome IO Async Handler
 
@@ -33,7 +33,7 @@ module metis.devices.chromeos {
 				if (typeof localFileContent == "Object"){ // If the fileContent is an Object
 					if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")){ // If we are doing anything that somehow relates to getting the file content
 						if (fileAction == "a"){ // If we were appending content
-							var contentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes; // Get the contentOrDestinationNodes
+							var contentOrDestinationNodes = uniqueIOObject.Content; // Get the contentOrDestinationNodes
 
 							localFileContent = metis.file.Merge(localFileContent, contentOrDestinationNodes); // Merge the JSON object from this uniqueIOObject and the read content
 							chrome.storage.local.set({fileName : localFileContent}); // Store the updated file content in Chrome.StorageArea

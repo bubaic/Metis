@@ -12,7 +12,7 @@ interface APIRequest extends Object {
     NodeData: string | number;
     Action: string;
     Files?: any;
-    ContentOrDestinationNodes?: Object;
+    Content?: Object;
     Callback?: Function;
     CallbackData?: any;
 }

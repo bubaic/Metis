@@ -16,11 +16,11 @@ module metis.devices.cloud {
 				var apiRequestObject : APIRequest = { // Create an APIRequest Object
 					"NodeData" : uniqueIOObject.NodeData, // Set the NodeData key/val to the NodeData in uniqueIOObject
 					"Action" : uniqueIOObject.Action, // Set the Action key/val to the Action in uniqueIOObject
-					"Files" : uniqueIOObject.Files // Set the Files key/val to the Files in uniqueIOObject
+					"Files" : uniqueIOObject.PendingFiles // Set the Files key/val to the pending files in uniqueIOObject
 				};
 
-				if (typeof uniqueIOObject.ContentOrDestinationNodes == "object") { // If we either have content or in the case of replication, destination nodes
-					apiRequestObject.ContentOrDestinationNodes = uniqueIOObject.ContentOrDestinationNodes; // Set the ContentOrDestinationNodes key / val to the ContentOrDestinationNodes arg
+				if (typeof uniqueIOObject.Content == "object") { // If we either have content or in the case of replication, destination nodes
+					apiRequestObject.Content = uniqueIOObject.Content; // Set the ContentOrDestinationNodes key / val to the ContentOrDestinationNodes arg
 				}
 
 				var xhrManager : XMLHttpRequest = new XMLHttpRequest; // Create a new XMLHttpRequest
@@ -50,7 +50,7 @@ module metis.devices.cloud {
 										"NodeData" : "internal", // Set to internal so it'll skip XHR
 										"Files" : fileName, // Set the files to the fileName
 										"Action" : "w", // Set to write
-										"ContentOrDestinationNodes" : fileContent // Set to the fileContent
+										"Content" : fileContent // Set to the fileContent
 									};
 
 									metis.file.IO(newIOObject); // Call the metis.file.Handler with a request to save the content locally and not do another cloud call.
@@ -77,7 +77,7 @@ module metis.devices.cloud {
 					"Action" : uniqueIOObject.Action, // Action
 					"PendingFiles" : uniqueIOObject.PendingFiles, // Files we are doing IO to
 					"CompletedFiles" : {}, // Completed IO Object
-					"ContentOrDestinationNodes" : uniqueIOObject.ContentOrDestinationNodes
+					"Content" : uniqueIOObject.Content
 				};
 
 				metis.scheduler.AddItem(newIOObject); // Add the new IO Object
@@ -94,7 +94,7 @@ module metis.devices.cloud {
 	// #region Finalized Callback Function
 
 	export function fireCallback(potentialCallback : any, completedIO : Object, potentialCallbackExtraData : any) : void {
-		if (potentialCallback !== false){ // If the callback defined is a Function (since we set it to false earlier in IO process if it is undefined)
+		if (typeof potentialCallback == "function"){ // If the callback defined is a Function (since we set it to false earlier in IO process if it is undefined)
 			potentialCallback(completedIO, potentialCallbackExtraData); // Return with at least the IO that is completed
 		}
 	}

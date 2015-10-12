@@ -5,7 +5,7 @@ interface APIRequest extends Object { // Declare APIRequest as an extension of O
 	NodeData : string|number; // NodeData
 	Action : string; // Action: r,e,w,u,d
 	Files ?: any; // Should actually be string|Array<string> but TypeScript union type checking is terrible. Actually required for APIRequest Object but not enforced for UniqueIOObject
-	ContentOrDestinationNodes ?: Object;
+	Content ?: Object;
 	Callback ?: Function; // Optional Callback Function
 	CallbackData ?: any; // Optional Callback Data
 }

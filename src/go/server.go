@@ -31,7 +31,7 @@ func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
 			if (apiRequestObject.NodeData != "") && (apiRequestObject.Action != "") && (len(apiRequestObject.Files) > 0) { // If this contains NodeData, an Action, and Files is an array with files
 				continueIO := true
 
-				if ((apiRequestObject.Action == "w") || (apiRequestObject.Action == "u")) && (apiRequestObject.Content == "") { // If the action is write or update and NO content is provided
+				if ((apiRequestObject.Action == "w") || (apiRequestObject.Action == "u")) && (apiRequestObject.Content == nil) { // If the action is write or update and NO content is provided
 					continueIO = false // Do not continue any sort of Initialization
 					errorResponseObject.Error = "no_content_provided"
 				}
@@ -44,17 +44,45 @@ func metisHTTPServe(writer http.ResponseWriter, requester *http.Request){
 					nodeGroupsSplit := strings.Split(apiRequestObject.NodeData, "|") // Split the individual NodeGroup requests (if any) by |
 
 					for _, nodeGroupString := range nodeGroupsSplit { // For each nodeGroupString in nodeGroupsSplit
-						nodesToGet := make([]string, 0, 10)
+						nodesToGet := []string{}
 
 						if strings.Contains(nodeGroupString, "#") { // If specific Nodes within this Node Group are being specified
 							nodeGroupAndNodeSplit := strings.Split(nodeGroupString, "#") // Split the Node Group and Nodes in NodeData syntax
 							nodesToGet = strings.Split(nodeGroupAndNodeSplit[1], ",") // Set nodesToGet as the second series of strings after splitting on # and then splitting that string by ,
-						} else { // If it does not contain a #, meaning all Nodes in this Node Group
-							nodesToGet = metis.NodeList[nodeGroupString].([]string) // Define the nodesToGet as the []string (type asssertion) provided for this specific NodeGroup
+						} else {
+							switch  nodeValue := metis.NodeList[nodeGroupString].(type) {
+								case []interface{}: // If a Node Group
+									for _, nodeString := range nodeValue { // For each nodeString in the []string (though claiming to be []interface{})
+										nodesToGet = append(nodesToGet, nodeString.(string)) // Add a type asserted string of nodeString to nodesToGet
+									}
+								case map[string]interface{}: // If a Node
+									nodesToGet = append(nodesToGet, nodeGroupString) // Add the Nodes' name
+							}
 						}
 
-						for _, node := range nodesToGet {
-							nodes = append(nodes, metis.NodeList[node].(metis.Node)) // Append the Node (type asserted from interface{})
+						if len(nodesToGet) > 0 { // If there are nodes in nodesToGet
+							for _, node := range nodesToGet {
+								individualNodeInfo := metis.NodeList[node].(map[string]interface{})
+								newNode := metis.Node{}
+
+								nodeFolder := individualNodeInfo["Folder"] // Get any Folder key/val of this Node
+								nodeAddress := individualNodeInfo["Address"] // Get any Address key/val of this Node
+								nodeExternalNodes := individualNodeInfo["ExternalNodes"] // Get any ExternalNodes key/val of this Node
+
+								if nodeFolder != nil { // If a Folder key/val exists
+									newNode.Folder = nodeFolder.(string)
+								}
+
+								if nodeAddress != nil { // If a Node Address key/val exists
+									newNode.Address = nodeAddress.(string)
+								}
+
+								if nodeExternalNodes != nil { // If a Node ExternalNodes key/val exists
+									newNode.ExternalNodes = nodeExternalNodes.(string)
+								}
+
+								nodes = append(nodes, newNode) // Append the Node (type asserted from interface{})
+							}
 						}
 					}
 

@@ -41,7 +41,7 @@ module metis{
 			}
 		}
 
-		if (initArgs["Device"].toLowerCase().indexOf("chrome") == -1){ // If the device in nature utilizes LocalStorage
+		if (metis.Device.toLowerCase().indexOf("chrome") == -1){ // If the device in nature utilizes LocalStorage
 			metis.DeviceIO = metis.devices.web; // Set the device to the metis.devices.web
 		}
 		else{ // If we are utilizing Chrome, Chrome OS, etc.
@@ -54,6 +54,7 @@ module metis{
 
 		if (typeof initArgs["Callback"] == "string"){ // If a Callback is defined as a string
 			metis.Headless = false; // Set Headless to false
+			metis.Callback = initArgs["Callback"]; // Set the metis.Callback to the callback provided
 			metis.scheduler.Init(); // Initialize the IO Queue System
 		}
 	}

@@ -34,7 +34,7 @@ module metis.file {
 		var uniqueIOObject : UniqueIOObject = { // Create an Object to hold information regarding our IO request, which gets stored to metis.file.currentIO and read by the appropriate device
 			"NodeData" : apiRequestObject.NodeData, // Parsed form of the Node Data defined
 			"Action" : apiRequestObject.Action, // Action
-			"ContentOrDestinationNodes" : apiRequestObject.ContentOrDestinationNodes,
+			"Content" : apiRequestObject.Content,
 			"PendingFiles" : apiRequestObject.Files, // Files we are doing IO to
 			"CompletedFiles" : {}, // Completed IO Object
 			"Callback" : apiRequestObject.Callback, // The function defined for the IO. This is optional.

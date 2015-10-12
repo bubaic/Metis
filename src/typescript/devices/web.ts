@@ -32,10 +32,10 @@ module metis.devices.web{
 
 			if ((fileAction == "w") || (fileAction == "a")){ // If we are writing or appending file content to LocalStorage
 				if ((fileAction == "a") && (typeof localFileContent["error"] !== "string")){ // If we are appending content to a file that does exist
-					uniqueIOObject.ContentOrDestinationNodes = metis.file.Merge(localFileContent, uniqueIOObject.ContentOrDestinationNodes); // Update ContentOrDestinationNodes to the updated and merged content
+					uniqueIOObject.Content = metis.file.Merge(localFileContent, uniqueIOObject.Content); // Update ContentOrDestinationNodes to the updated and merged content
 				}
 
-				localStorage.setItem(fileName, JSON.stringify(uniqueIOObject.ContentOrDestinationNodes)); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
+				localStorage.setItem(fileName, JSON.stringify(uniqueIOObject.Content)); // Create a new file in LocalStorage or update the existing one (based on the uniqueIOObject key/val)
 			}
 			else if (fileAction == "d") { // If we are going to be deleting files
 				localStorage.removeItem(fileName); // Remove the file from LocalStorage

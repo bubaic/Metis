@@ -18,7 +18,7 @@ module metis.scheduler{
 				"Files" : "scheduler",
 				"Callback" : function(completedIO : Object){
 					if (completedIO["scheduler"]["status"] == false){ // If the scheduler file does not exist
-						metis.file.IO({"NodeData" : "internal", "Action" : "w", "Files" : "scheduler", "ContentOrDestinationNodes" : {}}); // Create an empty scheduler file
+						metis.file.IO({"NodeData" : "internal", "Action" : "w", "Files" : "scheduler", "Content" : {}}); // Create an empty scheduler file
 					}
 				}
 			}
@@ -46,10 +46,10 @@ module metis.scheduler{
 					for (var fileName in scheduler) { // For each file
 						var nodeData : string = scheduler[fileName]["NodeData"]; // Get the stringified nodeData
 						var fileAction : string = scheduler[fileName]["Action"]; // Get the requested fileAction
-						var contentOrDestinationNodes : any = scheduler[fileName]["ContentOrDestinationNodes"]; // Get either undefined, content for w/a, or an array of nodes for rp
+						var content : any = scheduler[fileName]["Content"]; // Get either undefined, content for w/a, or an array of nodes for rp
 
 						if (metis.Online){
-							metis.file.IO({"NodeData" : nodeData, "Action" : fileAction, "Files": fileName, "ContentOrDestinationNodes" : contentOrDestinationNodes});
+							metis.file.IO({"NodeData" : nodeData, "Action" : fileAction, "Files": fileName, "Content" : content});
 							delete scheduler[fileName]; // Delete the file from scheduler.
 						}
 						else{
@@ -57,7 +57,7 @@ module metis.scheduler{
 						}
 					}
 
-					metis.file.IO({"NodeData" : "internal", "Action" : "u", "Files" : "scheduler", "ContentOrDestinationNodes" : scheduler}); // Update the scheduler content
+					metis.file.IO({"NodeData" : "internal", "Action" : "u", "Files" : "scheduler", "Content" : scheduler}); // Update the scheduler content
 				}
 			}
 		);
@@ -87,13 +87,13 @@ module metis.scheduler{
 						};
 
 						if (relatedIOObject.Action == ("w" || "a")) { // If we are writing or appending content
-							fileIOObject.ContentOrDestinationNodes = relatedIOObject.ContentOrDestinationNodes; // Set the ContentOrDestinationNodes
+							fileIOObject.Content = relatedIOObject.Content; // Set the ContentOrDestinationNodes
 						}
 
 						scheduler[fileName] = fileIOObject; // Assign fileIOObject to the fileName
 					}
 
-					metis.file.IO({"NodeData" : "internal","Action" : "u", "Files" : "scheduler", "ContentOrDestinationNodes" : scheduler}); // Update the scheduler content
+					metis.file.IO({"NodeData" : "internal","Action" : "u", "Files" : "scheduler", "Content" : scheduler}); // Update the scheduler content
 				},
 				"CallbackData" : {
 					"uniqueIOObject" : uniqueIOObject // Add the related IO ID that we got from metis.cloud.Handler
