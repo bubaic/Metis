@@ -13,14 +13,15 @@ type Config struct {
 // #region APIRequest Structure
 
 type APIRequest struct {
-	NodeData, Action string
+	NodeData interface{}
+	Action string
 	Content          interface{}
 	Files            []string
 }
 
 // #endregion
 
-// #region ErrorResponse SStructure
+// #region ErrorResponse Structure
 
 type ErrorResponse struct {
 	Error string
