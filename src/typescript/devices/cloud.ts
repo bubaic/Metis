@@ -44,7 +44,7 @@ module metis.devices.cloud {
 
 							uniqueIOObject.CompletedFiles[fileName] = fileContent; // Set the fileName in the completed section to the particular content we've defined
 
-							if ((uniqueIOObject.Action == "r") || (uniqueIOObject.Action == "a")){ // If we are reading or appending to files, get the content we have and store it locally. For appending, this makes sense if the server has content we didn't have before.
+							if ((uniqueIOObject.Action == "r") || (uniqueIOObject.Action == "u")){ // If we are reading or updating files, get the content we have and store it locally. For appending, this makes sense if the server has content we didn't have before.
 								if (typeof fileContent["error"] == "undefined"){ // If the response we got back was NOT an error
 									var newIOObject : APIRequest = { // Create a new Object to pass to metis.file.Handler
 										"NodeData" : "internal", // Set to internal so it'll skip XHR

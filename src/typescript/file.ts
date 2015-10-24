@@ -69,6 +69,11 @@ module metis.file {
 		metis.file.IO(apiRequest);
 	}
 
+	export function Exists(apiRequest : APIRequest){
+		apiRequest["Action"] = "e"; // Set action to e (exists)
+		metis.file.IO(apiRequest);
+	}
+
 	export function Write(apiRequest : APIRequest){
 		apiRequest["Action"] = "w"; // Set Action to w (write)
 		metis.file.IO(apiRequest);

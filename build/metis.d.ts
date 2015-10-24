@@ -31,6 +31,7 @@ declare module metis.file {
     function Decode(jsonString: string): Object;
     function ClearAll(): void;
     function Read(apiRequest: APIRequest): void;
+    function Exists(apiRequest: APIRequest): void;
     function Write(apiRequest: APIRequest): void;
     function Update(apiRequest: APIRequest): void;
     function Delete(apiRequest: APIRequest): void;

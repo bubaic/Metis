@@ -36,7 +36,7 @@ var metis;
                                 for (var fileName in remoteFileContent) {
                                     var fileContent = remoteFileContent[fileName];
                                     uniqueIOObject.CompletedFiles[fileName] = fileContent;
-                                    if ((uniqueIOObject.Action == "r") || (uniqueIOObject.Action == "a")) {
+                                    if ((uniqueIOObject.Action == "r") || (uniqueIOObject.Action == "u")) {
                                         if (typeof fileContent["error"] == "undefined") {
                                             var newIOObject = {
                                                 "NodeData": "internal",
@@ -103,7 +103,7 @@ var metis;
                 for (var _i = 0, _a = uniqueIOObject.PendingFiles; _i < _a.length; _i++) {
                     var fileName = _a[_i];
                     var localFileContent = { "success": true };
-                    if ((fileAction == "r") || (fileAction == "a")) {
+                    if ((fileAction == "r") || (fileAction == "u")) {
                         var fetchedContent = localStorage.getItem(fileName);
                         if (fetchedContent !== null) {
                             localFileContent = metis.file.Decode(fetchedContent);
@@ -112,7 +112,7 @@ var metis;
                             localFileContent = { "error": "file_doesnt_exist" };
                         }
                     }
-                    if ((fileAction == "w") || (fileAction == "a")) {
+                    if ((fileAction == "w") || (fileAction == "u")) {
                         if ((fileAction == "a") && (typeof localFileContent["error"] !== "string")) {
                             uniqueIOObject.Content = metis.file.Merge(localFileContent, uniqueIOObject.Content);
                         }
@@ -128,10 +128,15 @@ var metis;
                         }
                     }
                     var allowPoppingFile = false;
-                    if (((fileAction == "r") && (typeof localFileContent["error"] == "undefined")) || (fileAction == "e")) {
+                    if ((fileAction == "r") && (typeof localFileContent["error"] == "undefined")) {
                         allowPoppingFile = true;
                     }
-                    else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")) {
+                    else if (fileAction == "e") {
+                        if ((localFileContent["exists"]) || ((localFileContent["exists"] == false) && (metis.Headless))) {
+                            allowPoppingFile = true;
+                        }
+                    }
+                    else if ((fileAction == "w") || (fileAction == "u") || (fileAction == "d")) {
                         if (metis.Headless) {
                             allowPoppingFile = true;
                         }
@@ -287,6 +292,11 @@ var metis;
             metis.file.IO(apiRequest);
         }
         file.Read = Read;
+        function Exists(apiRequest) {
+            apiRequest["Action"] = "e";
+            metis.file.IO(apiRequest);
+        }
+        file.Exists = Exists;
         function Write(apiRequest) {
             apiRequest["Action"] = "w";
             metis.file.IO(apiRequest);
@@ -364,8 +374,8 @@ var metis;
                         var ioSuccessful;
                         var localFileContent = completedIO[fileName];
                         if (typeof localFileContent == "Object") {
-                            if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")) {
-                                if (fileAction == "a") {
+                            if ((fileAction !== "w") || (fileAction !== "d")) {
+                                if (fileAction == "u") {
                                     var contentOrDestinationNodes = uniqueIOObject.Content;
                                     localFileContent = metis.file.Merge(localFileContent, contentOrDestinationNodes);
                                     chrome.storage.local.set({ fileName: localFileContent });
@@ -376,7 +386,7 @@ var metis;
                                 }
                             }
                             else {
-                                localFileContent = { "status": "0.00" };
+                                localFileContent = { "status": true };
                             }
                             ioSuccessful = true;
                         }
@@ -388,7 +398,7 @@ var metis;
                             if ((fileAction == "r") || (fileAction == "e")) {
                                 allowPoppingFile = true;
                             }
-                            else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")) {
+                            else if ((fileAction == "w") || (fileAction == "u") || (fileAction == "d")) {
                                 if (metis.Headless) {
                                     allowPoppingFile = true;
                                 }

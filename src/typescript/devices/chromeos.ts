@@ -31,8 +31,8 @@ module metis.devices.chromeos {
 				var localFileContent = completedIO[fileName]; // Get the potential fileContent (or it'll be an error)
 
 				if (typeof localFileContent == "Object"){ // If the fileContent is an Object
-					if ((fileAction == "r") || (fileAction == "a") || (fileAction == "e")){ // If we are doing anything that somehow relates to getting the file content
-						if (fileAction == "a"){ // If we were appending content
+					if ((fileAction !== "w") || (fileAction !== "d")){ // If we are not doing a write or delete
+						if (fileAction == "u"){ // If we are updating content
 							var contentOrDestinationNodes = uniqueIOObject.Content; // Get the contentOrDestinationNodes
 
 							localFileContent = metis.file.Merge(localFileContent, contentOrDestinationNodes); // Merge the JSON object from this uniqueIOObject and the read content
@@ -45,7 +45,7 @@ module metis.devices.chromeos {
 						}
 					}
 					else{ // If we were doing a write, deletion, etc.
-						localFileContent = { "status" : "0.00"}; // Add the successful code
+						localFileContent = { "status" : true }; // Add the successful code
 					}
 
 					ioSuccessful = true; // Set to successful
@@ -60,7 +60,7 @@ module metis.devices.chromeos {
 					if ((fileAction == "r") || (fileAction == "e")){ // If we were checking if the file was read or exists
 						allowPoppingFile = true; // Allow popping the file from the pending files
 					}
-					else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")){ // If we are writing, appending or deleting files
+					else if ((fileAction == "w") || (fileAction == "u") || (fileAction == "d")){ // If we are writing, updating or deleting files
 						if (metis.Headless){ // IF Headless mode is enabled
 							allowPoppingFile = true; // Allow popping the file from the pending files since we don't need to replicate the same actions to the server
 						}

@@ -19,7 +19,7 @@ module metis.devices.web{
 		for (var fileName of uniqueIOObject.PendingFiles){ // For each file in the IO Object's pending files
 			var localFileContent : Object = { "success" : true}; // The content (and potential object) of the local file. Default to a 0.00 "status" Object
 
-			if ((fileAction == "r") || (fileAction == "a")){ // If we are reading files or appending content to a file
+			if ((fileAction == "r") || (fileAction == "u")){ // If we are reading files or appending content to a file
 				var fetchedContent = localStorage.getItem(fileName); // Return the localStorage content or NULL
 
 				if (fetchedContent !== null){ // If the fetchedContent is NOT null, meaning we successfully fetched the file
@@ -30,7 +30,7 @@ module metis.devices.web{
 				}
 			}
 
-			if ((fileAction == "w") || (fileAction == "a")){ // If we are writing or appending file content to LocalStorage
+			if ((fileAction == "w") || (fileAction == "u")){ // If we are writing or appending file content to LocalStorage
 				if ((fileAction == "a") && (typeof localFileContent["error"] !== "string")){ // If we are appending content to a file that does exist
 					uniqueIOObject.Content = metis.file.Merge(localFileContent, uniqueIOObject.Content); // Update ContentOrDestinationNodes to the updated and merged content
 				}
@@ -50,10 +50,13 @@ module metis.devices.web{
 
 			var allowPoppingFile = false; // Default popFile to false
 
-			if (((fileAction == "r") && (typeof localFileContent["error"] == "undefined")) || (fileAction == "e")){ // If the file was successfully read or we were checking if the file exists
+			if ((fileAction == "r") && (typeof localFileContent["error"] == "undefined")){ // If the file was successfully read
 				allowPoppingFile = true; // Allow popping file from pending
-			}
-			else if ((fileAction == "w") || (fileAction == "a") || (fileAction == "d")){ // If we are writing, appending or deleting files
+			} else if (fileAction == "e"){ // If the fileAction is exists
+				if ((localFileContent["exists"]) || ((localFileContent["exists"] == false) && (metis.Headless))){ // If the file exists or doesn't and metis.Headless is true
+					allowPoppingFile = true; // Allow popping file from pending
+				}
+			} else if ((fileAction == "w") || (fileAction == "u") || (fileAction == "d")){ // If we are writing, updating or deleting files
 				if (metis.Headless){ // If Headless mode is enabled
 					allowPoppingFile = true; // Allow popping the file from the pending files since we don't need to replicate the same actions to the server
 				}
