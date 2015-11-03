@@ -10,10 +10,61 @@ import (
 	"net/http"
 	"os" // Still needed for exit
 	"strconv"
+	"strings"
 	"time"
 )
 
 var config Config // Define config as type Config
+
+// #region Metis HTTP Server Handler
+
+type metisHTTPHandler struct{}
+
+func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var response []byte                   // Define response as an array of bytes
+	var errorResponseObject ErrorResponse // Define eerrorResponseObject as an ErrorResponse
+
+	writer.Header().Set("Access-Control-Allow-Origin", "*") // Enable Access-Control-Allow-Origin
+
+	if request.Body != nil { // If the response has body content
+		var decodeError error                        // Define decodeError as a potential error given by decoding requester.Body
+		jsonDecoder := json.NewDecoder(request.Body) // Define jsonDecoder as a new JSON Decoder that uses the requester.Body io.ReadCloser
+
+		if strings.Contains(request.Host, strconv.Itoa(config.Port)) { // If the request is being made to the primary Metis port
+			if config.DisableRequestListening == false { // If we haven't disabled request listening
+				var apiRequestObject APIRequest                    // Define apiRequestObject as an APIRequest struct
+				decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
+
+				if decodeError == nil { // If there was no decode error
+					response, errorResponseObject = FileServe(apiRequestObject) // Serve the requester.Body to the FileServe func
+				}
+			} else { // If we have "disabled" request listening
+				writer.Header().Set("Status Code", strconv.Itoa(http.StatusServiceUnavailable)) // State the service is not available
+			}
+		} else if strings.Contains(request.Host, strconv.Itoa(config.PuppeteeringPort)) { // If the request is being made to the primary puppeteering port
+			var apiRequestObject PuppetAPIRequest              // Define apiRequestObject as a PuppetAPIRequest struct
+			decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
+
+			if decodeError == nil { // If there was no decode error
+				response, errorResponseObject = PuppetServe(apiRequestObject) // Serve the requester.Body to the PuppetServe func
+			}
+		} else { // If it doesn't contain either ports
+			errorResponseObject.Error = "invalid_location"
+		}
+
+		if decodeError != nil { // If there was a decodeError
+			errorResponseObject.Error = "invalid_json_content"
+		}
+	} else { // If the response does not have body content
+		errorResponseObject.Error = "no_json_provided"
+	}
+
+	if errorResponseObject.Error != "" { // If there was an rror
+		response, _ = json.Marshal(errorResponseObject) // Encode the errorResponseObject instead
+	}
+
+	writer.Write(response)
+}
 
 // #region Main
 
@@ -115,8 +166,14 @@ func main() {
 	}
 
 	if config.EnablePuppeteering { // If EnablePuppeteering is enabled
-		http.HandleFunc("/", metisPuppetServe)                              // Handle anything to / to metisPuppetServe func
-		http.ListenAndServe(":"+strconv.Itoa(config.PuppeteeringPort), nil) // Listen on puppeteering port
+		metisPuppetServer := http.Server{
+			Addr:         ":" + strconv.Itoa(config.PuppeteeringPort),
+			Handler:      &metisHTTPHandler{},
+			ReadTimeout:  time.Second * 3,
+			WriteTimeout: time.Second * 10,
+		}
+
+		metisPuppetServer.ListenAndServe()
 	}
 
 	// #endregion

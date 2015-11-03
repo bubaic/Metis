@@ -1,30 +1,31 @@
 package main
 
-// #region Config Structure
-
+// Config Structure
+// This structure reflects configuration options for Metis Server
 type Config struct {
-	EnablePuppeteering bool
-	Port               int
-	PuppeteeringPort   int
+	EnablePuppeteering      bool
+	Port                    int
+	PuppeteeringPort        int
+	DisableRequestListening bool
 }
 
-// #endregion
-
-// #region APIRequest Structure
-
+// APIRequest Structure
+// This structure reflects the file-serving APIRequest
 type APIRequest struct {
 	NodeData interface{}
-	Action string
-	Content          interface{}
-	Files            []string
+	Action   string
+	Content  interface{}
+	Files    []string
 }
 
-// #endregion
+// PuppetAPIRequest struct
+// This structure reflects the puppeteering APIRequest
+type PuppetAPIRequest struct {
+	Action  string
+	Content interface{}
+}
 
-// #region ErrorResponse Structure
-
+// ErrorResponse Structure
 type ErrorResponse struct {
 	Error string
 }
-
-// #endregion

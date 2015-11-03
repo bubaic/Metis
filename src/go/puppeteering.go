@@ -1,13 +1,16 @@
 package main
 
 import (
-    "net/http"
+//"net/http"
 )
 
 // #region Metis Puppeteering Server Handler
 
-func metisPuppetServe(writer http.ResponseWriter, requester *http.Request) {
-	writer.Write([]byte("Puppeteering not yet implemented."))
+func PuppetServe(puppetAPIRequest PuppetAPIRequest) ([]byte, ErrorResponse) {
+	var response []byte                   // Define response as array of byte
+	var errorResponseObject ErrorResponse // Define errorResponseObject as an ErrorResponse
+
+	return response, errorResponseObject
 }
 
 // #endregion
