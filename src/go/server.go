@@ -9,6 +9,7 @@ import (
 	"log/syslog"
 	"net/http"
 	"os" // Still needed for exit
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -83,6 +84,7 @@ func main() {
 
 	// #region Config and NodeList Reading
 
+	config.Root = filepath.Dir(configLocation)
 	configBytes, configReadError := ioutil.ReadFile(configLocation)   // Read the config file, assigning content to configBytes and any error to configReadError
 	nodeListBytes, nodeListError := ioutil.ReadFile(nodeListLocation) // Read the nodeList file, aassigning content to nodeListBytes and any error to nodeListError
 

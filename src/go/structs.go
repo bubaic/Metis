@@ -3,6 +3,7 @@ package main
 // Config Structure
 // This structure reflects configuration options for Metis Server
 type Config struct {
+	Root string
 	EnablePuppeteering      bool
 	Port                    int
 	PuppeteeringPort        int
@@ -21,8 +22,9 @@ type APIRequest struct {
 // PuppetAPIRequest struct
 // This structure reflects the puppeteering APIRequest
 type PuppetAPIRequest struct {
+	Key string
 	Action  string
-	Content interface{}
+	Content string
 }
 
 // ErrorResponse Structure
