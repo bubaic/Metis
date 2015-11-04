@@ -40,7 +40,7 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 					response, errorResponseObject = FileServe(apiRequestObject) // Serve the requester.Body to the FileServe func
 				}
 			} else { // If we have "disabled" request listening
-				writer.Header().Set("Status Code", strconv.Itoa(http.StatusServiceUnavailable)) // State the service is not available
+				errorResponseObject.Error = "service_unavailable"
 			}
 		} else if strings.Contains(request.Host, strconv.Itoa(config.PuppeteeringPort)) { // If the request is being made to the primary puppeteering port
 			var apiRequestObject PuppetAPIRequest              // Define apiRequestObject as a PuppetAPIRequest struct
