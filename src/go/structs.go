@@ -3,7 +3,7 @@ package main
 // Config Structure
 // This structure reflects configuration options for Metis Server
 type Config struct {
-	Root string
+	Root                    string
 	EnablePuppeteering      bool
 	Port                    int
 	PuppeteeringPort        int
@@ -22,7 +22,7 @@ type APIRequest struct {
 // PuppetAPIRequest struct
 // This structure reflects the puppeteering APIRequest
 type PuppetAPIRequest struct {
-	Key string
+	Key     string
 	Action  string
 	Content string
 }
@@ -31,3 +31,25 @@ type PuppetAPIRequest struct {
 type ErrorResponse struct {
 	Error string
 }
+
+// #region Puppet Responses
+
+// PuppetCacheResponse struct
+// This structure reflects what would be provided when returning the NodeList during caching
+type PuppetCacheResponse struct {
+	Content map[string]interface{}
+}
+
+// PuppetPushResponse struct
+// This structure reflects what would be provided when reutrning the response during pushing of the NodeList
+type PuppetPushResponse struct {
+	Content string
+}
+
+// PuppetStatusResponse struct
+// This structure reflects what would be provided when returning the status of the cluster
+type PuppetStatusResponse struct {
+	Content string
+}
+
+// #endregion

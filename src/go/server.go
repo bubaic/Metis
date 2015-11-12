@@ -33,7 +33,7 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		if strings.Contains(request.Host, strconv.Itoa(config.Port)) { // If the request is being made to the primary Metis port
 			if config.DisableRequestListening == false { // If we haven't disabled request listening
-				var apiRequestObject APIRequest                    // Define apiRequestObject as an APIRequest struct
+				var apiRequestObject APIRequest                     // Define apiRequestObject as an APIRequest struct
 				decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
 				if decodeError == nil { // If there was no decode error
@@ -43,7 +43,7 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				errorResponseObject.Error = "service_unavailable"
 			}
 		} else if strings.Contains(request.Host, strconv.Itoa(config.PuppeteeringPort)) { // If the request is being made to the primary puppeteering port
-			var apiRequestObject PuppetAPIRequest              // Define apiRequestObject as a PuppetAPIRequest struct
+			var apiRequestObject PuppetAPIRequest               // Define apiRequestObject as a PuppetAPIRequest struct
 			decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
 			if decodeError == nil { // If there was no decode error
