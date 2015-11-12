@@ -46,26 +46,25 @@ func PuppetServe(puppetAPIRequest PuppetAPIRequest) ([]byte, error) {
 					response, _ = json.Marshal(puppetStatusResponseObject) // Set the response to the encoding of the status response object
 				} else if puppetAPIRequest.Action == "cache" { // If we are caching the NodeList from the
 					response, _ = json.Marshal(PuppetCacheResponse{Content: metis.NodeList}) // Encode the NodeList into JSON and set response
-				} else if (puppetAPIRequest.Action == "update") && (puppetAPIRequest.Content != "") { // If we are updating the NodeList
+				} else if (puppetAPIRequest.Action == "push") && (puppetAPIRequest.Content != "") { // If we are updating the NodeList
 					puppetPushResponseObject := PuppetPushResponse{}
 					initializationSucceeded := metis.Initialize([]byte(puppetAPIRequest.Content)) // Re-initialize Metis with the updated content in byte array form
 
 					if initializationSucceeded { // If the initialization succeeded
 						puppetPushResponseObject.Content = "updated"
+						response, _ = json.Marshal(puppetPushResponseObject) // Encode the PuppetPushResponseObject
 					} else { // If the initialization did not succeed
-						puppetPushResponseObject.Content = "failed"
+						errorObject = errors.New("Metis Cluster failed to update.")
 					}
-
-					response, _ = json.Marshal(puppetPushResponseObject) // Encode the PuppetPushResponseObject
 				}
 			} else { // If the key isn't contained in the key list
-				errorObject = errors.New("invalid_key") // Create an error where the message is invalid_key
+				errorObject = errors.New("This key is not authorized to puppet this Cluster.")
 			}
 		} else { // If an Action is not provided
-			errorObject = errors.New("invalid_api_request")
+			errorObject = errors.New("Provided body was not a valid API request.")
 		}
 	} else { // If there was a keysError
-		errorObject = errors.New("no_keys_file")
+		errorObject = errors.New("No keys file exists on this Cluster.")
 	}
 
 	return response, errorObject
