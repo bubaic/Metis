@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/StroblIndustries/metis-pkg" // Import the core Metis code
 	"reflect"
 	"strings"
@@ -9,16 +10,16 @@ import (
 
 // #region Metis HTTP Server Handler
 
-func FileServe(apiRequestObject APIRequest) ([]byte, ErrorResponse) {
-	var response []byte                   // Define response as array of byte
-	var errorResponseObject ErrorResponse // Define errorResponseObject as an ErrorResponse
+func FileServe(apiRequestObject APIRequest) ([]byte, error) {
+	var response []byte   // Define response as array of byte
+	var errorObject error // Define errorObject as an error
 
 	if (apiRequestObject.NodeData != "") && (apiRequestObject.Action != "") && (len(apiRequestObject.Files) > 0) { // If this contains NodeData, an Action, and Files is an array with files
 		continueIO := true
 
 		if ((apiRequestObject.Action == "w") || (apiRequestObject.Action == "u")) && (apiRequestObject.Content == nil) { // If the action is write or update and NO content is provided
 			continueIO = false // Do not continue any sort of Initialization
-			errorResponseObject.Error = "no_content_provided"
+			errorObject = errors.New("no_content_provided")
 		}
 
 		if continueIO { // If we are continuing Initialization
@@ -84,19 +85,19 @@ func FileServe(apiRequestObject APIRequest) ([]byte, ErrorResponse) {
 					jsonResponseObject := metis.Manage(apiRequestObject.Action, nodes, apiRequestObject.Files, apiRequestObject.Content) // Call metis.Manage with the action, nodes, files, and any content. Returns map[string]interface{}
 					response, _ = json.Marshal(jsonResponseObject)                                                                       // Encode into JSON, assigning to response
 				} else { // If the length of nodes is zero
-					errorResponseObject.Error = "invalid_nodedata"
+					errorObject = errors.New("invalid_nodedata")
 				}
 			} else { // If the nodeGroupsSplit is length of zero
-				errorResponseObject.Error = "invalid_nodedata"
+				errorObject = errors.New("invalid_nodedata")
 			}
 
 			// #endregion
 		}
 	} else { // If it does not contain NodeData, Action, or Files
-		errorResponseObject.Error = "invalid_api_request"
+		errorObject = errors.New("invalid_api_request")
 	}
 
-	return response, errorResponseObject
+	return response, errorObject
 }
 
 // #endregion

@@ -28,6 +28,7 @@ type PuppetAPIRequest struct {
 }
 
 // ErrorResponse Structure
+// This structure reflects an error
 type ErrorResponse struct {
 	Error string
 }

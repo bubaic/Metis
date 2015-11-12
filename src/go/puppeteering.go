@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/StroblIndustries/metis-pkg"
 	"io/ioutil"
 	//"net/http"
@@ -10,9 +11,9 @@ import (
 
 // #region Metis Puppeteering Server Handler
 
-func PuppetServe(puppetAPIRequest PuppetAPIRequest) ([]byte, ErrorResponse) {
-	var response []byte                   // Define response as array of byte
-	var errorResponseObject ErrorResponse // Define errorResponseObject as an ErrorResponse
+func PuppetServe(puppetAPIRequest PuppetAPIRequest) ([]byte, error) {
+	var response []byte   // Define response as array of byte
+	var errorObject error // Define errorObject as an error
 
 	keysFileBytes, keysError := ioutil.ReadFile(config.Root + "/keys") // Read the keysFile if it exists, putting error as keysError
 
@@ -57,17 +58,17 @@ func PuppetServe(puppetAPIRequest PuppetAPIRequest) ([]byte, ErrorResponse) {
 
 					response, _ = json.Marshal(puppetPushResponseObject) // Encode the PuppetPushResponseObject
 				}
-			} else {
-				errorResponseObject.Error = "invalid_key"
+			} else { // If the key isn't contained in the key list
+				errorObject = errors.New("invalid_key") // Create an error where the message is invalid_key
 			}
 		} else { // If an Action is not provided
-			errorResponseObject.Error = "invalid_api_request"
+			errorObject = errors.New("invalid_api_request")
 		}
 	} else { // If there was a keysError
-		errorResponseObject.Error = "no_keys_file"
+		errorObject = errors.New("no_keys_file")
 	}
 
-	return response, errorResponseObject
+	return response, errorObject
 }
 
 // #endregion

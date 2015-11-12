@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/StroblIndustries/metis-pkg" // Import the core Metis code
@@ -22,8 +23,8 @@ var config Config // Define config as type Config
 type metisHTTPHandler struct{}
 
 func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	var response []byte                   // Define response as an array of bytes
-	var errorResponseObject ErrorResponse // Define eerrorResponseObject as an ErrorResponse
+	var response []byte   // Define response as an array of bytes
+	var errorObject error // Define errorObject as an error
 
 	writer.Header().Set("Access-Control-Allow-Origin", "*") // Enable Access-Control-Allow-Origin
 
@@ -37,31 +38,32 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
 				if decodeError == nil { // If there was no decode error
-					response, errorResponseObject = FileServe(apiRequestObject) // Serve the requester.Body to the FileServe func
+					response, errorObject = FileServe(apiRequestObject) // Serve the requester.Body to the FileServe func
 				}
 			} else { // If we have "disabled" request listening
-				errorResponseObject.Error = "service_unavailable"
+				errorObject = errors.New("service_unavailable") // Set an error that the Metis cluster is not available
 			}
 		} else if strings.Contains(request.Host, strconv.Itoa(config.PuppeteeringPort)) { // If the request is being made to the primary puppeteering port
 			var apiRequestObject PuppetAPIRequest               // Define apiRequestObject as a PuppetAPIRequest struct
 			decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
 			if decodeError == nil { // If there was no decode error
-				response, errorResponseObject = PuppetServe(apiRequestObject) // Serve the requester.Body to the PuppetServe func
+				response, errorObject = PuppetServe(apiRequestObject) // Serve the requester.Body to the PuppetServe func
 			}
 		} else { // If it doesn't contain either ports
-			errorResponseObject.Error = "invalid_location"
+			errorObject = errors.New("invalid_location")
 		}
 
 		if decodeError != nil { // If there was a decodeError
-			errorResponseObject.Error = "invalid_json_content"
+			errorObject = errors.New("invalid_json_content")
 		}
 	} else { // If the response does not have body content
-		errorResponseObject.Error = "no_json_provided"
+		errorObject = errors.New("no_json_provided")
 	}
 
-	if errorResponseObject.Error != "" { // If there was an rror
-		response, _ = json.Marshal(errorResponseObject) // Encode the errorResponseObject instead
+	if errorObject != nil { // If there was an error
+		errorResponseObject := ErrorResponse{Error: fmt.Sprintf("%v", errorObject)} // Create an errorResponseObject where the val is the value of the errorObject
+		response, _ = json.Marshal(errorResponseObject)                             // Encode the errorResponseObject instead
 	}
 
 	writer.Write(response)
