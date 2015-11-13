@@ -28,33 +28,25 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	writer.Header().Set("Access-Control-Allow-Origin", "*") // Enable Access-Control-Allow-Origin
 
 	if request.Body != nil { // If the response has body content
+		var apiRequestObject APIRequest                     // Define apiRequestObject as an APIRequest struct
 		var decodeError error                        // Define decodeError as a potential error given by decoding requester.Body
+
 		jsonDecoder := json.NewDecoder(request.Body) // Define jsonDecoder as a new JSON Decoder that uses the requester.Body io.ReadCloser
+		decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
-		var temporaryMap map[string]interface{} // Define temporaryMap as a temporary map that is only used to check if we're doing a file-serving call or puppet
-		jsonDecoder.Decode(&temporaryMap) // Decode into temporaryMap
-
-		if _, keyExists := temporaryMap["Key"]; !keyExists { // If this is a file-serving call
-			if config.DisableRequestListening == false { // If we haven't disabled request listening
-				var apiRequestObject APIRequest                     // Define apiRequestObject as an APIRequest struct
-				decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
-
-				if decodeError == nil { // If there was no decode error
+		if decodeError == nil { // If there was no error decoding the API Request
+			if apiRequestObject.Key == "" { // If this is a file-serving call
+				if config.DisableRequestListening == false { // If we haven't disabled request listening
 					response, errorObject = FileServe(apiRequestObject) // Serve the requester.Body to the FileServe func
+				} else { // If we have "disabled" request listening
+					errorObject = errors.New("service_unavailable") // Set an error that the Metis cluster is not available
 				}
-			} else { // If we have "disabled" request listening
-				errorObject = errors.New("service_unavailable") // Set an error that the Metis cluster is not available
-			}
-		} else { // If this is a puppet call
-			if config.EnablePuppeteering { // If puppeteering is enabled
-				var apiRequestObject PuppetAPIRequest               // Define apiRequestObject as a PuppetAPIRequest struct
-				decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
-
-				if decodeError == nil { // If there was no decode error
+			} else { // If this is a puppet call
+				if config.EnablePuppeteering { // If puppeteering is enabled
 					response, errorObject = PuppetServe(apiRequestObject) // Serve the requester.Body to the PuppetServe func
+				} else { // If puppeteering is not enabled
+					errorObject = errors.New("puppeteering_not_enabled")
 				}
-			} else { // If puppeteering is not enabled
-				errorObject = errors.New("puppeteering_not_enabled")
 			}
 		}
 

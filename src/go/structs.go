@@ -16,14 +16,9 @@ type APIRequest struct {
 	Action   string
 	Content  interface{}
 	Files    []string
-}
 
-// PuppetAPIRequest struct
-// This structure reflects the puppeteering APIRequest
-type PuppetAPIRequest struct {
+	// Puppet Request specific
 	Key     string
-	Action  string
-	Content string
 }
 
 // ErrorResponse Structure
