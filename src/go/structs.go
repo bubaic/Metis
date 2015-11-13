@@ -6,7 +6,6 @@ type Config struct {
 	Root                    string
 	EnablePuppeteering      bool
 	Port                    int
-	PuppeteeringPort        int
 	DisableRequestListening bool
 }
 

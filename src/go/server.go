@@ -3,16 +3,15 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/StroblIndustries/metis-pkg" // Import the core Metis code
+	"github.com/JoshStrobl/nflag" // Import nflag replacement for flag
 	"io/ioutil"
 	"log/syslog"
 	"net/http"
 	"os" // Still needed for exit
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -32,7 +31,10 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		var decodeError error                        // Define decodeError as a potential error given by decoding requester.Body
 		jsonDecoder := json.NewDecoder(request.Body) // Define jsonDecoder as a new JSON Decoder that uses the requester.Body io.ReadCloser
 
-		if strings.Contains(request.Host, strconv.Itoa(config.Port)) { // If the request is being made to the primary Metis port
+		var temporaryMap map[string]interface{} // Define temporaryMap as a temporary map that is only used to check if we're doing a file-serving call or puppet
+		jsonDecoder.Decode(&temporaryMap) // Decode into temporaryMap
+
+		if _, keyExists := temporaryMap["Key"]; !keyExists { // If this is a file-serving call
 			if config.DisableRequestListening == false { // If we haven't disabled request listening
 				var apiRequestObject APIRequest                     // Define apiRequestObject as an APIRequest struct
 				decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
@@ -43,15 +45,17 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			} else { // If we have "disabled" request listening
 				errorObject = errors.New("service_unavailable") // Set an error that the Metis cluster is not available
 			}
-		} else if strings.Contains(request.Host, strconv.Itoa(config.PuppeteeringPort)) { // If the request is being made to the primary puppeteering port
-			var apiRequestObject PuppetAPIRequest               // Define apiRequestObject as a PuppetAPIRequest struct
-			decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
+		} else { // If this is a puppet call
+			if config.EnablePuppeteering { // If puppeteering is enabled
+				var apiRequestObject PuppetAPIRequest               // Define apiRequestObject as a PuppetAPIRequest struct
+				decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
-			if decodeError == nil { // If there was no decode error
-				response, errorObject = PuppetServe(apiRequestObject) // Serve the requester.Body to the PuppetServe func
+				if decodeError == nil { // If there was no decode error
+					response, errorObject = PuppetServe(apiRequestObject) // Serve the requester.Body to the PuppetServe func
+				}
+			} else { // If puppeteering is not enabled
+				errorObject = errors.New("puppeteering_not_enabled")
 			}
-		} else { // If it doesn't contain either ports
-			errorObject = errors.New("invalid_location")
 		}
 
 		if decodeError != nil { // If there was a decodeError
@@ -74,13 +78,13 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 func main() {
 	// #region Configuration and Flag Setting
 
-	var configLocation string
-	var nodeListLocation string
+	nflag.Set("c", nflag.Flag{Descriptor : "Location of Metis config file", Type : "string", DefaultValue : "config/metis.json", AllowNothing : true }) // Set the config flag
+	nflag.Set("n", nflag.Flag{Descriptor : "Location of Metis nodeList file", Type : "string", DefaultValue : "config/nodeList.json", AllowNothing : true }) // Set the nodeList flag
 
-	flag.StringVar(&configLocation, "c", "config/metis.json", "Location of Metis config file")        // Define the config flag
-	flag.StringVar(&nodeListLocation, "n", "config/nodeList.json", "Location of Metis nodeList file") // Define the nodeList flag
+	nflag.Parse() // Parse the flags
 
-	flag.Parse() // Parse the flags
+	configLocation, _ := nflag.GetAsString("c") // Get the config location
+	nodeListLocation, _ := nflag.GetAsString("n") // Get the nodeList location
 
 	// #endregion
 
@@ -123,10 +127,6 @@ func main() {
 		config.Port = 4849 // Define as 4849
 	}
 
-	if config.PuppeteeringPort == 0 { // If no puppeteering port is defined in config
-		config.Port = 4850 // Define as 4850
-	}
-
 	// #endregion
 
 	// #region Metis Initialization
@@ -142,7 +142,7 @@ func main() {
 
 	// #endregion
 
-	// #region Metis HTTP and Puppeteering Servers
+	// #region Metis HTTP Server
 
 	metisServer := http.Server{
 		Addr:         ":" + strconv.Itoa(config.Port),
@@ -151,36 +151,15 @@ func main() {
 		WriteTimeout: time.Second * 10,
 	}
 
+	logMessage := "Starting Metis Server" // Our log message we provide syslog and stdout
+
+	fmt.Println(logMessage)
 	serveFail := metisServer.ListenAndServe() // Listen on designated port
 
-	logMessage := "Starting Metis HTTP Server: " // Our log message we provide syslog and stdout, appending logStatusString
-	logStatus := syslog.LOG_INFO                 // Set logStatus to LOG_INFO by Defaults
-	logStatusString := "OK"                      // Set status string to OK by default
-
-	if serveFail != nil { // If there was an error starting the server
-		logStatus = syslog.LOG_ERR // Log as ERR instead
-		logStatusString = "FAIL"   // Indicate failure
+	if serveFail != nil { // If we failed to start the server
+		metis.MessageLogger(syslog.LOG_ERR, logMessage+": FAILED") // Log the decode error
+		os.Exit(1)
 	}
-
-	metis.MessageLogger(logStatus, logMessage+logStatusString) // Log the message to the appropriate syslog status
-
-	if serveFail != nil {
-		fmt.Println(logMessage + logStatusString) // Print to stdout as well
-		os.Exit(1)                                // Immediately exit
-	}
-
-	if config.EnablePuppeteering { // If EnablePuppeteering is enabled
-		metisPuppetServer := http.Server{
-			Addr:         ":" + strconv.Itoa(config.PuppeteeringPort),
-			Handler:      &metisHTTPHandler{},
-			ReadTimeout:  time.Second * 3,
-			WriteTimeout: time.Second * 10,
-		}
-
-		metisPuppetServer.ListenAndServe()
-	}
-
-	// #endregion
 }
 
 // #endregion
