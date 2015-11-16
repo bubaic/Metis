@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/JoshStrobl/nflag"           // Import nflag replacement for flag
 	"github.com/StroblIndustries/metis-pkg" // Import the core Metis code
-	"github.com/JoshStrobl/nflag" // Import nflag replacement for flag
 	"io/ioutil"
 	"log/syslog"
 	"net/http"
@@ -28,10 +28,10 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	writer.Header().Set("Access-Control-Allow-Origin", "*") // Enable Access-Control-Allow-Origin
 
 	if request.Body != nil { // If the response has body content
-		var apiRequestObject APIRequest                     // Define apiRequestObject as an APIRequest struct
-		var decodeError error                        // Define decodeError as a potential error given by decoding requester.Body
+		var apiRequestObject APIRequest // Define apiRequestObject as an APIRequest struct
+		var decodeError error           // Define decodeError as a potential error given by decoding requester.Body
 
-		jsonDecoder := json.NewDecoder(request.Body) // Define jsonDecoder as a new JSON Decoder that uses the requester.Body io.ReadCloser
+		jsonDecoder := json.NewDecoder(request.Body)        // Define jsonDecoder as a new JSON Decoder that uses the requester.Body io.ReadCloser
 		decodeError = jsonDecoder.Decode(&apiRequestObject) // Decode the JSON into apiRequestObject, providing decode error to decodeErr
 
 		if decodeError == nil { // If there was no error decoding the API Request
@@ -70,31 +70,31 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 func main() {
 	// #region Configuration and Flag Setting
 
-	nflag.Set("c", nflag.Flag{Descriptor : "Location of Metis config file", Type : "string", DefaultValue : "config/metis.json", AllowNothing : true }) // Set the config flag
-	nflag.Set("n", nflag.Flag{Descriptor : "Location of Metis nodeList file", Type : "string", DefaultValue : "config/nodeList.json", AllowNothing : true }) // Set the nodeList flag
+	nflag.Set("c", nflag.Flag{Descriptor: "Location of Metis config file", Type: "string", DefaultValue: "config/metis.json", AllowNothing: true})      // Set the config flag
+	nflag.Set("n", nflag.Flag{Descriptor: "Location of Metis nodeList file", Type: "string", DefaultValue: "config/nodeList.json", AllowNothing: true}) // Set the nodeList flag
 
 	nflag.Parse() // Parse the flags
 
-	configLocation, _ := nflag.GetAsString("c") // Get the config location
-	nodeListLocation, _ := nflag.GetAsString("n") // Get the nodeList location
+	config.ConfigLocation, _ = nflag.GetAsString("c")   // Get the config location
+	config.NodeListLocation, _ = nflag.GetAsString("n") // Get the nodeList location
 
 	// #endregion
 
 	// #region Config and NodeList Reading
 
-	config.Root = filepath.Dir(configLocation)
-	configBytes, configReadError := ioutil.ReadFile(configLocation)   // Read the config file, assigning content to configBytes and any error to configReadError
-	nodeListBytes, nodeListError := ioutil.ReadFile(nodeListLocation) // Read the nodeList file, aassigning content to nodeListBytes and any error to nodeListError
+	config.Root = filepath.Dir(config.ConfigLocation)
+	configBytes, configReadError := ioutil.ReadFile(config.ConfigLocation)   // Read the config file, assigning content to configBytes and any error to configReadError
+	nodeListBytes, nodeListError := ioutil.ReadFile(config.NodeListLocation) // Read the nodeList file, aassigning content to nodeListBytes and any error to nodeListError
 
 	if (configReadError != nil) || (nodeListError != nil) { // If we couldn't find the config file or nodeList ffile
 		if configReadError != nil { // If we couldn't find the config file
-			configErrorMessage := "Could not find config at: " + configLocation
+			configErrorMessage := "Could not find config at: " + config.ConfigLocation
 			metis.MessageLogger(syslog.LOG_ERR, configErrorMessage) // Log the error
 			fmt.Println(configErrorMessage)                         // Print in stdout as well
 		}
 
 		if nodeListError != nil { // If we couldn't find the nodeList file
-			nodelistErrorMessage := "Could not find nodeList at: " + nodeListLocation
+			nodelistErrorMessage := "Could not find nodeList at: " + config.NodeListLocation
 			metis.MessageLogger(syslog.LOG_ERR, nodelistErrorMessage) // Log the error
 			fmt.Println(nodelistErrorMessage)                         // Print in stdout as well
 		}

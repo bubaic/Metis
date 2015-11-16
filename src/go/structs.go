@@ -7,6 +7,8 @@ type Config struct {
 	EnablePuppeteering      bool
 	Port                    int
 	DisableRequestListening bool
+	ConfigLocation          string
+	NodeListLocation        string
 }
 
 // APIRequest Structure
@@ -18,7 +20,7 @@ type APIRequest struct {
 	Files    []string
 
 	// Puppet Request specific
-	Key     string
+	Key string
 }
 
 // ErrorResponse Structure

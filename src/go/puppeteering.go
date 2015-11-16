@@ -49,9 +49,11 @@ func PuppetServe(puppetAPIRequest APIRequest) ([]byte, error) {
 					response, _ = json.Marshal(PuppetCacheResponse{Content: metis.NodeList}) // Encode the NodeList into JSON and set response
 				} else if (puppetAPIRequest.Action == "push") && (puppetApiRequestContentString != "") { // If we are updating the NodeList
 					puppetPushResponseObject := PuppetPushResponse{}
-					initializationSucceeded := metis.Initialize([]byte(puppetApiRequestContentString)) // Re-initialize Metis with the updated content in byte array form
+					nodeListBytes := []byte(puppetApiRequestContentString)     // Convert content string to []byte
+					initializationSucceeded := metis.Initialize(nodeListBytes) // Re-initialize Metis with the updated content in byte array form
 
 					if initializationSucceeded { // If the initialization succeeded
+						ioutil.WriteFile(config.NodeListLocation, nodeListBytes, 0755) // Update the NodeList on the server
 						puppetPushResponseObject.Content = "updated"
 						response, _ = json.Marshal(puppetPushResponseObject) // Encode the PuppetPushResponseObject
 					} else { // If the initialization did not succeed
