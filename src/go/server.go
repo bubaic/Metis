@@ -70,13 +70,37 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 func main() {
 	// #region Configuration and Flag Setting
 
-	nflag.Set("c", nflag.Flag{Descriptor: "Location of Metis config file", Type: "string", DefaultValue: "config/metis.json", AllowNothing: true})      // Set the config flag
-	nflag.Set("n", nflag.Flag{Descriptor: "Location of Metis nodeList file", Type: "string", DefaultValue: "config/nodeList.json", AllowNothing: true}) // Set the nodeList flag
+	setConfigLocationInOsEnv := true   // Set setConfigLocationInOsEnv to true by default
+	setNodeListLocationInOsEnv := true // Set setNodeListLocationInOsEnv to true by default
 
-	nflag.Parse() // Parse the flags
+	configLocationOsEnv := os.Getenv("metisConfigLocation")     // Get any OS environment value assigned to metisConfigLocation
+	nodelistLocationOsEnv := os.Getenv("metisNodeListLocation") // Get any OS environment value assigned to metisNodeListLocation
 
-	config.ConfigLocation, _ = nflag.GetAsString("c")   // Get the config location
-	config.NodeListLocation, _ = nflag.GetAsString("n") // Get the nodeList location
+	if configLocationOsEnv != "" { // If metisConfigLocation was defined in OS environment
+		config.ConfigLocation = configLocationOsEnv // Set ConfigLocation to configLocationOsEnv
+	} else { // If there was no OS environment value for the metisConfigLocation
+		nflag.Set("c", nflag.Flag{Descriptor: "Location of Metis config file", Type: "string", DefaultValue: "config/metis.json", AllowNothing: true}) // Set the config flag
+		setConfigLocationInOsEnv = false                                                                                                               // Change to false
+	}
+
+	if nodelistLocationOsEnv != "" { // If metisNodeListLocation was defined in OS environment
+		config.NodeListLocation = configLocationOsEnv // Set ConfigLocation to configLocationOsEnv
+	} else { // If there was no OS environment value for metisNodeListLocation
+		nflag.Set("n", nflag.Flag{Descriptor: "Location of Metis nodeList file", Type: "string", DefaultValue: "config/nodeList.json", AllowNothing: true}) // Set the nodeList flag
+		setNodeListLocationInOsEnv = false                                                                                                                  // Change to false
+	}
+
+	if (setConfigLocationInOsEnv == false) || (setNodeListLocationInOsEnv == false) { // If either the metisConfigLocation or metisNodeListLocation was not set in OS environment
+		nflag.Parse() // Parse the flags set via nflag
+
+		if setConfigLocationInOsEnv == false { // If config location was not set in OS environment
+			config.ConfigLocation, _ = nflag.GetAsString("c") // Get the config location
+		}
+
+		if setNodeListLocationInOsEnv == false { // If NodeList location was not set in OS environment
+			config.NodeListLocation, _ = nflag.GetAsString("n") // Get the nodeList location
+		}
+	}
 
 	// #endregion
 
