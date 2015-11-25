@@ -45,7 +45,20 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				if config.EnablePuppeteering { // If puppeteering is enabled
 					response, errorObject = PuppetServe(apiRequestObject) // Serve the requester.Body to the PuppetServe func
 				} else { // If puppeteering is not enabled
-					errorObject = errors.New("puppeteering_not_enabled")
+					puppetNotEnabledMessage := "Puppeteering is not enabled on this server."
+					requestCameFrom := " Puppeteering API Request came from "
+
+					xRealIPHeaderVal := request.Header.Get("X-Real-IP") // Get any real remote I.P. / addr passed by nginx (using commonly used proxy forwarding header appending)
+
+					if xRealIPHeaderVal == "" { // If this header doesn't exist
+						xRealIPHeaderVal = request.RemoteAddr // Change to using RemoteAddr from request
+					}
+
+					requestCameFrom += xRealIPHeaderVal // Append the xRealIPHeaderVal
+
+					errorObject = errors.New(puppetNotEnabledMessage)
+					fmt.Println(puppetNotEnabledMessage + requestCameFrom)                       // Output to STDOUT
+					metis.MessageLogger(syslog.LOG_ERR, puppetNotEnabledMessage+requestCameFrom) // Log as ERR as well
 				}
 			}
 		}
