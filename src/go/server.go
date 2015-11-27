@@ -78,6 +78,11 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	writer.Write(response)
 }
 
+// Init
+func init(){
+	nflag.Configure(nflag.ConfigOptions{ ProgramDescription: "Metis is an open source and highly robust JSON distributed database / storage solution." })
+}
+
 // #region Main
 
 func main() {
