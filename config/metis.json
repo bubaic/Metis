@@ -1,4 +1,5 @@
 {
+	"DataRootDirectory" : "/var/data/metis",
 	"EnablePuppeteering" : false,
 	"Port" : 4849
 }

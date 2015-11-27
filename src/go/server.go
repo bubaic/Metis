@@ -152,6 +152,10 @@ func main() {
 		os.Exit(1)                                                    // Exit as error
 	}
 
+	if config.DataRootDirectory == "" { // If no Data Root Directory is defined
+		config.DataRootDirectory = "/var/data/metis" // Set to /var/data/metis as default
+	}
+
 	if config.Port == 0 { // If no port is defined in config
 		config.Port = 4849 // Define as 4849
 	}
@@ -160,9 +164,10 @@ func main() {
 
 	// #region Metis Initialization
 
-	initializationSucceeded := metis.Initialize(nodeListBytes) // Initialize Metis with the nodeList, assigning bool initializationSucceeded. If it succeeds, it will change initializationSucceeded to true
+	metis.Configure(metis.MetisConfig{DataRootDirectory: config.DataRootDirectory}) // Pass along a metis MetisConfig struct with DataRootDirectory set to the server's DataRootDirectory
+	initializationSucceeded := metis.Initialize(nodeListBytes)                      // Initialize Metis with the nodeList, assigning bool initializationSucceeded. If it succeeds, it will change initializationSucceeded to true
 
-	if initializationSucceeded == false { // If initialization failed
+	if !initializationSucceeded { // If initialization failed
 		initializationErrorMessage := "Failed to initialize Metis."
 		metis.MessageLogger(syslog.LOG_ERR, initializationErrorMessage) // Log the decode error
 		fmt.Println(initializationErrorMessage)                         // Print in stdout as well
