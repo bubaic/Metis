@@ -79,8 +79,8 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 }
 
 // Init
-func init(){
-	nflag.Configure(nflag.ConfigOptions{ ProgramDescription: "Metis is an open source and highly robust JSON distributed database / storage solution." })
+func init() {
+	nflag.Configure(nflag.ConfigOptions{ProgramDescription: "Metis is an open source and highly robust JSON distributed database / storage solution."})
 }
 
 // #region Main
@@ -158,7 +158,7 @@ func main() {
 	}
 
 	if config.DataRootDirectory == "" { // If no Data Root Directory is defined
-		config.DataRootDirectory = "/var/data/metis" // Set to /var/data/metis as default
+		config.DataRootDirectory = "/etc/metis/data" // Set to /etc/metis/data as default
 	}
 
 	if config.Port == 0 { // If no port is defined in config
