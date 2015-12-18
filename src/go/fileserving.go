@@ -36,7 +36,7 @@ func FileServe(apiRequestObject APIRequest) ([]byte, error) {
 			}
 
 			if len(nodeGroupsSplit) != 0 { // If the length of nodeGroupsSplit is not zero
-				var nodes []metis.Node // Define nodes as an array of Node
+				var nodes []string // Define nodes as an array of strings
 
 				for _, nodeGroupString := range nodeGroupsSplit { // For each nodeGroupString in nodeGroupsSplit
 					nodesToGet := []string{}
@@ -57,26 +57,7 @@ func FileServe(apiRequestObject APIRequest) ([]byte, error) {
 
 					if len(nodesToGet) > 0 { // If there are nodes in nodesToGet
 						for _, node := range nodesToGet {
-							individualNodeInfo := metis.NodeList[node].(map[string]interface{})
-							newNode := metis.Node{}
-
-							nodeFolder := individualNodeInfo["Folder"]               // Get any Folder key/val of this Node
-							nodeAddress := individualNodeInfo["Address"]             // Get any Address key/val of this Node
-							nodeExternalNodes := individualNodeInfo["ExternalNodes"] // Get any ExternalNodes key/val of this Node
-
-							if nodeFolder != nil { // If a Folder key/val exists
-								newNode.Folder = nodeFolder.(string)
-							}
-
-							if nodeAddress != nil { // If a Node Address key/val exists
-								newNode.Address = nodeAddress.(string)
-							}
-
-							if nodeExternalNodes != nil { // If a Node ExternalNodes key/val exists
-								newNode.ExternalNodes = nodeExternalNodes.(string)
-							}
-
-							nodes = append(nodes, newNode) // Append the Node (type asserted from interface{})
+							nodes = append(nodes, node) // Append the node string
 						}
 					}
 				}
