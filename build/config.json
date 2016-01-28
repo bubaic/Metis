@@ -1,0 +1,1 @@
+{"Name":"Metis","ContentTypes":["go","html","typescript"],"Go":{"CompileFromRoot":false,"Branches":{"Metis":{"BinaryName":"server","DoInstall":false,"SourcesToInclude":["src/go/*.go"]}}},"LESS":{"Branches":null},"TypeScript":{"LibreJSLicense":"Apache-2.0","MinifyContent":true,"Target":"ES5","UniqueHash":false,"UseLibreJSHeader":true},"UsesTests":true}
