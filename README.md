@@ -25,7 +25,7 @@ We have news regarding Metis on the Strobl Industries' [Twitter](https://twitter
 
 ### Contributing
 
-You're more than welcome to [contribute](https://github.com/StroblIndustries/Metis/pulls), [report issues / bugs](https://github.com/StroblIndustries/Metis/issues) and discuss via our upcoming mailing list.
+This project leverages CodeUtils for development and adopts the CodeUtils Usage Spec. To learn how to contribute to this project and set up CodeUtils, read [here](https://github.com/StroblIndustries/CodeUtils/blob/master/CodeUtils-Usage-Spec.md).
 
 ### License
 
