@@ -29,18 +29,17 @@ func PuppetServe(puppetAPIRequest APIRequest) ([]byte, error) {
 					puppetStatusResponseObject := PuppetStatusResponse{}
 
 					if puppetApiRequestContentString == "get" { // If we are getting the status
+						puppetStatusResponseObject.Content = "active"
+
 						if config.DisableRequestListening { // If we have disabled request listening
 							puppetStatusResponseObject.Content = "disabled"
-						} else { // If we have not disabled request listening
-							puppetStatusResponseObject.Content = "active"
 						}
 					} else { // If Content was provided
-						if puppetApiRequestContentString == "enable" { // If we are enabling request listening
-							config.DisableRequestListening = false // Enable (not disable) request listening
+						config.DisableRequestListening = (puppetApiRequestContentString == "disable") // Disable request listening of content string is "disable"
+						puppetStatusResponseObject.Content = "disabled"
+
+						if config.DisableRequestListening { // If we are enabling request listening
 							puppetStatusResponseObject.Content = "active"
-						} else { // If we are disabling request listening
-							config.DisableRequestListening = true // Disable request listening
-							puppetStatusResponseObject.Content = "disabled"
 						}
 					}
 

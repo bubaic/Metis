@@ -1,9 +1,3 @@
-/*
-
- The following Typescript code is the Metis implementation of "Cloud" / server-based File IO.
-
- */
-/// <reference path="../file.ts" />
 var metis;
 (function (metis) {
     var devices;
@@ -85,13 +79,6 @@ var metis;
         })(cloud = devices.cloud || (devices.cloud = {}));
     })(devices = metis.devices || (metis.devices = {}));
 })(metis || (metis = {}));
-/*
-
- The following Typescript code is the Metis implementation of LocalStorage / browser-based File IO.
-
-*/
-/// <reference path="../metis.ts" />
-/// <reference path="cloud.ts" />
 var metis;
 (function (metis) {
     var devices;
@@ -156,15 +143,6 @@ var metis;
         })(web = devices.web || (devices.web = {}));
     })(devices = metis.devices || (metis.devices = {}));
 })(metis || (metis = {}));
-// These are interfaces used by Metis
-/*
-
- The following Typescript code is the IO Scheduler System of Metis
-
- */
-/// <reference path="metis.ts" />
-/// <reference path="file.ts" />
-/// <reference path="interfaces.ts" />
 var metis;
 (function (metis) {
     var scheduler;
@@ -246,21 +224,11 @@ var metis;
         scheduler_1.AddItem = AddItem;
     })(scheduler = metis.scheduler || (metis.scheduler = {}));
 })(metis || (metis = {}));
-/*
-
-    The following Typescript code is the File IO functionality of Metis
-
-*/
-/// <reference path="devices/web.ts" />
-/// <reference path="metis.ts" />
-/// <reference path="interfaces.ts" />
-/// <reference path="scheduler.ts" />
 var metis;
 (function (metis) {
     var file;
     (function (file) {
         function IO(apiRequestObject) {
-            // #region Node Data Parsing
             if (typeof apiRequestObject.NodeData === "number") {
                 apiRequestObject.NodeData = apiRequestObject.NodeData.toString();
             }
@@ -346,15 +314,6 @@ var metis;
         file.Merge = Merge;
     })(file = metis.file || (metis.file = {}));
 })(metis || (metis = {}));
-/*
-
- The following Typescript code is the Metis implementation of Chrome / ChromeOS's storage API.
- Since we do not utilize user interaction, chrome.filesystem would be the incorrect API.
-
- */
-/// <reference path="../file.ts" />
-/// <reference path="../interfaces.ts" />
-/// <reference path="../definitions/chrome.d.ts" />
 var metis;
 (function (metis) {
     var devices;
@@ -434,22 +393,9 @@ var metis;
         })(chromeos = devices.chromeos || (devices.chromeos = {}));
     })(devices = metis.devices || (metis.devices = {}));
 })(metis || (metis = {}));
-/*
-
- The following Typescript code is the aggregate module of Metis
-
- */
-/// <reference path="definitions/chrome.d.ts" />
-/// <reference path="definitions/cordova.d.ts" />
-/// <reference path="devices/chromeos.ts" />
-/// <reference path="devices/cloud.ts" />
-/// <reference path="devices/web.ts" />
-/// <reference path="file.ts" />
-/// <reference path="scheduler.ts" />
 var metis;
 (function (metis) {
     function Init(initArgs) {
-        // #region Arguments Parser / Default(er)
         metis.Device = "Web";
         if (typeof initArgs["Device"] == "string") {
             metis.Device = initArgs["Device"];

@@ -36,7 +36,7 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		if decodeError == nil { // If there was no error decoding the API Request
 			if apiRequestObject.Key == "" { // If this is a file-serving call
-				if config.DisableRequestListening == false { // If we haven't disabled request listening
+				if !config.DisableRequestListening { // If we haven't disabled request listening
 					response, errorObject = FileServe(apiRequestObject) // Serve the requester.Body to the FileServe func
 				} else { // If we have "disabled" request listening
 					errorObject = errors.New("service_unavailable") // Set an error that the Metis cluster is not available
@@ -108,14 +108,14 @@ func main() {
 		setNodeListLocationInOsEnv = false                                                                                                                  // Change to false
 	}
 
-	if (setConfigLocationInOsEnv == false) || (setNodeListLocationInOsEnv == false) { // If either the metisConfigLocation or metisNodeListLocation was not set in OS environment
+	if !setConfigLocationInOsEnv || !setNodeListLocationInOsEnv { // If either the metisConfigLocation or metisNodeListLocation was not set in OS environment
 		nflag.Parse() // Parse the flags set via nflag
 
-		if setConfigLocationInOsEnv == false { // If config location was not set in OS environment
+		if !setConfigLocationInOsEnv { // If config location was not set in OS environment
 			config.ConfigLocation, _ = nflag.GetAsString("c") // Get the config location
 		}
 
-		if setNodeListLocationInOsEnv == false { // If NodeList location was not set in OS environment
+		if !setNodeListLocationInOsEnv { // If NodeList location was not set in OS environment
 			config.NodeListLocation, _ = nflag.GetAsString("n") // Get the nodeList location
 		}
 	}
