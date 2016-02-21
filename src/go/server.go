@@ -169,8 +169,8 @@ func main() {
 
 	// #region Metis Initialization
 
-	metis.Configure(metis.MetisConfig{DataRootDirectory: config.DataRootDirectory}) // Pass along a metis MetisConfig struct with DataRootDirectory set to the server's DataRootDirectory
-	initializationSucceeded := metis.Initialize(nodeListBytes)                      // Initialize Metis with the nodeList, assigning bool initializationSucceeded. If it succeeds, it will change initializationSucceeded to true
+	metis.Configure(metis.ConfigOptions{DataRootDirectory: config.DataRootDirectory}) // Pass along a metis MetisConfig struct with DataRootDirectory set to the server's DataRootDirectory
+	initializationSucceeded := metis.Initialize(nodeListBytes)                        // Initialize Metis with the nodeList, assigning bool initializationSucceeded. If it succeeds, it will change initializationSucceeded to true
 
 	if !initializationSucceeded { // If initialization failed
 		os.Exit(1)

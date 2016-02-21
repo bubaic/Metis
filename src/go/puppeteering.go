@@ -11,6 +11,7 @@ import (
 
 // #region Metis Puppeteering Server Handler
 
+// PuppetServe is for handling puppeteering API requests
 func PuppetServe(puppetAPIRequest APIRequest) ([]byte, error) {
 	var response []byte   // Define response as array of byte
 	var errorObject error // Define errorObject as an error
@@ -23,19 +24,19 @@ func PuppetServe(puppetAPIRequest APIRequest) ([]byte, error) {
 
 		if (puppetAPIRequest.Action != "") && (puppetAPIRequest.Key != "") { // If an Action and Key is provided
 			if CheckStringArray(keysList, puppetAPIRequest.Key) { // If the keysList contains the key
-				puppetApiRequestContentString := puppetAPIRequest.Content.(string) // Type inference to string
+				puppetAPIRequestContentString := puppetAPIRequest.Content.(string) // Type inference to string
 
 				if puppetAPIRequest.Action == "status" { // If we are getting or setting the status of the cluster
 					puppetStatusResponseObject := PuppetStatusResponse{}
 
-					if puppetApiRequestContentString == "get" { // If we are getting the status
+					if puppetAPIRequestContentString == "get" { // If we are getting the status
 						puppetStatusResponseObject.Content = "active"
 
 						if config.DisableRequestListening { // If we have disabled request listening
 							puppetStatusResponseObject.Content = "disabled"
 						}
 					} else { // If Content was provided
-						config.DisableRequestListening = (puppetApiRequestContentString == "disable") // Disable request listening of content string is "disable"
+						config.DisableRequestListening = (puppetAPIRequestContentString == "disable") // Disable request listening of content string is "disable"
 						puppetStatusResponseObject.Content = "disabled"
 
 						if config.DisableRequestListening { // If we are enabling request listening
@@ -46,9 +47,9 @@ func PuppetServe(puppetAPIRequest APIRequest) ([]byte, error) {
 					response, _ = json.Marshal(puppetStatusResponseObject) // Set the response to the encoding of the status response object
 				} else if puppetAPIRequest.Action == "cache" { // If we are caching the NodeList from the
 					response, _ = json.Marshal(PuppetCacheResponse{Content: metis.NodeList}) // Encode the NodeList into JSON and set response
-				} else if (puppetAPIRequest.Action == "push") && (puppetApiRequestContentString != "") { // If we are updating the NodeList
+				} else if (puppetAPIRequest.Action == "push") && (puppetAPIRequestContentString != "") { // If we are updating the NodeList
 					puppetPushResponseObject := PuppetPushResponse{}
-					nodeListBytes := []byte(puppetApiRequestContentString)     // Convert content string to []byte
+					nodeListBytes := []byte(puppetAPIRequestContentString)     // Convert content string to []byte
 					initializationSucceeded := metis.Initialize(nodeListBytes) // Re-initialize Metis with the updated content in byte array form
 
 					if initializationSucceeded { // If the initialization succeeded

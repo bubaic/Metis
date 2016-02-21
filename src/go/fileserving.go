@@ -10,6 +10,7 @@ import (
 
 // #region Metis HTTP Server Handler
 
+// FileServe is responsible for handling API requests and serving files
 func FileServe(apiRequestObject APIRequest) ([]byte, error) {
 	var response []byte   // Define response as array of byte
 	var errorObject error // Define errorObject as an error
