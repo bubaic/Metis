@@ -1,5 +1,5 @@
 {
-	"DataRootDirectory" : "/var/data/metis",
+	"DataRootDirectory" : "/etc/metis/data",
 	"EnablePuppeteering" : false,
 	"Port" : 4849
 }

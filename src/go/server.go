@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/JoshStrobl/nflag"           // Import nflag replacement for flag
 	"github.com/StroblIndustries/metis-pkg" // Import the core Metis code
 	"io/ioutil"
 	"log/syslog"
 	"net/http"
 	"os" // Still needed for exit
-	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -78,64 +76,49 @@ func (*metisHTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	writer.Write(response)
 }
 
-// Init
-func init() {
-	nflag.Configure(nflag.ConfigOptions{ProgramDescription: "Metis is an open source and highly robust JSON distributed database / storage solution."})
-}
-
 // #region Main
 
 func main() {
 	// #region Configuration and Flag Setting
 
-	setConfigLocationInOsEnv := true   // Set setConfigLocationInOsEnv to true by default
-	setNodeListLocationInOsEnv := true // Set setNodeListLocationInOsEnv to true by default
+	var configBytes []byte    // Byte array of the metis.json content
+	var nodeListBytes []byte  // Byte array of the nodeList.json content
+	var configReadErr error   // Error from reading metis.json
+	var nodeListReadErr error // Error from reading nodeList.json
 
-	configLocationOsEnv := os.Getenv("metisConfigLocation")     // Get any OS environment value assigned to metisConfigLocation
-	nodelistLocationOsEnv := os.Getenv("metisNodeListLocation") // Get any OS environment value assigned to metisNodeListLocation
+	etcFolder := "/etc/metis/"       // Define our etcFolder as /etc/metis/
+	usrFolder := "/usr/share/metis/" // Define our usrFolder as /usr/share/metis/
 
-	if configLocationOsEnv != "" { // If metisConfigLocation was defined in OS environment
-		config.ConfigLocation = configLocationOsEnv // Set ConfigLocation to configLocationOsEnv
-	} else { // If there was no OS environment value for the metisConfigLocation
-		nflag.Set("c", nflag.Flag{Descriptor: "Location of Metis config file", Type: "string", DefaultValue: "config/metis.json", AllowNothing: true}) // Set the config flag
-		setConfigLocationInOsEnv = false                                                                                                               // Change to false
+	config.ConfigLocation = etcFolder + "metis.json"      // Default to using /etc/metis for config, falls back to vendor /usr/share/metis if not found
+	config.NodeListLocation = etcFolder + "nodeList.json" // Default to using /etc/metis for nodeList, falls back to vendor /usr/share/metis if not found
+
+	if metis.IsDir(etcFolder, false) { // If /etc/metis/ exists
+		configBytes, configReadErr = ioutil.ReadFile(config.ConfigLocation)
+		nodeListBytes, nodeListReadErr = ioutil.ReadFile(config.NodeListLocation)
 	}
 
-	if nodelistLocationOsEnv != "" { // If metisNodeListLocation was defined in OS environment
-		config.NodeListLocation = configLocationOsEnv // Set ConfigLocation to configLocationOsEnv
-	} else { // If there was no OS environment value for metisNodeListLocation
-		nflag.Set("n", nflag.Flag{Descriptor: "Location of Metis nodeList file", Type: "string", DefaultValue: "config/nodeList.json", AllowNothing: true}) // Set the nodeList flag
-		setNodeListLocationInOsEnv = false                                                                                                                  // Change to false
+	if configReadErr != nil { // If there was an issue getting metis.json from /etc/metis
+		config.ConfigLocation = usrFolder + "metis.json"                    // Change to using usrFolder (vendor) for config
+		configBytes, configReadErr = ioutil.ReadFile(config.ConfigLocation) // Re-attempt read using usrFolder (vendor)
 	}
 
-	if !setConfigLocationInOsEnv || !setNodeListLocationInOsEnv { // If either the metisConfigLocation or metisNodeListLocation was not set in OS environment
-		nflag.Parse() // Parse the flags set via nflag
-
-		if !setConfigLocationInOsEnv { // If config location was not set in OS environment
-			config.ConfigLocation, _ = nflag.GetAsString("c") // Get the config location
-		}
-
-		if !setNodeListLocationInOsEnv { // If NodeList location was not set in OS environment
-			config.NodeListLocation, _ = nflag.GetAsString("n") // Get the nodeList location
-		}
+	if nodeListReadErr != nil { // If there was an issue getting nodeList.json from /etc/metis/
+		config.NodeListLocation = usrFolder + "nodeList.json" // Change to using usrFolder (vendor) for nodeList
+		nodeListBytes, nodeListReadErr = ioutil.ReadFile(config.NodeListLocation)
 	}
 
 	// #endregion
 
 	// #region Config and NodeList Reading
 
-	config.Root = filepath.Dir(config.ConfigLocation)
-	configBytes, configReadError := ioutil.ReadFile(config.ConfigLocation)   // Read the config file, assigning content to configBytes and any error to configReadError
-	nodeListBytes, nodeListError := ioutil.ReadFile(config.NodeListLocation) // Read the nodeList file, aassigning content to nodeListBytes and any error to nodeListError
-
-	if (configReadError != nil) || (nodeListError != nil) { // If we couldn't find the config file or nodeList ffile
-		if configReadError != nil { // If we couldn't find the config file
+	if (configReadErr != nil) || (nodeListReadErr != nil) { // If we couldn't find the config file or nodeList file
+		if configReadErr != nil { // If we couldn't find the config file
 			configErrorMessage := "Could not find config at: " + config.ConfigLocation
 			metis.MessageLogger(syslog.LOG_ERR, configErrorMessage) // Log the error
 			fmt.Println(configErrorMessage)                         // Print in stdout as well
 		}
 
-		if nodeListError != nil { // If we couldn't find the nodeList file
+		if nodeListReadErr != nil { // If we couldn't find the nodeList file
 			nodelistErrorMessage := "Could not find nodeList at: " + config.NodeListLocation
 			metis.MessageLogger(syslog.LOG_ERR, nodelistErrorMessage) // Log the error
 			fmt.Println(nodelistErrorMessage)                         // Print in stdout as well
@@ -158,7 +141,7 @@ func main() {
 	}
 
 	if config.DataRootDirectory == "" { // If no Data Root Directory is defined
-		config.DataRootDirectory = "/etc/metis/data" // Set to /etc/metis/data as default
+		config.DataRootDirectory = etcFolder + "/data" // Set to metis etcFolder + data as default
 	}
 
 	if config.Port == 0 { // If no port is defined in config

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/StroblIndustries/metis-pkg"
 	"io/ioutil"
-	//"net/http"
+	"path/filepath"
 	"strings"
 )
 
@@ -16,7 +16,7 @@ func PuppetServe(puppetAPIRequest APIRequest) ([]byte, error) {
 	var response []byte   // Define response as array of byte
 	var errorObject error // Define errorObject as an error
 
-	keysFileBytes, keysError := ioutil.ReadFile(config.Root + "/keys") // Read the keysFile if it exists, putting error as keysError
+	keysFileBytes, keysError := ioutil.ReadFile(filepath.Base(config.ConfigLocation) + "/keys") // Read the keysFile if it exists, putting error as keysError
 
 	if keysError == nil { // If there was no keysError
 		keysFile := string(keysFileBytes[:])      // Convert keysFileBytes to string

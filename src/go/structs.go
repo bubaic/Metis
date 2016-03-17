@@ -3,7 +3,6 @@ package main
 // Config Structure
 // This structure reflects configuration options for Metis Server
 type Config struct {
-	Root                    string
 	DataRootDirectory       string
 	EnablePuppeteering      bool
 	Port                    int
